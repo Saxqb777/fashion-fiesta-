@@ -2,7 +2,7 @@
 
 import { useActionState, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
-import { FileSpreadsheetIcon, MapPinIcon, PlusIcon, RulerIcon, Trash2Icon, UserRoundIcon, XIcon } from "lucide-react";
+import { FileSpreadsheetIcon, FileTextIcon, MapPinIcon, PlusIcon, RulerIcon, ScanTextIcon, Trash2Icon, UserRoundIcon, XIcon } from "lucide-react";
 import { getCustomerContext, saveOrder, saveQuote, type CustomerContext } from "@/actions/documents";
 import { ActionForm } from "@/components/form/action-form";
 import { FormMessage } from "@/components/form/field";
@@ -18,6 +18,7 @@ import { cn } from "cn";
 import { BulkImportDialog } from "./bulk-import";
 import { CustomerPicker } from "./customer-picker";
 import { MeasurementDialog, type MeasurementSet } from "./measurement-dialog";
+import { ReadDocumentDialog } from "./read-document";
 
 export type EditorAssignment = { key: string; taskId?: string | null; type: "tailor" | "unit"; assigneeId: string; qty: string; locked?: boolean };
 export type EditorLine = {
@@ -33,6 +34,8 @@ export type EditorLine = {
   measurementId: string;
   measurementLabel?: string | null;
   assignments: EditorAssignment[];
+  /** Set when the line came from Read their document: what to check before saving. */
+  fromDocument?: { issues: string[]; unsure: ("description" | "qty" | "unitPrice" | "branch")[] };
 };
 export type EditorInitial = {
   id?: string | null;
@@ -45,6 +48,7 @@ export type EditorInitial = {
   validUntil: string;
   notes: string;
   customerPoNumber?: string;
+  customerPoFile?: { url: string; name: string } | null;
   sourceQuoteId?: string | null;
   lines: EditorLine[];
 };
@@ -112,6 +116,8 @@ export function DocumentEditor({
   const [lines, setLines] = useState<EditorLine[]>(initial.lines.length ? initial.lines : [blankLine(initial.dueDate)]);
   const [measureFor, setMeasureFor] = useState<string | null>(null);
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [readOpen, setReadOpen] = useState(false);
+  const [poFile, setPoFile] = useState(initial.customerPoFile ?? null);
 
   const pickCustomer = (id: string | null) => {
     if (!id) {
@@ -144,6 +150,8 @@ export function DocumentEditor({
     notes,
     customerPoNumber: isOrder ? customerPo : "",
     sourceQuoteId: initial.sourceQuoteId ?? null,
+    customerPoFileUrl: poFile?.url ?? null,
+    customerPoFileName: poFile?.name ?? null,
     lines: lines.map((l) => ({
       id: l.id ?? null,
       productId: l.productId ?? null,
@@ -224,6 +232,18 @@ export function DocumentEditor({
             </div>
           )}
         </div>
+        {poFile ? (
+          <div className="flex items-center gap-2 self-start rounded-full border border-line bg-paper-deep/60 py-1 pr-1 pl-3 text-[14px]">
+            <FileTextIcon className="size-4 text-ink-muted" />
+            <span className="text-ink-muted">Customer PO file</span>
+            <a href={poFile.url} target="_blank" rel="noreferrer" className="max-w-[220px] truncate font-semibold hover:underline">
+              {poFile.name}
+            </a>
+            <Button type="button" variant="ghost" size="icon-sm" aria-label="Remove the Customer PO file" onClick={() => setPoFile(null)}>
+              <XIcon />
+            </Button>
+          </div>
+        ) : null}
       </section>
 
       <section className="flex flex-col gap-3">
@@ -260,8 +280,38 @@ export function DocumentEditor({
             <FileSpreadsheetIcon />
             Add lines from Excel
           </Button>
+          <Button type="button" variant="outline" onClick={() => setReadOpen(true)}>
+            <ScanTextIcon />
+            Read their document
+          </Button>
         </div>
       </section>
+
+      <ReadDocumentDialog
+        open={readOpen}
+        onOpenChange={setReadOpen}
+        mode={mode}
+        ctx={ctx}
+        products={products}
+        vatRateBp={vatRateBp}
+        header={{ date, dueDate, validUntil, notes }}
+        onApply={(doc) => {
+          const sameCustomer = ctx?.customer.id === doc.ctx.customer.id;
+          setCtx(doc.ctx);
+          setBranchId(doc.branchId ?? (sameCustomer ? branchId : ""));
+          const due = dueDate || doc.dueDate || "";
+          if (!dueDate && doc.dueDate) setDueDate(doc.dueDate);
+          // Replace the empty starter line; keep anything she already typed.
+          setLines((ls) => [
+            ...ls
+              .filter((l) => l.description.trim() || l.unitPrice || l.id)
+              .map((l) => (sameCustomer || !l.measurementId ? l : { ...l, measurementId: "" })),
+            ...doc.lines.map((l) => ({ ...l, dueDate: due })),
+          ]);
+          if (doc.customerPoNumber && !customerPo) setCustomerPo(doc.customerPoNumber);
+          setPoFile(doc.file);
+        }}
+      />
 
       <BulkImportDialog
         open={bulkOpen}
@@ -379,6 +429,10 @@ function LineCard({
   const assigned = line.assignments.reduce((s, a) => s + (toQty(a.qty) || 0), 0);
   const left = qty - assigned;
   const set = ctx?.measurements.find((m) => m.id === line.measurementId);
+  const doc = line.fromDocument;
+  const docUnsure = (f: "description" | "qty" | "unitPrice") => Boolean(doc?.unsure.includes(f));
+  /** A field she edits by hand is no longer in doubt. */
+  const settle = (f: "description" | "qty" | "unitPrice") => (doc ? { fromDocument: { ...doc, unsure: doc.unsure.filter((u) => u !== f) } } : {});
 
   const pickProduct = (p: Product) => {
     const price = ctx?.lastPrices[p.id] ?? p.priceFils;
@@ -387,7 +441,21 @@ function LineCard({
   };
 
   return (
-    <article className="rounded-[14px] border border-line bg-surface p-4 sm:p-5">
+    <article className={cn("rounded-[14px] border bg-surface p-4 sm:p-5", doc ? "border-sun" : "border-line")}>
+      {doc ? (
+        <div className="mb-3 flex flex-col gap-1.5">
+          <span className="inline-flex h-6 items-center self-start rounded-full border border-sun/70 bg-sun/20 px-2.5 text-[11px] font-bold tracking-wide uppercase">From document, check</span>
+          {doc.issues.length ? (
+            <ul className="flex flex-col gap-0.5 text-[13px]">
+              {doc.issues.map((m) => (
+                <li key={m} className={/^No |hard to read|add up/.test(m) ? "font-medium text-brand-deep" : "text-ink-muted"}>
+                  {m}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
       <div className="flex items-start gap-2">
         <span className="tabular mt-3 w-5 shrink-0 text-[13px] font-semibold text-ink-muted">{index + 1}</span>
         <div className="flex min-w-0 flex-1 flex-col gap-3">
@@ -397,14 +465,14 @@ function LineCard({
               onChange={(ev) => {
                 const v = ev.target.value;
                 const exact = products.find((p) => p.name.toLowerCase() === v.trim().toLowerCase());
-                onChange({ description: v, productId: exact?.id ?? null });
+                onChange({ description: v, productId: exact?.id ?? null, ...settle("description") });
                 setSuggest(true);
               }}
               onFocus={() => setSuggest(true)}
               onBlur={() => setTimeout(() => setSuggest(false), 150)}
               placeholder="What is it? School pinafore, abaya, alteration"
               aria-label={`Line ${index + 1} description`}
-              aria-invalid={e("description") ? true : undefined}
+              aria-invalid={e("description") || docUnsure("description") ? true : undefined}
               className="text-[16px] font-semibold"
             />
             {suggest && matches.length ? (
@@ -440,9 +508,9 @@ function LineCard({
               <Input
                 value={line.qty}
                 inputMode="numeric"
-                onChange={(ev) => onChange({ qty: ev.target.value.replace(/\D/g, "") })}
+                onChange={(ev) => onChange({ qty: ev.target.value.replace(/\D/g, ""), ...settle("qty") })}
                 aria-label={`Line ${index + 1} quantity`}
-                aria-invalid={e("qty") ? true : undefined}
+                aria-invalid={e("qty") || docUnsure("qty") || (doc && !qty) ? true : undefined}
                 className="tabular"
               />
             </div>
@@ -451,10 +519,10 @@ function LineCard({
               <Input
                 value={line.unitPrice}
                 inputMode="decimal"
-                onChange={(ev) => onChange({ unitPrice: ev.target.value.replace(/[^\d.]/g, "") })}
+                onChange={(ev) => onChange({ unitPrice: ev.target.value.replace(/[^\d.]/g, ""), ...settle("unitPrice") })}
                 placeholder="0.00"
                 aria-label={`Line ${index + 1} price before VAT`}
-                aria-invalid={e("unitPrice") ? true : undefined}
+                aria-invalid={e("unitPrice") || docUnsure("unitPrice") || (doc && !line.unitPrice) ? true : undefined}
                 className="tabular"
               />
             </div>

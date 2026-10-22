@@ -43,6 +43,13 @@
       "when": 1792670778537,
       "tag": "0005_money",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792675639416,
+      "tag": "0006_customer_po_file",
+      "breakpoints": true
     }
   ]
 }

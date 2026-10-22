@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { notFound } from "next/navigation";
-import { ChevronRightIcon, CopyIcon, MapPinIcon, PencilIcon } from "lucide-react";
+import { ChevronRightIcon, CopyIcon, FileTextIcon, MapPinIcon, PencilIcon } from "lucide-react";
 import { db } from "@/db";
 import { customerBranches, customers, deliveryNoteLines, deliveryNotes, fabrics, invoices, payments, quotes, salesOrders, soLines, taskPhotos, tasks } from "@/db/schema";
 import { SwooshStripe } from "@/components/brand/swoosh-stripe";
@@ -187,6 +187,18 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
             <CopyIcon />
             Order again
           </LinkButton>
+          {order.customerPoFileUrl ? (
+            <a
+              href={order.customerPoFileUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex h-9 items-center gap-1.5 rounded-full border border-line px-3 text-sm font-semibold hover:bg-paper-deep"
+              title={order.customerPoFileName ?? undefined}
+            >
+              <FileTextIcon className="size-4" />
+              Customer PO file
+            </a>
+          ) : null}
         </div>
       </header>
 

@@ -123,7 +123,7 @@ POS card terminal integration (provider to be confirmed), tailor attendance, Wha
 Status values: proposed, approved, built. Saaqib marks ideas approved. Build only approved ideas, in the phase they belong to. Never build a proposed idea without approval.
 Standing permission: small taste improvements (spacing, wording, micro animation, a smarter default) are allowed in any phase if they follow the Design system rules. Flag each one in the end of phase checklist.
 
-1. Paper in, record out. approved. Phase 3.5 for customer documents. Supplier delivery note photos stay with the other AI ideas after Phase 6. Effort: large.
+1. Paper in, record out. built for customer documents (Phase 3.5). Supplier delivery note photos stay approved, with the other AI ideas after Phase 6. Effort: large.
    What: upload a Customer PO or a customer's own quote (PDF, Excel, photo, WhatsApp screenshot, handwritten slip) and Claude turns it into a draft quote or order with lines to check; photo a supplier delivery note and it prefills the goods receipt. Nothing is saved until the owner confirms.
    Why: most orders start as a scribble. She checks instead of types.
 

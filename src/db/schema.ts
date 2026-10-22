@@ -252,6 +252,9 @@ export const quotes = pgTable(
     validUntil: date("valid_until"),
     status: quoteStatus("status").notNull().default("draft"),
     notes: text("notes"),
+    /** The customer's own document (their PO or quote) kept as a file. Set by Read their document. */
+    customerPoFileUrl: text("customer_po_file_url"),
+    customerPoFileName: text("customer_po_file_name"),
     subtotalFils: integer("subtotal_fils").notNull().default(0),
     vatFils: integer("vat_fils").notNull().default(0),
     totalFils: integer("total_fils").notNull().default(0),
@@ -289,6 +292,9 @@ export const salesOrders = pgTable(
     quoteId: uuid("quote_id"),
     /** The customer's own purchase order number. Called "Customer PO" in the app. */
     customerPoNumber: text("customer_po_number"),
+    /** The customer's own document (their PO or quote) kept as a file. Set by Read their document. */
+    customerPoFileUrl: text("customer_po_file_url"),
+    customerPoFileName: text("customer_po_file_name"),
     orderDate: date("order_date").notNull(),
     dueDate: date("due_date"),
     stage: orderStage("stage").notNull().default("confirmed"),

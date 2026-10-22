@@ -25,6 +25,7 @@ export async function initialForNewOrder(opts: { copy?: string; fromQuote?: stri
         branchId: quote.branchId ?? "",
         notes: quote.notes ?? "",
         sourceQuoteId: quote.id,
+        customerPoFile: quote.customerPoFileUrl ? { url: quote.customerPoFileUrl, name: quote.customerPoFileName ?? "Customer PO file" } : null,
         lines: lines.map((l) => ({
           key: k(),
           productId: l.productId,
@@ -96,6 +97,7 @@ export async function initialForOrderEdit(orderId: string): Promise<EditorInitia
     validUntil: "",
     notes: order.notes ?? "",
     customerPoNumber: order.customerPoNumber ?? "",
+    customerPoFile: order.customerPoFileUrl ? { url: order.customerPoFileUrl, name: order.customerPoFileName ?? "Customer PO file" } : null,
     lines: lines.map(
       (l): EditorLine => ({
         key: k(),
@@ -140,6 +142,7 @@ export async function initialForQuote(quoteId?: string, customer?: string): Prom
     dueDate: "",
     validUntil: quote.validUntil ?? "",
     notes: quote.notes ?? "",
+    customerPoFile: quote.customerPoFileUrl ? { url: quote.customerPoFileUrl, name: quote.customerPoFileName ?? "Customer PO file" } : null,
     lines: lines.map((l) => ({
       key: k(),
       productId: l.productId,

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { and, asc, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
-import { PencilIcon } from "lucide-react";
+import { FileTextIcon, PencilIcon } from "lucide-react";
 import { db } from "@/db";
 import { customerBranches, customers, quoteLines, quotes, salesOrders } from "@/db/schema";
 import { SwooshStripe } from "@/components/brand/swoosh-stripe";
@@ -74,8 +74,20 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
             </>
           ) : null}
         </div>
-        <div className="mt-3">
+        <div className="mt-3 flex flex-wrap items-center gap-2">
           <SendDoc {...send} />
+          {quote.customerPoFileUrl ? (
+            <a
+              href={quote.customerPoFileUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex h-9 items-center gap-1.5 rounded-full border border-line px-3 text-sm font-semibold hover:bg-paper-deep"
+              title={quote.customerPoFileName ?? undefined}
+            >
+              <FileTextIcon className="size-4" />
+              Customer PO file
+            </a>
+          ) : null}
         </div>
       </header>
 

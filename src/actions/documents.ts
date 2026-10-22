@@ -140,6 +140,20 @@ const docSchema = z.object({
     .optional()
     .transform((v) => (v ? v : null)),
   sourceQuoteId: uuidOrNull,
+  /** Only files this app stored from Read their document. */
+  customerPoFileUrl: z
+    .string()
+    .trim()
+    .optional()
+    .nullable()
+    .transform((v) => (v && /^https:\/\/[a-z0-9.-]+\.blob\.vercel-storage\.com\/documents\//i.test(v) ? v : null)),
+  customerPoFileName: z
+    .string()
+    .trim()
+    .max(200)
+    .optional()
+    .nullable()
+    .transform((v) => (v ? v : null)),
   lines: z.array(lineSchema).min(1, "Add at least one line."),
 });
 
@@ -203,6 +217,8 @@ async function persistQuote(doc: Doc, me: Owner): Promise<Persisted> {
     quoteDate: doc.date ?? todayISO(),
     validUntil: doc.validUntil,
     notes: doc.notes,
+    customerPoFileUrl: doc.customerPoFileUrl,
+    customerPoFileName: doc.customerPoFileUrl ? doc.customerPoFileName : null,
     ...totals,
   };
   const lineRows = lines.map((l) => ({
@@ -397,6 +413,8 @@ async function persistOrder(doc: Doc, intent: "draft" | "confirm", me: Owner): P
     dueDate: orderDue,
     notes: doc.notes,
     customerPoNumber: doc.customerPoNumber,
+    customerPoFileUrl: doc.customerPoFileUrl,
+    customerPoFileName: doc.customerPoFileUrl ? doc.customerPoFileName : null,
     ...totals,
     ...(wasDraft ? { number, quoteId, stage: savingDraft ? ("draft" as const) : ("confirmed" as const) } : {}),
   };

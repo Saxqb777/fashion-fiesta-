@@ -49,7 +49,7 @@ export default async function PurchaseOrdersPage({ searchParams }: { searchParam
       <PageHeader
         title="Purchases"
         actions={
-          <LinkButton href="/purchases/orders/new">
+          <LinkButton href="/purchases/orders/new" data-mission="new-po">
             <PlusIcon />
             New PO
           </LinkButton>

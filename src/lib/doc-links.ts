@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import { auth } from "./auth";
+import { isPractice, ownPhone } from "./practice";
 import { EMAIL_DOC_LABEL, emailHistory, emailReady, fillTemplate, templateFor } from "./email";
 import { publicBaseUrl } from "./public-url";
 import { getSettings } from "./settings";
@@ -12,9 +13,16 @@ export async function docLinks(type: ShareType, id: string, phone?: string | nul
   const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
   return {
     pdfUrl: `/api/pdf/${type}/${id}${query}`,
-    shareUrl: `${(await publicBaseUrl()) ?? `${proto}://${host}`}/d/${shareToken(type, id)}`,
+    shareUrl: `${(await publicBaseUrl()) ?? `${proto}://${host}`}/d/${shareToken(type, id, isPractice())}`,
     whatsapp: whatsappNumber(phone),
   };
+}
+
+/** In Practice, WhatsApp opens to the owner's own phone so nothing reaches a real customer. */
+async function practicePhone() {
+  if (!isPractice()) return undefined;
+  const session = await auth();
+  return session?.user?.id ? whatsappNumber(await ownPhone(session.user.id)) : null;
 }
 
 export type MailProps = {
@@ -56,6 +64,13 @@ export async function sendDocProps(
   id: string,
   opts: { phone?: string | null; email?: string | null; name?: string | null; title?: string; filename: string; message: string; query?: string },
 ) {
-  const [links, mail] = await Promise.all([docLinks(type, id, opts.phone, opts.query), mailProps(type, id, opts)]);
-  return { ...links, filename: `${opts.filename.replace(/[^\w.-]+/g, "-")}.pdf`, message: opts.message, mail };
+  const [links, mail, own] = await Promise.all([docLinks(type, id, opts.phone, opts.query), mailProps(type, id, opts), practicePhone()]);
+  return {
+    ...links,
+    ...(own !== undefined ? { whatsapp: own } : {}),
+    filename: `${opts.filename.replace(/[^\w.-]+/g, "-")}.pdf`,
+    message: opts.message,
+    mail,
+    doc: { type, id },
+  };
 }

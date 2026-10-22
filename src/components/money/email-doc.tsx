@@ -41,7 +41,7 @@ export function EmailDoc({ mail, size = "sm" }: { mail: MailProps; size?: "sm" |
         setError(res.error);
         return;
       }
-      toast.success(`Sent to ${to}`);
+      toast.success(document.querySelector('[data-practice="1"]') ? "Practice: logged as sent. Nothing left the app." : `Sent to ${to}`);
       setOpen(false);
       router.refresh();
     });

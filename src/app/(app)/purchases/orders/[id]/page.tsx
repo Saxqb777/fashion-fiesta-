@@ -89,7 +89,7 @@ export default async function PurchaseOrderPage({ params }: { params: Promise<{ 
         Review and confirm
       </LinkButton>
     ) : stage === "sent" ? (
-      <LinkButton href={`/purchases/orders/${id}/receive`} size="lg">
+      <LinkButton href={`/purchases/orders/${id}/receive`} size="lg" data-mission="receive">
         {outsourcing ? "Pieces came back" : "Receive goods"}
       </LinkButton>
     ) : stage === "received" ? (

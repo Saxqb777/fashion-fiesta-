@@ -4,9 +4,14 @@ loadEnv();
 
 async function main() {
   const { migrate } = await import("drizzle-orm/neon-http/migrator");
-  const { db } = await import("./index");
-  await migrate(db, { migrationsFolder: "drizzle" });
+  const { liveDb, practiceAvailable, practiceDb } = await import("./index");
+  await migrate(liveDb, { migrationsFolder: "drizzle" });
   console.log("Migrations applied.");
+  // The Practice sandbox keeps the same tables as Live.
+  if (practiceAvailable()) {
+    await migrate(practiceDb(), { migrationsFolder: "drizzle" });
+    console.log("Practice migrations applied.");
+  }
 }
 
 main().catch((error) => {

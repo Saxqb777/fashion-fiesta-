@@ -60,7 +60,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
       <PageHeader
         title="Orders"
         actions={
-          <LinkButton href="/orders/new">
+          <LinkButton href="/orders/new" data-mission="new-order">
             <PlusIcon />
             New order
           </LinkButton>

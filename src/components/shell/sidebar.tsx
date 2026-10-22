@@ -11,14 +11,17 @@ import { navForRole } from "./nav";
 export function Sidebar({
   user,
   signOut,
+  slot,
 }: {
   user: { name: string; role: UserRole };
   signOut: React.ReactNode;
+  /** Practice puts the missions card here, above the user box. */
+  slot?: React.ReactNode;
 }) {
   const pathname = usePathname();
   const groups = navForRole(user.role);
   return (
-    <aside className="sticky top-0 hidden h-screen w-[232px] shrink-0 flex-col border-r border-line bg-paper px-4 pt-6 pb-4 md:flex">
+    <aside className="sticky top-[var(--ribbon,0px)] hidden h-[calc(100vh-var(--ribbon,0px))] w-[232px] shrink-0 flex-col overflow-y-auto border-r border-line bg-paper px-4 pt-6 pb-4 md:flex">
       <Link href="/today" className="mb-1 block px-2" aria-label="Today">
         <Logo width={120} priority />
       </Link>
@@ -48,6 +51,7 @@ export function Sidebar({
           </ul>
         ))}
       </nav>
+      {slot ? <div className="mt-6">{slot}</div> : null}
       <div className="mt-6 flex items-center gap-3 rounded-[14px] border border-line bg-surface px-3 py-2.5">
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-ink">{user.name}</p>

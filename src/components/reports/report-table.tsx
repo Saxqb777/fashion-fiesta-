@@ -68,6 +68,9 @@ export function ExcelLink({ name, query }: { name: string; query?: string }) {
   return (
     <a
       href={`/api/reports/${name}${query ? `?${query}` : ""}`}
+      data-mission="excel"
+      data-track="excel"
+      data-track-ref={name}
       className="inline-flex h-10 items-center rounded-full border border-line bg-surface px-4 text-sm font-semibold text-ink hover:bg-paper-deep"
     >
       Download Excel

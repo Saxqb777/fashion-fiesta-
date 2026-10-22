@@ -64,7 +64,7 @@ export function ReceiveForm({ poId, lines, today, outsourcing }: { poId: string;
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-3">
-        <SubmitButton size="lg" pendingText="Saving">
+        <SubmitButton size="lg" pendingText="Saving" data-mission="receive">
           {outsourcing ? "Record pieces back" : "Record what arrived"}
         </SubmitButton>
         <LinkButton href={`/purchases/orders/${poId}`} variant="ghost" size="lg">

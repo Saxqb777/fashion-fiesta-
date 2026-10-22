@@ -15,6 +15,7 @@ import { EMPTY_FORM_STATE } from "@/lib/forms";
 import { formatFils } from "@/lib/money";
 import { lineAmountsCenti, parseCenti } from "@/lib/qty";
 import { cn } from "cn";
+import { PoExcelImport } from "./po-excel-import";
 import type { SupplierType } from "@/db/schema";
 
 export type PoSupplier = { id: string; name: string; type: SupplierType; trn: string | null };
@@ -156,10 +157,23 @@ export function PoEditor({
             onRemove={() => setLines((ls) => ls.filter((x) => x.key !== l.key))}
           />
         ))}
-        <Button type="button" variant="outline" className="self-start" onClick={() => setLines((ls) => [...ls, blank()])}>
-          <PlusIcon />
-          Add line
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" className="self-start" onClick={() => setLines((ls) => [...ls, blank()])}>
+            <PlusIcon />
+            Add line
+          </Button>
+          {outsourcing ? null : (
+            <PoExcelImport
+              fabrics={fabrics}
+              onAdd={(added) =>
+                setLines((ls) => [
+                  ...ls.filter((l) => l.description.trim() || l.qty.trim()),
+                  ...added.map((a) => ({ key: key(), fabricId: a.fabricId, description: a.description, unit: "m" as const, qty: a.qty, unitPrice: a.unitPrice })),
+                ])
+              }
+            />
+          )}
+        </div>
       </section>
 
       <section className="grid gap-4 sm:grid-cols-[1fr_320px]">
@@ -195,7 +209,7 @@ export function PoEditor({
             Save as draft
           </SubmitButton>
         ) : null}
-        <SubmitButton name="intent" value="confirm" size="lg" pendingText="Saving">
+        <SubmitButton name="intent" value="confirm" size="lg" pendingText="Saving" data-mission="confirm-po">
           {initial.isDraft ? "Confirm PO" : "Save changes"}
         </SubmitButton>
         {initial.isDraft ? <p className="w-full text-right text-[12px] text-ink-muted">Confirm gives it an FF-PO number so you can send it to the supplier.</p> : null}

@@ -1,5 +1,5 @@
 import { and, desc, eq } from "drizzle-orm";
-import { db } from "@/db";
+import { db, dbMode } from "@/db";
 import { emailLog, users } from "@/db/schema";
 import type { ShareType } from "./share";
 
@@ -33,7 +33,7 @@ export function fillTemplate(text: string, vars: Record<string, string>) {
   return text.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? vars[k] : m));
 }
 
-export const emailReady = () => Boolean(process.env.RESEND_API_KEY && process.env.EMAIL_DOMAIN);
+export const emailReady = () => dbMode() === "practice" || Boolean(process.env.RESEND_API_KEY && process.env.EMAIL_DOMAIN);
 
 export const EMAIL_RE = /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/;
 
@@ -77,6 +77,8 @@ export async function sendEmail(input: {
   shop: string;
   attachment?: { filename: string; content: Buffer };
 }): Promise<SendResult> {
+  // Practice never emails anyone. The send is logged as if it went, so the screens behave the same.
+  if (dbMode() === "practice") return { ok: true, id: `practice-${Date.now()}` };
   const key = process.env.RESEND_API_KEY;
   const domain = process.env.EMAIL_DOMAIN;
   if (!key || !domain) return { ok: false, error: "Email is not connected yet." };

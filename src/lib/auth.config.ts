@@ -33,10 +33,14 @@ export const authConfig = {
         token.role = user.role;
         token.name = user.name;
         token.email = user.email;
+        token.practice = Boolean(user.practice);
+        token.practiceOnly = Boolean(user.practiceOnly);
       }
       if (trigger === "update" && session?.user) {
         token.name = session.user.name ?? token.name;
         token.email = session.user.email ?? token.email;
+        // Only owners switch. A practice tailor login can never reach Live.
+        if (typeof session.user.practice === "boolean" && token.role === "owner" && !token.practiceOnly) token.practice = session.user.practice;
       }
       return token;
     },
@@ -45,6 +49,8 @@ export const authConfig = {
       session.user.role = (token.role as UserRole | undefined) ?? "tailor";
       session.user.name = token.name ?? session.user.name;
       session.user.email = token.email ?? session.user.email;
+      session.user.practice = Boolean(token.practice);
+      session.user.practiceOnly = Boolean(token.practiceOnly);
       return session;
     },
   },

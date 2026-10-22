@@ -4,8 +4,8 @@ Newest at top. Keep under 150 lines. Rules for this file are in CLAUDE.md under 
 
 ## Where we are (2026-10-22)
 - Live: https://fashion-fiesta-three.vercel.app (Vercel production, deploys from main)
-- Done and live: Phases 0 to 6 (6 shipped 2026-10-22, checklist sent).
-- Next: Phase 7 (demo seed, handover notes), then Fiesta (idea 45), then the Tax tab (25 to 28). Post a plan and wait for "go".
+- Done and live: Phases 0 to 7 (7, Practice mode and missions, shipped 2026-10-22, checklist sent).
+- Next: Fiesta (idea 45), then the Tax tab (25 to 28). Post a plan and wait for "go".
 - Email is built but waits on the Resend API key from Saaqib, then the DNS records.
 - Domain: Saaqib adds the CNAME after everything is live (record is under Open questions).
 - Phase 4.5 Key Account mode shipped 2026-10-22. Bedashing is a key account with 24 unverified branches on production. Checklist sent.
@@ -19,6 +19,15 @@ Newest at top. Keep under 150 lines. Rules for this file are in CLAUDE.md under 
 
 ## Half done
 - Nothing.
+
+## How Phase 7 works (for later phases)
+- Two databases on the Neon project: neondb (Live) and practice (sandbox). `db` from "@/db" picks per request: the proxy reads the signed session and sets header x-ff-db (browser values are stripped); dbMode() reads it from Next's request store. withDb("practice" | "live", fn) forces one; liveDb is always Live.
+- Logins always check Live first. Practice tailor logins (ahmed@ / imran@ / sajid@practice.ff, password practice1) exist only in the sandbox and can never reach Live. Real tailors always stay on Live.
+- Owner mode is in the JWT and users.practice_mode (Live). Switching reloads the page fully.
+- Reset practice = buildSandbox() in lib/practice/seed.ts: truncates the sandbox, copies settings, owners, customers, branches, master data from Live, then seeds about 60 orders and 3 months of money relative to today. Takes about 5 seconds. Mission progress lives in the sandbox, so a reset clears it.
+- Missions: words in lib/practice/missions-data.ts, checks in lib/practice/index.ts. Ticks come from sandbox data or practice_events (taps marked data-track, page views). Buttons to glow carry data-mission.
+- In Practice: emails are logged as sent but never leave; WhatsApp opens to the owner's own phone (users.phone, else shop phone; both empty today, so it opens the WhatsApp picker); share links carry a practice flag and open the sandbox copy.
+- Migrations run on both databases during the build. New tables must work in both.
 
 ## How Phase 6 works (for later phases)
 - notify(to, note) in lib/notify.ts: one row per user in notifications, then web push after the response. Dead push subscriptions are removed on 404/410.
@@ -44,6 +53,8 @@ Newest at top. Keep under 150 lines. Rules for this file are in CLAUDE.md under 
 - Agreed prices (account_items) beat last price when she picks the item.
 
 ## Decisions (newest first)
+- 2026-10-22 Phase 7 build: on a laptop the missions card sits inside the sidebar so it never covers a button; on a phone it starts folded as a pill. Seeded photos are drawn illustrations (no stock photos). Fabric mission uses the new Add lines from Excel on the PO screen.
+- 2026-10-22 Phase 7 go: Phase 7 is now Practice mode and missions (CLAUDE.md roadmap updated). Practice is a second Neon database "practice" on the same project. Real tailors always stay on Live; tailor missions use practice only tailor logins. The PO screen gets "Add lines from Excel" for mission 9. Reset practice also clears mission progress.
 - 2026-10-22 Phase 6 build: Reports tabs are Who owes you, Sales, Profit, VAT, Tailors, Customers. Settings got an Email tab. The "Soon" and Phase badges were removed from the menu, since every section is now built.
 - 2026-10-22 Phase 6 answers: email is sent from an address on fashionfiestauae.com through Resend, with replies going to the owner's Gmail. Ideas 19, 20, 21, 22 and 42 approved; push notifications go to owners and tailors. The VAT period is calendar quarters by default, with the start month as a setting in Settings, Money (Saaqib confirms it from the FTA certificate).
 - 2026-10-22: Opening bank balance added next to opening cash (Settings, Opening balances). It seeds the cash book's Bank pot. Reason: card and transfer money made the bank go negative without a start figure.
@@ -82,6 +93,7 @@ Newest at top. Keep under 150 lines. Rules for this file are in CLAUDE.md under 
 - 40 customers were seeded into production by a one time script. Bedashing has the note "Key account, Phase 4.5".
 
 ## Open questions for Saaqib
+- Owner phone numbers are empty, so Practice WhatsApp opens the contact picker instead of his own chat. Add a phone in Settings, Team.
 - Resend account and API key (Saaqib creates it). Then I store it in Vercel, register fashionfiestauae.com via the API and give one DNS table with the studio CNAME. Nothing else to build: sending switches on by itself.
 - Real VAT tax period start month, from the FTA certificate.
 - Add the DNS record for studio.fashionfiestauae.com: CNAME, name "studio", value 94f92b8040c50980.vercel-dns-016.com. Then tell me to confirm it is live.
@@ -93,6 +105,6 @@ Newest at top. Keep under 150 lines. Rules for this file are in CLAUDE.md under 
 - Vercel: project prj_grSCaYpWGqE93VbWkOQzahVzymA0, team team_yKuXQ8P3eoGrvRnTWMIqSiGo, region sin1.
 - Env vars are in Vercel for all three environments: DATABASE_URL, AUTH_SECRET, BLOB_READ_WRITE_TOKEN, ANTHROPIC_API_KEY, CRON_SECRET. They are never in git.
 - Cron: /api/cron/backup at 22:00 UTC.
-- Migrations live in /drizzle and run during build. The latest is 0013_notifications_email.
-- Vercel also has NEXT_PUBLIC_VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT, EMAIL_DOMAIN. RESEND_API_KEY to come.
+- Migrations live in /drizzle and run during build, on Live and Practice. The latest is 0014_practice.
+- Vercel also has NEXT_PUBLIC_VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT, EMAIL_DOMAIN, PRACTICE_DATABASE_URL. RESEND_API_KEY to come.
 - Careful: .env.local holds the production DATABASE_URL. For tests always export the branch URL after sourcing it.

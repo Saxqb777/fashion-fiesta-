@@ -84,6 +84,8 @@ export const users = pgTable(
     salaryFils: integer("salary_fils"),
     /** Day of the month salary is paid, 1 to 31. */
     payDay: integer("pay_day"),
+    /** Owners only: the last mode they chose, so Practice stays on across logins. Live by default. */
+    practiceMode: boolean("practice_mode").notNull().default(false),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (t) => [
@@ -1098,3 +1100,36 @@ export const emailLog = pgTable(
 );
 
 export type Notification = typeof notifications.$inferSelect;
+
+/* ---------- Phase 7: practice mode and missions (used in the Practice sandbox) ---------- */
+
+/** A mission ticked or skipped, per person. Reset practice clears it. */
+export const missionProgress = pgTable(
+  "mission_progress",
+  {
+    ...audit(),
+    userId: uuid("user_id").notNull(),
+    missionKey: text("mission_key").notNull(),
+    status: text("status").$type<"done" | "skipped">().notNull(),
+  },
+  (t) => [uniqueIndex("mission_progress_user_key").on(t.userId, t.missionKey)],
+);
+
+/** Taps the data alone cannot show: an attention button, Send on WhatsApp, a PDF, an Excel download, a page opened. */
+export const practiceEvents = pgTable(
+  "practice_events",
+  {
+    ...audit(),
+    userId: uuid("user_id").notNull(),
+    kind: text("kind").notNull(),
+    ref: text("ref"),
+  },
+  (t) => [index("practice_events_user_idx").on(t.userId, t.kind)],
+);
+
+/** What the seed made that missions look for, and when the sandbox was last built. */
+export const practiceMeta = pgTable("practice_meta", {
+  ...audit(),
+  key: text("key").notNull().unique(),
+  value: jsonb("value").$type<unknown>().notNull(),
+});

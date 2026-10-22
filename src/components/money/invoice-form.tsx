@@ -172,7 +172,7 @@ export function InvoiceForm({
           />
           {advance > 0 ? <p className="text-[13px] text-ink-muted">The deposit on this order is applied to this invoice and printed as paid in advance.</p> : null}
           {fromCredit > 0 ? <p className="text-[13px] text-ink-muted">Money they paid earlier with nothing to pay at the time is used here first.</p> : null}
-          <SubmitButton size="lg" pendingText="Issuing" disabled={total <= 0}>
+          <SubmitButton size="lg" pendingText="Issuing" disabled={total <= 0} data-mission="make-invoice">
             Issue Tax Invoice
           </SubmitButton>
           <p className="text-[12px] text-ink-muted">Once issued it cannot be edited. Corrections are made with a credit note.</p>

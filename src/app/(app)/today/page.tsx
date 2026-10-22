@@ -58,7 +58,7 @@ export default async function TodayPage() {
           eyebrow={formatLongDate(new Date())}
           title="Today"
           actions={
-            <LinkButton href="/today/sale" size="lg" variant="outline" className="h-12">
+            <LinkButton href="/today/sale" size="lg" variant="outline" className="h-12" data-mission="quick-sale">
               <PlusIcon />
               Quick sale
             </LinkButton>
@@ -243,14 +243,14 @@ export default async function TodayPage() {
         <h2 className="mb-3 text-xl font-medium">Needs your attention</h2>
         {items.length ? (
           <ul className="flex flex-col gap-2">
-            {items.map((i) => (
+            {items.map((i, n) => (
               <li key={i.key} className="flex items-center gap-3 rounded-[14px] border border-line bg-surface px-4 py-3 sm:px-5">
                 <span className={i.urgent ? "size-2.5 shrink-0 rounded-full bg-brand" : "size-2.5 shrink-0 rounded-full bg-line"} aria-hidden />
                 <div className="min-w-0 flex-1">
                   <p className="text-[16px] font-semibold">{i.text}</p>
                   {i.detail ? <p className="text-[13px] text-ink-muted">{i.detail}</p> : null}
                 </div>
-                <LinkButton href={i.href} variant={i.urgent ? "default" : "outline"}>
+                <LinkButton href={i.href} variant={i.urgent ? "default" : "outline"} data-mission={n === 0 ? "attention" : undefined} data-track={n === 0 ? "attention" : undefined}>
                   {i.action}
                 </LinkButton>
               </li>

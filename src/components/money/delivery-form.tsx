@@ -49,7 +49,7 @@ export function DeliveryForm({ orderId, lines, today }: { orderId: string; lines
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-3">
-        <SubmitButton size="lg" pendingText="Making delivery note" disabled={!pieces}>
+        <SubmitButton size="lg" pendingText="Making delivery note" disabled={!pieces} data-mission="make-dn">
           Make delivery note, {pieces} {pieces === 1 ? "piece" : "pieces"}
         </SubmitButton>
         <LinkButton href={`/orders/${orderId}`} variant="ghost" size="lg">

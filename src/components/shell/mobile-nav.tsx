@@ -11,12 +11,13 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import type { UserRole } from "@/db/schema";
 import { navForRole } from "./nav";
 
-export function MobileTopBar() {
+export function MobileTopBar({ aside }: { aside?: React.ReactNode }) {
   return (
-    <div className="flex h-14 items-center border-b border-line bg-paper px-4 md:hidden">
+    <div className="flex h-14 items-center justify-between gap-3 border-b border-line bg-paper px-4 md:hidden">
       <Link href="/today" aria-label="Today">
         <Logo width={92} priority />
       </Link>
+      {aside}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { and, eq, inArray, isNull, ne } from "drizzle-orm";
 import { after } from "next/server";
 import webpush from "web-push";
-import { db } from "@/db";
+import { currentDb, db, type Db } from "@/db";
 import { notifications, pushSubscriptions, users } from "@/db/schema";
 
 let configured: boolean | null = null;
@@ -17,9 +17,9 @@ function pushReady() {
 type Note = { kind: string; title: string; body?: string | null; href?: string | null };
 
 /** Sends to every device the people allowed. Dead subscriptions are removed. */
-async function push(userIds: string[], note: Note) {
+async function push(userIds: string[], note: Note, store: Db) {
   if (!userIds.length || !pushReady()) return;
-  const subs = await db.select().from(pushSubscriptions).where(inArray(pushSubscriptions.userId, userIds));
+  const subs = await store.select().from(pushSubscriptions).where(inArray(pushSubscriptions.userId, userIds));
   const payload = JSON.stringify({ title: note.title, body: note.body ?? "", url: note.href ?? "/today", tag: note.kind });
   await Promise.all(
     subs.map(async (s) => {
@@ -27,7 +27,7 @@ async function push(userIds: string[], note: Note) {
         await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payload, { TTL: 60 * 60 * 24 });
       } catch (error) {
         const code = (error as { statusCode?: number }).statusCode;
-        if (code === 404 || code === 410) await db.delete(pushSubscriptions).where(eq(pushSubscriptions.id, s.id));
+        if (code === 404 || code === 410) await store.delete(pushSubscriptions).where(eq(pushSubscriptions.id, s.id));
         else console.error("push failed", code);
       }
     }),
@@ -52,7 +52,9 @@ export async function notify(to: "owners" | string[], note: Note, actorId?: stri
         : to.filter((id) => id && id !== actorId);
     if (!ids.length) return;
     await db.insert(notifications).values(ids.map((userId) => ({ userId, kind: note.kind, title: note.title, body: note.body ?? null, href: note.href ?? null, createdBy: actorId ?? null })));
-    after(() => push(ids, note));
+    // The database is picked now: after the response, the request that chose it is gone.
+    const store = currentDb();
+    after(() => push(ids, note, store));
   } catch (error) {
     // A notice must never break the action that caused it.
     console.error("notify failed", error);

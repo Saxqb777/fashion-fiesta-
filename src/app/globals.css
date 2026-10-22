@@ -148,3 +148,24 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Practice missions: the button to tap next glows softly. */
+.mission-glow {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 3px;
+  animation: mission-glow 1.6s ease-in-out infinite;
+}
+@keyframes mission-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(215 24 42 / 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 9px rgb(215 24 42 / 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mission-glow {
+    animation: none;
+  }
+}

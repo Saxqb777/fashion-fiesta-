@@ -9,6 +9,7 @@ export type SectionTab = {
   label: string;
   exact?: boolean;
   also?: string[];
+  mission?: string;
 };
 
 /** Pill tabs, one per part of a section. */
@@ -36,6 +37,7 @@ export function SectionTabs({
               <Link
                 href={t.href}
                 aria-current={active ? "page" : undefined}
+                data-mission={t.mission}
                 className={cn(
                   "flex h-9 items-center rounded-full px-4 text-sm font-semibold transition-colors",
                   active ? "bg-ink text-paper" : "text-ink hover:bg-paper-deep",

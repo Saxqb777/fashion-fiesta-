@@ -60,7 +60,7 @@ export function ProgressStepper({ taskId, qty, qtyDone }: { taskId: string; qty:
           <span className="text-[3.25rem] font-medium">{value}</span>
           <span className="text-2xl text-ink-muted"> of {qty}</span>
         </p>
-        <Button type="button" variant="outline" className="size-14 shrink-0 rounded-[14px]" aria-label="One more" disabled={value >= qty} onClick={() => save(value + 1)}>
+        <Button type="button" variant="outline" className="size-14 shrink-0 rounded-[14px]" aria-label="One more" disabled={value >= qty} onClick={() => save(value + 1)} data-mission="progress">
           <PlusIcon className="size-6" />
         </Button>
       </div>
@@ -96,7 +96,7 @@ export function SubmitWork({ taskId, qty }: { taskId: string; qty: number }) {
         <input type="hidden" name="taskId" value={taskId} />
         <PhotoUpload name="photoUrl" folder="tasks" emptyText="Take photo of the work" onChange={setUrl} />
         <FormMessage message={state.ok ? undefined : state.message} />
-        <SubmitButton size="lg" className="h-14 w-full text-base" disabled={!url} pendingText="Submitting">
+        <SubmitButton size="lg" className="h-14 w-full text-base" disabled={!url} pendingText="Submitting" data-mission="submit">
           <CheckIcon />
           {url ? `Submit all ${qty} as done` : "Take a photo to submit"}
         </SubmitButton>
@@ -244,12 +244,12 @@ export function OwnerReview({ taskId }: { taskId: string }) {
       <div className="flex flex-wrap gap-2">
         <ActionForm action={action} className="flex-1">
           <input type="hidden" name="taskId" value={taskId} />
-          <SubmitButton size="lg" className="h-12 w-full" pendingText="Approving">
+          <SubmitButton size="lg" className="h-12 w-full" pendingText="Approving" data-mission="approve">
             <CheckIcon />
             Approve
           </SubmitButton>
         </ActionForm>
-        <Button type="button" variant="outline" className="h-12 flex-1" onClick={() => setReject(true)}>
+        <Button type="button" variant="outline" className="h-12 flex-1" onClick={() => setReject(true)} data-mission="reject">
           <UndoIcon />
           Send back
         </Button>

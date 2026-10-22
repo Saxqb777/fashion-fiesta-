@@ -33,7 +33,7 @@ export function WorkshopTabs({ owner }: { owner: boolean }) {
       label="Workshop sections"
       tabs={[
         { href: "/workshop", label: owner ? "Tasks" : "My tasks", exact: true },
-        { href: "/workshop/gallery", label: "Gallery" },
+        { href: "/workshop/gallery", label: "Gallery", mission: "gallery" },
         ...(owner ? [{ href: "/workshop/embroidery", label: "Embroidery" }] : []),
       ]}
     />

@@ -324,7 +324,7 @@ export function DocumentEditor({
             <FileSpreadsheetIcon />
             Add lines from Excel
           </Button>
-          <Button type="button" variant="outline" onClick={() => setReadOpen(true)}>
+          <Button type="button" variant="outline" onClick={() => setReadOpen(true)} data-mission="read-document">
             <ScanTextIcon />
             Read their document
           </Button>
@@ -405,7 +405,7 @@ export function DocumentEditor({
             Save as draft
           </SubmitButton>
         ) : null}
-        <SubmitButton name="intent" value="confirm" size="lg" pendingText="Saving" disabled={loadingCtx}>
+        <SubmitButton name="intent" value="confirm" size="lg" pendingText="Saving" disabled={loadingCtx} data-mission="confirm-order">
           {isOrder ? (canDraft ? "Confirm order" : "Save changes") : initial.id ? "Save changes" : "Save quote"}
         </SubmitButton>
         {isOrder && canDraft ? (
@@ -670,7 +670,7 @@ function LineCard({
                         </option>
                       ))}
                     </select>
-                    <Button type="button" variant="outline" size="icon" aria-label="Take new measurements" disabled={!ctx} onClick={onMeasure}>
+                    <Button type="button" variant="outline" size="icon" aria-label="Take new measurements" disabled={!ctx} onClick={onMeasure} data-mission="measure">
                       <RulerIcon />
                     </Button>
                   </div>

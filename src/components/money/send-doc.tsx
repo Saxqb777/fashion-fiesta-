@@ -18,6 +18,7 @@ export function SendDoc({
   filename,
   message,
   mail,
+  doc,
   size = "sm",
 }: {
   pdfUrl: string;
@@ -26,6 +27,8 @@ export function SendDoc({
   filename: string;
   message: string;
   mail?: MailProps | null;
+  /** Which document this is, so Practice missions can see a PDF opened or a WhatsApp sent. */
+  doc?: { type: string; id: string };
   size?: "sm" | "default";
 }) {
   const [busy, setBusy] = useState(false);
@@ -54,11 +57,20 @@ export function SendDoc({
   };
   return (
     <div className="flex flex-wrap gap-2">
-      <Button variant="outline" size={size} nativeButton={false} render={<a href={pdfUrl} target="_blank" rel="noreferrer" />}>
+      <Button variant="outline" size={size} nativeButton={false} render={<a href={pdfUrl} target="_blank" rel="noreferrer" data-mission="pdf" data-track="pdf" data-track-ref={doc ? `${doc.type}:${doc.id}` : undefined} />}>
         <FileTextIcon />
         PDF
       </Button>
-      <Button variant="outline" size={size} onClick={send} disabled={busy} className="border-[#25D366]/40 text-[#128C4B] hover:bg-[#25D366]/10">
+      <Button
+        variant="outline"
+        size={size}
+        onClick={send}
+        disabled={busy}
+        className="border-[#25D366]/40 text-[#128C4B] hover:bg-[#25D366]/10"
+        data-mission="whatsapp"
+        data-track="whatsapp"
+        data-track-ref={doc ? `${doc.type}:${doc.id}` : undefined}
+      >
         {busy ? <Loader2Icon className="animate-spin" /> : <MessageCircleIcon />}
         Send on WhatsApp
       </Button>

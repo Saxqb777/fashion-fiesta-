@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { Logo } from "@/components/brand/logo";
 import { AppShell } from "@/components/shell/app-shell";
 import { SignOutButton } from "@/components/shell/sign-out-button";
+import { practiceAvailable } from "@/db";
+import { isPractice } from "@/lib/practice";
 import { requireUser } from "@/lib/session";
 import { getSettings } from "@/lib/settings";
 import { FlashToast } from "@/components/flash-toast";
@@ -25,7 +27,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const flash = await readFlash();
   return (
-    <AppShell user={{ name: user.name ?? "", role: user.role }}>
+    <AppShell user={{ name: user.name ?? "", role: user.role, practiceOnly: user.practiceOnly }} practice={{ on: isPractice(), available: practiceAvailable() }}>
       <FlashToast flash={flash} />
       {children}
     </AppShell>

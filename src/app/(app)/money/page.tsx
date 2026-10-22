@@ -88,7 +88,7 @@ export default async function WhoOwesYouPage() {
                       </div>
                       <p className="tabular font-display text-xl font-medium">{formatFils(r.owed)}</p>
                       <div className="flex gap-2">
-                        <LinkButton href={`/money/statement/${r.customerId}`} variant="ghost" size="sm">
+                        <LinkButton href={`/money/statement/${r.customerId}`} variant="ghost" size="sm" data-mission="statement">
                           Statement
                         </LinkButton>
                         <LinkButton href={`/money/payments/new?customer=${r.customerId}`} variant={late ? "default" : "outline"} size="sm">

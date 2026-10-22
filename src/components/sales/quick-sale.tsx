@@ -137,7 +137,7 @@ export function QuickSale({ products, vatRateBp }: { products: Product[]; vatRat
           <span className="tabular font-display text-[2rem] leading-none">{formatFils(total)}</span>
         </div>
         <div className="mt-3 grid grid-cols-2 gap-2">
-          <SubmitButton name="method" value="cash" size="lg" className="h-14 text-[17px]" disabled={!ready} pendingText="Saving">
+          <SubmitButton name="method" value="cash" size="lg" className="h-14 text-[17px]" disabled={!ready} pendingText="Saving" data-mission="pay-cash">
             Paid cash
           </SubmitButton>
           <SubmitButton name="method" value="card" size="lg" variant="outline" className="h-14 text-[17px]" disabled={!ready} pendingText="Saving">

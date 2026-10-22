@@ -144,7 +144,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
       <div className="flex flex-wrap gap-2 sm:justify-end">
         {walkIn}
         {leftToDeliver ? (
-          <LinkButton href={`/orders/${order.id}/deliver`} size="lg">
+          <LinkButton href={`/orders/${order.id}/deliver`} size="lg" data-mission="make-dn">
             Make delivery note
           </LinkButton>
         ) : null}
@@ -153,13 +153,13 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
       <div className="flex flex-wrap gap-2 sm:justify-end">
         {walkIn}
         {leftToInvoice.length ? (
-          <LinkButton href={`/money/invoices/new?order=${order.id}`} size="lg">
+          <LinkButton href={`/money/invoices/new?order=${order.id}`} size="lg" data-mission="make-invoice">
             Make invoice
           </LinkButton>
         ) : null}
       </div>
     ) : order.stage === "invoiced" && openInvoice ? (
-      <LinkButton href={`/money/payments/new?customer=${order.customerId}&invoice=${openInvoice.id}`} size="lg">
+      <LinkButton href={`/money/payments/new?customer=${order.customerId}&invoice=${openInvoice.id}`} size="lg" data-mission="record-payment">
         Record payment
       </LinkButton>
     ) : order.stage === "paid" ? (

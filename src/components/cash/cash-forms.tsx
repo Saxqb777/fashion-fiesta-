@@ -56,7 +56,7 @@ export function CloseDayForm({ expectedFils, cardFils, counted: start }: { expec
       </div>
       {state.errors?.counted ? <p className="-mt-2 text-[13px] font-medium text-brand-deep">{state.errors.counted[0]}</p> : null}
       <Input name="notes" placeholder="Note, optional. For example: paid the delivery boy 20 from the drawer" className="sm:max-w-md" />
-      <SubmitButton size="lg" pendingText="Closing" className="self-start" disabled={c === null}>
+      <SubmitButton size="lg" pendingText="Closing" className="self-start" disabled={c === null} data-mission="close-day">
         {start != null ? "Count again" : "Close the day"}
       </SubmitButton>
     </ActionForm>

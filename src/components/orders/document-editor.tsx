@@ -20,8 +20,11 @@ import { BulkImportDialog } from "./bulk-import";
 import { CustomerPicker } from "./customer-picker";
 import { MeasurementDialog, type MeasurementSet, type MeasurementTemplate } from "./measurement-dialog";
 import { ReadDocumentDialog } from "./read-document";
+import { SplitEditor } from "./split-editor";
 
 export type EditorAssignment = { key: string; taskId?: string | null; type: "tailor" | "unit"; assigneeId: string; qty: string; locked?: boolean };
+/** One part of a line split per branch and person. */
+export type EditorAllocation = { key: string; id?: string | null; branchId: string; staffId: string; personName: string; size: string; qty: string };
 export type EditorLine = {
   key: string;
   id?: string | null;
@@ -37,6 +40,7 @@ export type EditorLine = {
   measurementId: string;
   measurementLabel?: string | null;
   assignments: EditorAssignment[];
+  allocations?: EditorAllocation[];
   /** Set when the line came from Read their document: what to check before saving. */
   fromDocument?: { issues: string[]; unsure: ("description" | "qty" | "unitPrice" | "branch")[] };
 };
@@ -51,6 +55,7 @@ export type EditorInitial = {
   validUntil: string;
   notes: string;
   customerPoNumber?: string;
+  season?: string;
   customerPoFile?: { url: string; name: string } | null;
   sourceQuoteId?: string | null;
   lines: EditorLine[];
@@ -118,6 +123,7 @@ export function DocumentEditor({
   const [validUntil, setValidUntil] = useState(initial.validUntil);
   const [notes, setNotes] = useState(initial.notes);
   const [customerPo, setCustomerPo] = useState(initial.customerPoNumber ?? "");
+  const [season, setSeason] = useState(initial.season ?? "");
   const [lines, setLines] = useState<EditorLine[]>(initial.lines.length ? initial.lines : [blankLine(initial.dueDate)]);
   const [measureFor, setMeasureFor] = useState<string | null>(null);
   const [bulkOpen, setBulkOpen] = useState(false);
@@ -135,7 +141,14 @@ export function DocumentEditor({
       setCtx(next);
       setBranchId("");
       // A new customer's measurement sets differ: clear choices that no longer apply.
-      setLines((ls) => ls.map((l) => (next?.measurements.some((m) => m.id === l.measurementId) ? l : { ...l, measurementId: "" })));
+      setLines((ls) =>
+        ls.map((l) => ({
+          ...l,
+          measurementId: next?.measurements.some((m) => m.id === l.measurementId) ? l.measurementId : "",
+          // Splits belong to the old customer's branches.
+          allocations: next?.customer.id === ctx?.customer.id ? l.allocations : [],
+        })),
+      );
     });
   };
 
@@ -160,6 +173,7 @@ export function DocumentEditor({
     validUntil,
     notes,
     customerPoNumber: isOrder ? customerPo : "",
+    season: isOrder && ctx?.account ? season : "",
     sourceQuoteId: initial.sourceQuoteId ?? null,
     customerPoFileUrl: poFile?.url ?? null,
     customerPoFileName: poFile?.name ?? null,
@@ -175,6 +189,10 @@ export function DocumentEditor({
       metresPerPiece: isOrder ? (l.metresPerPiece ?? "") : "",
       measurementId: l.measurementId || null,
       assignments: isOrder ? l.assignments.map((a) => ({ taskId: a.taskId ?? null, type: a.type, assigneeId: a.assigneeId, qty: Number(a.qty) })) : [],
+      allocations:
+        isOrder && ctx?.account
+          ? (l.allocations ?? []).map((a) => ({ id: a.id ?? null, branchId: a.branchId || null, staffId: a.staffId || null, personName: a.personName, size: a.size, qty: Number(a.qty) }))
+          : [],
     })),
   });
 
@@ -238,7 +256,19 @@ export function DocumentEditor({
               />
               {errors.customerPoNumber ? <p className="text-[13px] font-medium text-brand-deep">{errors.customerPoNumber[0]}</p> : null}
             </div>
-          ) : (
+          ) : null}
+          {isOrder && ctx?.account ? (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="season">Season</Label>
+              <Input id="season" list="seasons" value={season} onChange={(e) => setSeason(e.target.value)} placeholder="Winter 2026" />
+              <datalist id="seasons">
+                {ctx.account.seasons.map((s) => (
+                  <option key={s} value={s} />
+                ))}
+              </datalist>
+            </div>
+          ) : null}
+          {isOrder ? null : (
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="validUntil">Valid until</Label>
               <Input id="validUntil" type="date" value={validUntil} onChange={(e) => setValidUntil(e.target.value)} />
@@ -438,11 +468,15 @@ function LineCard({
   const [showNotes, setShowNotes] = useState(Boolean(line.notes));
   const [suggest, setSuggest] = useState(false);
   const term = line.description.trim().toLowerCase();
-  const matches = useMemo(
-    () => (term ? products.filter((p) => p.name.toLowerCase().includes(term)).slice(0, 6) : products.slice(0, 6)),
-    [products, term],
-  );
+  const matches = useMemo(() => {
+    const found = term ? products.filter((p) => p.name.toLowerCase().includes(term)) : products;
+    // Key accounts: their catalogue items come first.
+    const items = new Set(ctx?.account?.items.map((it) => it.productId));
+    return [...found.filter((p) => items.has(p.id)), ...found.filter((p) => !items.has(p.id))].slice(0, 6);
+  }, [products, term, ctx]);
   const lastPrice = line.productId ? ctx?.lastPrices[line.productId] : undefined;
+  const agreedFor = (p: { id: string; name: string }) => ctx?.account?.items.find((it) => it.productId === p.id || it.name.trim().toLowerCase() === p.name.trim().toLowerCase())?.agreedPriceFils;
+  const agreed = line.productId ? agreedFor({ id: line.productId, name: line.description }) : undefined;
   const qty = toQty(line.qty);
   const assigned = line.assignments.reduce((s, a) => s + (toQty(a.qty) || 0), 0);
   const left = qty - assigned;
@@ -454,7 +488,7 @@ function LineCard({
   const settle = (f: "description" | "qty" | "unitPrice") => (doc ? { fromDocument: { ...doc, unsure: doc.unsure.filter((u) => u !== f) } } : {});
 
   const pickProduct = (p: Product) => {
-    const price = ctx?.lastPrices[p.id] ?? p.priceFils;
+    const price = agreedFor(p) ?? ctx?.lastPrices[p.id] ?? p.priceFils;
     onChange({
       productId: p.id,
       description: p.name,
@@ -508,6 +542,7 @@ function LineCard({
               <ul className="absolute inset-x-0 top-full z-30 mt-1 overflow-hidden rounded-[14px] border border-line bg-surface shadow-[0_12px_32px_-12px_rgba(31,26,23,0.25)]">
                 {matches.map((p) => {
                   const last = ctx?.lastPrices[p.id];
+                  const deal = agreedFor(p);
                   return (
                     <li key={p.id}>
                       <button
@@ -517,7 +552,9 @@ function LineCard({
                         className="flex w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-paper-deep"
                       >
                         <span className="flex-1 truncate text-[15px] font-semibold">{p.name}</span>
-                        {last !== undefined ? (
+                        {deal !== undefined ? (
+                          <span className="tabular rounded-full bg-leaf/15 px-2 py-0.5 text-[12px] font-semibold text-[#4d7a12]">Agreed {filsInput(deal)}</span>
+                        ) : last !== undefined ? (
                           <span className="tabular rounded-full bg-magenta/10 px-2 py-0.5 text-[12px] font-semibold text-magenta">Last time {filsInput(last)}</span>
                         ) : p.priceFils ? (
                           <span className="tabular text-[13px] text-ink-muted">{filsInput(p.priceFils)}</span>
@@ -561,7 +598,15 @@ function LineCard({
             </div>
           </div>
           {e("qty") || e("unitPrice") ? <p className="-mt-2 text-[13px] font-medium text-brand-deep">{e("qty") ?? e("unitPrice")}</p> : null}
-          {lastPrice !== undefined && filsInput(lastPrice) !== Number(line.unitPrice || 0).toFixed(2) ? (
+          {agreed !== undefined && filsInput(agreed) !== Number(line.unitPrice || 0).toFixed(2) ? (
+            <button
+              type="button"
+              onClick={() => onChange({ unitPrice: filsInput(agreed) })}
+              className="-mt-1 self-start rounded-full bg-leaf/15 px-2.5 py-1 text-[12px] font-semibold text-[#4d7a12]"
+            >
+              Agreed price {filsInput(agreed)}. Use it
+            </button>
+          ) : agreed === undefined && lastPrice !== undefined && filsInput(lastPrice) !== Number(line.unitPrice || 0).toFixed(2) ? (
             <button
               type="button"
               onClick={() => onChange({ unitPrice: filsInput(lastPrice) })}
@@ -642,6 +687,17 @@ function LineCard({
                 <p className="-mt-1 text-[12px] text-ink-muted">
                   {set.values.map((v) => `${v.name} ${v.value}`).join(" · ")}
                 </p>
+              ) : null}
+              {ctx?.account ? (
+                <SplitEditor
+                  index={index}
+                  qty={qty}
+                  parts={line.allocations ?? []}
+                  branches={ctx.branches}
+                  staff={ctx.account.staff}
+                  error={e("allocations")}
+                  onChange={(allocations) => onChange({ allocations })}
+                />
               ) : null}
 
               <div className="flex flex-col gap-2 rounded-[10px] bg-paper-deep/60 p-3">

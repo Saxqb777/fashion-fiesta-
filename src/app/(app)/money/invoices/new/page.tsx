@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { notFound, redirect } from "next/navigation";
 import { db } from "@/db";
-import { customers, payments, salesOrders } from "@/db/schema";
+import { customers, payments, salesOrders, soLineAllocations, soLines } from "@/db/schema";
 import { BackLink } from "@/components/data/detail";
 import { InvoiceForm } from "@/components/money/invoice-form";
 import { PageHeader } from "@/components/page-header";
@@ -34,6 +34,11 @@ export default async function NewInvoicePage({ searchParams }: { searchParams: P
   const left = await unallocatedByPayment([...deposits, ...credit].map((p) => p.id));
   const depositFils = deposits.reduce((sum, p) => sum + Math.max(0, left.get(p.id) ?? 0), 0);
   const creditFils = credit.reduce((sum, p) => sum + Math.max(0, left.get(p.id) ?? 0), 0);
+  const [split] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(soLineAllocations)
+    .innerJoin(soLines, eq(soLines.id, soLineAllocations.soLineId))
+    .where(eq(soLines.orderId, order.id));
   const dueDays = customer?.creditDays ?? (customer?.type === "wholesale" ? s.defaultCreditDays : 0);
   const undelivered = progress.some((l) => l.delivered < l.qty) && !order.deliveredAt;
 
@@ -49,7 +54,7 @@ export default async function NewInvoicePage({ searchParams }: { searchParams: P
             : "Each line starts at what is left to invoice. Prices can be changed, and you can add a line."
         }
       />
-      <InvoiceForm orderId={order.id} lines={lines} depositFils={depositFils} creditFils={creditFils} vatRateBp={s.vatRateBp} today={todayISO()} dueDays={dueDays} />
+      <InvoiceForm orderId={order.id} lines={lines} depositFils={depositFils} creditFils={creditFils} vatRateBp={s.vatRateBp} today={todayISO()} dueDays={dueDays} hasSplits={split.n > 0} />
     </>
   );
 }

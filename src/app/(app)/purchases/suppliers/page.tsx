@@ -3,7 +3,7 @@ import Link from "next/link";
 import { asc, count, eq, ilike, or, sql, getTableColumns } from "drizzle-orm";
 import { ChevronRightIcon, PlusIcon } from "lucide-react";
 import { db } from "@/db";
-import { suppliers } from "@/db/schema";
+import { suppliers, type SupplierType } from "@/db/schema";
 import { FilterChips, hrefWith } from "@/components/data/filter-chips";
 import { SearchBox } from "@/components/data/search-box";
 import { ArchivedTag, SoftTag } from "@/components/data/tags";
@@ -24,7 +24,7 @@ export default async function SuppliersPage({ searchParams }: { searchParams: Pr
   const params = await searchParams;
   const q = params.q?.trim() ?? "";
   const showArchived = params.archived === "1";
-  const type = ["fabric", "outsourcing"].includes(params.type ?? "") ? (params.type as "fabric" | "outsourcing") : undefined;
+  const type = ["fabric", "outsourcing", "delivery"].includes(params.type ?? "") ? (params.type as SupplierType) : undefined;
   const base = "/purchases/suppliers";
 
   const [rows, [{ total }]] = await Promise.all([
@@ -83,6 +83,7 @@ export default async function SuppliersPage({ searchParams }: { searchParams: Pr
                 { label: "All" },
                 { value: "fabric", label: "Fabric suppliers" },
                 { value: "outsourcing", label: "Stitching units" },
+                { value: "delivery", label: "Delivery" },
               ]}
             />
           </div>

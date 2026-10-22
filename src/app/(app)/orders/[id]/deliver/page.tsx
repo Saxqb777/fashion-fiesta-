@@ -19,7 +19,7 @@ export default async function DeliverPage({ params }: { params: Promise<{ id: st
   if (!order) notFound();
   if (order.stage === "draft" || order.stage === "cancelled") redirect(`/orders/${id}`);
   const [customer, progress] = await Promise.all([db.query.customers.findFirst({ where: eq(customers.id, order.customerId) }), orderLineProgress(id)]);
-  const lines = progress.filter((l) => l.qty - l.delivered > 0).map((l) => ({ id: l.id, description: l.description, left: l.qty - l.delivered }));
+  const lines = progress.filter((l) => l.qty - l.onNotes > 0).map((l) => ({ id: l.id, description: l.description, left: l.qty - l.onNotes }));
   if (!lines.length) redirect(`/orders/${id}`);
   return (
     <>

@@ -6,6 +6,7 @@ export const CUSTOMER_TYPE_LABEL: Record<CustomerType, string> = { retail: "Reta
 export const SUPPLIER_TYPE_LABEL: Record<SupplierType, string> = {
   fabric: "Fabric supplier",
   outsourcing: "Stitching unit",
+  delivery: "Delivery company",
 };
 export const PRODUCT_KIND_LABEL: Record<ProductKind, string> = { custom: "Custom stitched", ready_made: "Ready made" };
 

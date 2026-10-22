@@ -247,7 +247,7 @@ Standing permission: small taste improvements (spacing, wording, micro animation
 34. Data export. built. Covered by the nightly backup and Settings > Data. Effort: small.
     What: one button exports everything to Excel, so the owners are never locked in.
 
-35. Garment labels. approved. Phase 4.5. Effort: small.
+35. Garment labels. built. Phase 4.5. Effort: small.
     What: print a small label per piece from an order: customer, branch, person, size, order number. Tick off each piece at delivery.
 
 36. Embroidery design files. approved. Phase 5, with embroidery jobs. Effort: small.

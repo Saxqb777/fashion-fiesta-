@@ -1,8 +1,8 @@
-import { asc, eq } from "drizzle-orm";
+import { asc, eq, inArray } from "drizzle-orm";
 import { getCustomerContext } from "@/actions/documents";
 import { db } from "@/db";
-import { quoteLines, quotes, salesOrders, soLines, tasks } from "@/db/schema";
-import type { EditorAssignment, EditorInitial, EditorLine } from "@/components/orders/document-editor";
+import { quoteLines, quotes, salesOrders, soLineAllocations, soLines, tasks } from "@/db/schema";
+import type { EditorAllocation, EditorAssignment, EditorInitial, EditorLine } from "@/components/orders/document-editor";
 import type { DraftAssignment, Task } from "@/db/schema";
 import { addDaysISO, todayISO } from "./dates";
 import { taskLocked } from "./stages";
@@ -10,6 +10,20 @@ import { taskLocked } from "./stages";
 const money = (fils: number) => (fils / 100).toFixed(2);
 let n = 0;
 const k = () => `s${n++}`;
+
+/** Splits per branch and person for these lines. keepIds false makes copies for Order again. */
+async function allocationsFor(lineIds: string[], keepIds: boolean) {
+  if (!lineIds.length) return new Map<string, EditorAllocation[]>();
+  const rows = await db.select().from(soLineAllocations).where(inArray(soLineAllocations.soLineId, lineIds)).orderBy(asc(soLineAllocations.sort));
+  const out = new Map<string, EditorAllocation[]>();
+  for (const a of rows) {
+    out.set(a.soLineId, [
+      ...(out.get(a.soLineId) ?? []),
+      { key: k(), id: keepIds ? a.id : null, branchId: a.branchId ?? "", staffId: a.staffId ?? "", personName: a.personName ?? "", size: a.size ?? "", qty: String(a.qty) },
+    ]);
+  }
+  return out;
+}
 
 export async function initialForNewOrder(opts: { copy?: string; fromQuote?: string; customer?: string }): Promise<EditorInitial> {
   const today = todayISO();
@@ -50,6 +64,10 @@ export async function initialForNewOrder(opts: { copy?: string; fromQuote?: stri
         getCustomerContext(order.customerId),
       ]);
       const liveSets = new Set(context?.measurements.map((m) => m.id));
+      const splits = await allocationsFor(
+        lines.map((l) => l.id),
+        false,
+      );
       return {
         ...base,
         context,
@@ -68,6 +86,7 @@ export async function initialForNewOrder(opts: { copy?: string; fromQuote?: stri
           metresPerPiece: l.metresPerPieceCenti ? (l.metresPerPieceCenti / 100).toFixed(2) : "",
           measurementId: l.measurementId && liveSets.has(l.measurementId) ? l.measurementId : "",
           assignments: [],
+          allocations: splits.get(l.id) ?? [],
         })),
       };
     }
@@ -87,6 +106,10 @@ export async function initialForOrderEdit(orderId: string): Promise<EditorInitia
     db.select().from(tasks).where(eq(tasks.orderId, order.id)).orderBy(asc(tasks.createdAt)),
     getCustomerContext(order.customerId),
   ]);
+  const splits = await allocationsFor(
+    lines.map((l) => l.id),
+    true,
+  );
   return {
     id: order.id,
     number: order.number ?? undefined,
@@ -98,6 +121,7 @@ export async function initialForOrderEdit(orderId: string): Promise<EditorInitia
     validUntil: "",
     notes: order.notes ?? "",
     customerPoNumber: order.customerPoNumber ?? "",
+    season: order.season ?? "",
     customerPoFile: order.customerPoFileUrl ? { url: order.customerPoFileUrl, name: order.customerPoFileName ?? "Customer PO file" } : null,
     lines: lines.map(
       (l): EditorLine => ({
@@ -114,6 +138,7 @@ export async function initialForOrderEdit(orderId: string): Promise<EditorInitia
         measurementId: l.measurementId ?? "",
         measurementLabel: l.measurementLabel,
         assignments: assignmentsFor(order.stage === "draft", l.draftAssignments, ts.filter((t) => t.soLineId === l.id)),
+        allocations: splits.get(l.id) ?? [],
       }),
     ),
   };

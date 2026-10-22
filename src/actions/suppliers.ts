@@ -21,7 +21,7 @@ import { requireOwner } from "@/lib/session";
 
 const supplierSchema = z.object({
   name: requiredName("Enter the supplier name."),
-  type: z.enum(["fabric", "outsourcing"]),
+  type: z.enum(["fabric", "outsourcing", "delivery"]),
   contactName: optionalText,
   phone: optionalText,
   email: optionalEmail,

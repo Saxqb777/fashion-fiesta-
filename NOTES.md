@@ -4,8 +4,9 @@ Newest at top. Keep under 150 lines. Rules for this file are in CLAUDE.md under 
 
 ## Where we are (2026-10-22)
 - Live: https://fashion-fiesta-three.vercel.app (Vercel production, deploys from main)
-- Done and live: Phases 0, 1, 2, 3, 3.5, 4.
-- Now: Phase 4.5 Key Account mode.
+- Done and live: Phases 0, 1, 2, 3, 3.5, 4, 4.5.
+- Next: Phase 5 (cash book, expenses, embroidery 50/50, POS, salaries, daily close). Post the plan and wait for "go".
+- Phase 4.5 Key Account mode shipped 2026-10-22. Bedashing is a key account with 24 unverified branches on production. Checklist sent.
 - Small deploy (measurement templates, pieces link, nightly backup, bug fixes) shipped 2026-10-22. Checklist sent.
 - Bugs fixed in that deploy, all in earlier phases:
   - A deposit already used could be applied again on the next invoice. No real payments were in production yet, so no data was affected.
@@ -15,10 +16,14 @@ Newest at top. Keep under 150 lines. Rules for this file are in CLAUDE.md under 
   - Cause of the first two: a Drizzle subquery without a join renders a bare "id". Always write the table name in raw subqueries.
 
 ## Half done
-- Phase 4.5 plan approved ("go"), not started:
-  - Schema: key account switch, branch emirate and verified flag, account staff, account catalogue, line allocations, delivery runs, season, invoice branch breakdown, Delivery supplier type, label layout setting.
-  - Customer page tabs: Overview, Branches, Staff, Catalogue, Orders, Deliveries, Report.
-  - Bedashing demo: 24 UAE lounges captured from bedashingbeauty.com/lounges (Abu Dhabi 15, Dubai 5, Sharjah 2, Fujairah 1, Ras Al Khaimah 1). They get seeded as unverified with a one tap confirm.
+- Nothing.
+
+## How Phase 4.5 works (for later phases)
+- Customer page tabs when Key account is on: Overview, Branches, Staff, Catalogue, Orders, Deliveries, Report. Same page, no new menu item.
+- Order lines can be split per branch and person (so_line_allocations). Parts must add up. Parts on a delivery note cannot be removed.
+- Delivery notes have a status. Counter notes are delivered at once. Run notes start pending. Only delivered notes move the order stage; pending ones still count against what is left to send.
+- Garment labels: worked out from lines and splits, ticked off per piece (piece_ticks). Layout in Settings, Shop.
+- Agreed prices (account_items) beat last price when she picks the item.
 
 ## Decisions (newest first)
 - 2026-10-22: Neon stays on the Free plan for now; Saaqib will decide on Launch later. Reason: still testing, and the nightly Excel backup covers it. Launch costs about $10 to $16 a month.

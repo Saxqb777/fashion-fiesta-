@@ -23,6 +23,7 @@ import {
 import { requireOwner } from "@/lib/session";
 import { getSequences, getSettings } from "@/lib/settings";
 import { stepAfter } from "@/lib/setup";
+import { LABEL_PRESETS } from "@/lib/label-layouts";
 
 const saved = (message?: string): FormState => ({ ok: true, message, savedAt: Date.now() });
 
@@ -413,4 +414,16 @@ export async function completeSetup() {
   }
   revalidatePath("/", "layout");
   redirect("/setup/done");
+}
+
+/** Garment label sheet. Picks one of the known layouts; a thermal printer is one of them. */
+export async function saveLabelLayout(index: number): Promise<{ ok?: boolean; error?: string }> {
+  const me = await requireOwner();
+  const layout = LABEL_PRESETS[index];
+  if (!layout) return { error: "Pick a label sheet." };
+  const current = await getSettings();
+  await db.update(settings).set({ labelLayout: layout }).where(eq(settings.id, current.id));
+  await logActivity({ actor: me, entityType: "settings", action: "updated", summary: `${me.name} set garment labels to ${layout.name}` });
+  revalidatePath("/settings/shop");
+  return { ok: true };
 }

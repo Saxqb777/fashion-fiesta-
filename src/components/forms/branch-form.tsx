@@ -3,9 +3,10 @@
 import { ActionForm } from "@/components/form/action-form";
 import { useActionState } from "react";
 import { saveBranch } from "@/actions/customers";
-import { FormMessage, TextAreaField, TextField } from "@/components/form/field";
+import { FormMessage, SelectField, TextAreaField, TextField } from "@/components/form/field";
 import { SubmitButton } from "@/components/form/submit-button";
 import type { CustomerBranch } from "@/db/schema";
+import { EMIRATES } from "@/lib/emirates";
 import { EMPTY_FORM_STATE } from "@/lib/forms";
 import { useFormFeedback } from "./use-form-feedback";
 
@@ -23,7 +24,16 @@ export function BranchForm({ customerId, branch, onSaved }: { customerId: string
         <TextField name="contactName" label="Contact person" defaultValue={branch?.contactName ?? ""} errors={e.contactName} />
         <TextField name="phone" label="Phone" type="tel" inputMode="tel" defaultValue={branch?.phone ?? ""} errors={e.phone} />
       </div>
+      <SelectField name="emirate" label="Emirate" defaultValue={branch?.emirate ?? ""} errors={e.emirate}>
+        <option value="">Not set</option>
+        {EMIRATES.map((em) => (
+          <option key={em} value={em}>
+            {em}
+          </option>
+        ))}
+      </SelectField>
       <TextAreaField name="address" label="Delivery address" defaultValue={branch?.address ?? ""} errors={e.address} />
+      <TextAreaField name="deliveryInstructions" label="Delivery notes" defaultValue={branch?.deliveryInstructions ?? ""} errors={e.deliveryInstructions} placeholder="Receiving hours, who signs, parking" hint="Prints on this branch's delivery note." rows={2} />
       <div className="flex justify-end">
         <SubmitButton pendingText="Saving">{branch ? "Save branch" : "Add branch"}</SubmitButton>
       </div>

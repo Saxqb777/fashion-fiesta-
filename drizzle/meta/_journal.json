@@ -64,6 +64,13 @@
       "when": 1792679459345,
       "tag": "0008_measurement_templates",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792681644074,
+      "tag": "0009_key_accounts",
+      "breakpoints": true
     }
   ]
 }

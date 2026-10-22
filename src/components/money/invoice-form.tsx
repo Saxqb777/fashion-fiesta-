@@ -35,6 +35,7 @@ export function InvoiceForm({
   vatRateBp,
   today,
   dueDays,
+  hasSplits = false,
 }: {
   orderId: string;
   lines: OrderLine[];
@@ -43,6 +44,8 @@ export function InvoiceForm({
   vatRateBp: number;
   today: string;
   dueDays: number;
+  /** The order has lines split per branch, so a per branch breakdown can be printed. */
+  hasSplits?: boolean;
 }) {
   const [state, action] = useActionState(createInvoice, EMPTY_FORM_STATE);
   const errors = state.errors ?? {};
@@ -51,6 +54,7 @@ export function InvoiceForm({
   );
   const [date, setDate] = useState(today);
   const [notes, setNotes] = useState("");
+  const [breakdown, setBreakdown] = useState(false);
   const update = (key: string, patch: Partial<Row>) => setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch } : r)));
 
   const amounts = rows.map((r) => lineAmounts(parseQty(r.qty), parseFils(r.unitPrice), vatRateBp));
@@ -67,6 +71,7 @@ export function InvoiceForm({
     orderId,
     date,
     notes,
+    branchBreakdown: hasSplits && breakdown,
     lines: rows.map((r) => ({ soLineId: r.soLineId, productId: r.productId, description: r.description, qty: parseQty(r.qty), unitPrice: r.unitPrice })),
   });
 
@@ -144,6 +149,15 @@ export function InvoiceForm({
               <Textarea id="invNotes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional" />
             </div>
           </div>
+          {hasSplits ? (
+            <label className="flex items-start gap-3 rounded-[14px] border border-line bg-surface px-4 py-3">
+              <input type="checkbox" checked={breakdown} onChange={(e) => setBreakdown(e.target.checked)} className="mt-0.5 size-5 accent-[#D7182A]" />
+              <span>
+                <span className="block text-[15px] font-semibold">Show quantities per branch</span>
+                <span className="text-[13px] text-ink-muted">Adds a section under the lines listing each branch and what it received. Totals stay the same.</span>
+              </span>
+            </label>
+          ) : null}
         </div>
         <div className="flex flex-col gap-3 lg:sticky lg:top-6">
           <TotalsBox

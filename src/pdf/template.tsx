@@ -5,7 +5,7 @@ type Style = NonNullable<React.ComponentProps<typeof View>["style"]>;
 
 const fontDir = path.join(process.cwd(), "assets/fonts");
 let registered = false;
-function registerFonts() {
+export function registerFonts() {
   if (registered) return;
   Font.register({
     family: "Fraunces",

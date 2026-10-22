@@ -1,6 +1,6 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { goodsReceiptLines, poLines, stockMovements, supplierBillLines, supplierBills, supplierPaymentAllocations, suppliers } from "@/db/schema";
+import { goodsReceiptLines, poLines, stockMovements, supplierBillLines, supplierBills, supplierPaymentAllocations, suppliers, type SupplierType } from "@/db/schema";
 import { addDaysISO, todayISO } from "./dates";
 
 export type BillFigures = { totalFils: number; paidFils: number; balanceFils: number };
@@ -36,7 +36,7 @@ export const BILL_STATUS_LABEL: Record<BillStatus, string> = { paid: "Paid", par
 export type SupplierAgingRow = {
   supplierId: string;
   name: string;
-  type: "fabric" | "outsourcing";
+  type: SupplierType;
   notDue: number;
   d1_30: number;
   d31_60: number;
@@ -52,7 +52,7 @@ export async function agingBySupplier(supplierId?: string): Promise<SupplierAgin
   const result = await db.execute<{
     supplier_id: string;
     name: string;
-    type: "fabric" | "outsourcing";
+    type: SupplierType;
     not_due: number;
     d1_30: number;
     d31_60: number;

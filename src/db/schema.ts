@@ -16,7 +16,7 @@ import {
 export const userRole = pgEnum("user_role", ["owner", "tailor"]);
 export const customerType = pgEnum("customer_type", ["retail", "wholesale"]);
 export const customerTier = pgEnum("customer_tier", ["vip", "regular", "new"]);
-export const supplierType = pgEnum("supplier_type", ["fabric", "outsourcing"]);
+export const supplierType = pgEnum("supplier_type", ["fabric", "outsourcing", "delivery"]);
 export const productKind = pgEnum("product_kind", ["custom", "ready_made"]);
 export const quoteStatus = pgEnum("quote_status", ["draft", "sent", "accepted", "declined"]);
 export const orderStage = pgEnum("order_stage", ["draft", "confirmed", "stitching", "ready", "delivered", "invoiced", "paid", "cancelled"]);
@@ -40,6 +40,7 @@ export const poStatus = pgEnum("po_status", ["draft", "sent", "cancelled"]);
 export const qtyUnit = pgEnum("qty_unit", ["m", "pcs"]);
 export const stockMoveKind = pgEnum("stock_move_kind", ["opening", "received", "taken", "sent", "adjusted"]);
 export const billKind = pgEnum("bill_kind", ["bill", "opening_balance"]);
+export const deliveryStatus = pgEnum("delivery_status", ["pending", "delivered"]);
 
 /** Columns every table carries. */
 const audit = () => ({
@@ -96,6 +97,8 @@ export const settings = pgTable("settings", {
   /** Opening balances: cash in the drawer on the go live day. Seeds the cash book in Phase 5. */
   openingCashFils: integer("opening_cash_fils").notNull().default(0),
   openingDate: date("opening_date"),
+  /** Garment label sheet. A setting so a thermal printer can replace the A4 sheet later. */
+  labelLayout: jsonb("label_layout").$type<LabelLayout>(),
   setupStep: text("setup_step").notNull().default("account"),
   setupComplete: boolean("setup_complete").notNull().default(false),
 });
@@ -137,6 +140,8 @@ export const customers = pgTable(
     creditDays: integer("credit_days"),
     /** Null means no limit. Idea 30: warn, never block. */
     creditLimitFils: integer("credit_limit_fils"),
+    /** Phase 4.5: the customer page becomes a full account space. */
+    isKeyAccount: boolean("is_key_account").notNull().default(false),
     notes: text("notes"),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
@@ -154,9 +159,47 @@ export const customerBranches = pgTable(
     contactName: text("contact_name"),
     phone: text("phone"),
     address: text("address"),
+    emirate: text("emirate"),
+    /** Gate code, opening hours, who receives. Prints on the branch delivery note. */
+    deliveryInstructions: text("delivery_instructions"),
+    /** False for branches loaded from a public source until the owner confirms them. */
+    verified: boolean("verified").notNull().default(true),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (t) => [index("customer_branches_customer_idx").on(t.customerId)],
+);
+
+/** Key account staff, optionally per branch, with their sizes. */
+export const accountStaff = pgTable(
+  "account_staff",
+  {
+    ...audit(),
+    customerId: uuid("customer_id").notNull().references(() => customers.id),
+    branchId: uuid("branch_id").references(() => customerBranches.id),
+    name: text("name").notNull(),
+    role: text("role"),
+    /** Free text, for example "Top M, Pant 32". */
+    sizes: text("sizes"),
+    notes: text("notes"),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => [index("account_staff_customer_idx").on(t.customerId)],
+);
+
+/** A key account's uniform items with the price agreed with them. */
+export const accountItems = pgTable(
+  "account_items",
+  {
+    ...audit(),
+    customerId: uuid("customer_id").notNull().references(() => customers.id),
+    productId: uuid("product_id").references(() => products.id),
+    name: text("name").notNull(),
+    agreedPriceFils: integer("agreed_price_fils").notNull(),
+    notes: text("notes"),
+    sortOrder: integer("sort_order").notNull().default(0),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => [index("account_items_customer_idx").on(t.customerId)],
 );
 
 export const suppliers = pgTable(
@@ -232,6 +275,8 @@ export const fabrics = pgTable(
 
 export type MeasurementValue = { name: string; value: string };
 export type DraftAssignment = { type: "tailor" | "unit"; assigneeId: string; qty: number };
+/** Label sheet geometry in millimetres. The default is an A4 sheet of 24, 70 x 37. */
+export type LabelLayout = { name: string; pageWidthMm: number; pageHeightMm: number; cols: number; rows: number; widthMm: number; heightMm: number; topMm: number; leftMm: number; gapXMm: number; gapYMm: number };
 
 export const measurementFields = pgTable("measurement_fields", {
   ...audit(),
@@ -323,6 +368,8 @@ export const salesOrders = pgTable(
     customerPoFileName: text("customer_po_file_name"),
     orderDate: date("order_date").notNull(),
     dueDate: date("due_date"),
+    /** Free label such as "Winter 2026". Autocompletes from earlier orders. */
+    season: text("season"),
     stage: orderStage("stage").notNull().default("confirmed"),
     notes: text("notes"),
     subtotalFils: integer("subtotal_fils").notNull().default(0),
@@ -360,6 +407,36 @@ export const soLines = pgTable(
     draftAssignments: jsonb("draft_assignments").$type<DraftAssignment[]>(),
   },
   (t) => [index("so_lines_order_idx").on(t.orderId)],
+);
+
+/** Optional split of an order line per branch and per person. The parts add up to the line quantity. */
+export const soLineAllocations = pgTable(
+  "so_line_allocations",
+  {
+    ...audit(),
+    soLineId: uuid("so_line_id").notNull().references(() => soLines.id, { onDelete: "cascade" }),
+    sort: integer("sort").notNull().default(0),
+    branchId: uuid("branch_id").references(() => customerBranches.id),
+    staffId: uuid("staff_id").references(() => accountStaff.id),
+    personName: text("person_name"),
+    size: text("size"),
+    qty: integer("qty").notNull(),
+  },
+  (t) => [index("so_line_alloc_line_idx").on(t.soLineId)],
+);
+
+/** One trip to an emirate by a delivery company. Holds one delivery note per branch. */
+export const deliveryRuns = pgTable(
+  "delivery_runs",
+  {
+    ...audit(),
+    customerId: uuid("customer_id").notNull().references(() => customers.id),
+    runDate: date("run_date").notNull(),
+    emirate: text("emirate"),
+    deliverySupplierId: uuid("delivery_supplier_id").references(() => suppliers.id),
+    notes: text("notes"),
+  },
+  (t) => [index("delivery_runs_customer_idx").on(t.customerId)],
 );
 
 export const tasks = pgTable(
@@ -434,8 +511,13 @@ export const deliveryNotes = pgTable(
     deliveryDate: date("delivery_date").notNull(),
     customerPoNumber: text("customer_po_number"),
     notes: text("notes"),
+    runId: uuid("run_id").references(() => deliveryRuns.id),
+    /** Notes made at the counter are delivered on the spot. Notes on a run start pending. */
+    status: deliveryStatus("status").notNull().default("delivered"),
+    deliveredAt: timestamp("delivered_at", { withTimezone: true }),
+    receivedBy: text("received_by"),
   },
-  (t) => [index("delivery_notes_order_idx").on(t.orderId)],
+  (t) => [index("delivery_notes_order_idx").on(t.orderId), index("delivery_notes_run_idx").on(t.runId)],
 );
 
 export const deliveryNoteLines = pgTable(
@@ -444,10 +526,24 @@ export const deliveryNoteLines = pgTable(
     ...audit(),
     deliveryNoteId: uuid("delivery_note_id").notNull().references(() => deliveryNotes.id, { onDelete: "cascade" }),
     soLineId: uuid("so_line_id").notNull().references(() => soLines.id),
+    allocationId: uuid("allocation_id").references(() => soLineAllocations.id),
     description: text("description").notNull(),
     qty: integer("qty").notNull(),
   },
   (t) => [index("dn_lines_dn_idx").on(t.deliveryNoteId), index("dn_lines_so_line_idx").on(t.soLineId)],
+);
+
+/** A garment label ticked off at delivery. Labels themselves are worked out from the lines and splits. */
+export const pieceTicks = pgTable(
+  "piece_ticks",
+  {
+    ...audit(),
+    orderId: uuid("order_id").notNull().references(() => salesOrders.id, { onDelete: "cascade" }),
+    /** soLineId:allocationId or "-":piece number. One row per piece. */
+    pieceKey: text("piece_key").notNull().unique(),
+    deliveryNoteId: uuid("delivery_note_id").references(() => deliveryNotes.id, { onDelete: "set null" }),
+  },
+  (t) => [index("piece_ticks_order_idx").on(t.orderId)],
 );
 
 export const invoices = pgTable(
@@ -464,6 +560,8 @@ export const invoices = pgTable(
     dueDate: date("due_date").notNull(),
     customerPoNumber: text("customer_po_number"),
     notes: text("notes"),
+    /** Prints quantities per branch under the lines, for key accounts that ask for it. */
+    branchBreakdown: boolean("branch_breakdown").notNull().default(false),
     subtotalFils: integer("subtotal_fils").notNull().default(0),
     vatFils: integer("vat_fils").notNull().default(0),
     totalFils: integer("total_fils").notNull().default(0),
@@ -741,3 +839,7 @@ export type SupplierBill = typeof supplierBills.$inferSelect;
 export type SupplierPayment = typeof supplierPayments.$inferSelect;
 export type StockMovement = typeof stockMovements.$inferSelect;
 export type QtyUnit = (typeof qtyUnit.enumValues)[number];
+export type AccountStaff = typeof accountStaff.$inferSelect;
+export type AccountItem = typeof accountItems.$inferSelect;
+export type SoLineAllocation = typeof soLineAllocations.$inferSelect;
+export type DeliveryRun = typeof deliveryRuns.$inferSelect;

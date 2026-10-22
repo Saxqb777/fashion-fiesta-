@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ChevronRightIcon } from "lucide-react";
 import type { Customer } from "@/db/schema";
 import { CUSTOMER_TYPE_LABEL } from "@/lib/labels";
-import { ArchivedTag, TierTag } from "./tags";
+import { ArchivedTag, SoftTag, TierTag } from "./tags";
 
 export function CustomerRow({ c, branchCount }: { c: Customer; branchCount: number }) {
   const meta = [
@@ -20,6 +20,7 @@ export function CustomerRow({ c, branchCount }: { c: Customer; branchCount: numb
           <div className="flex min-w-0 items-center gap-2">
             <p className="truncate text-[16px] font-semibold text-ink">{c.name}</p>
             {c.tier === "vip" ? <TierTag tier="vip" /> : null}
+            {c.isKeyAccount ? <SoftTag className="border-brand/30 bg-brand-soft text-brand-deep">Key account</SoftTag> : null}
             {c.deletedAt ? <ArchivedTag /> : null}
           </div>
           <p className="mt-0.5 truncate text-[13px] text-ink-muted">{meta.join(" · ")}</p>

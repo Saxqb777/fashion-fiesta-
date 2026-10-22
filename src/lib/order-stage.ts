@@ -1,6 +1,6 @@
-import { eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { deliveryNoteLines, invoiceLines, invoices, salesOrders, soLines, tasks, type OrderStage } from "@/db/schema";
+import { deliveryNoteLines, deliveryNotes, invoiceLines, invoices, salesOrders, soLines, tasks, type OrderStage } from "@/db/schema";
 import { invoiceFigures } from "./ledger";
 import { computeStage } from "./stages";
 
@@ -20,7 +20,8 @@ export async function refreshOrderStage(orderId: string) {
       .select({ id: deliveryNoteLines.soLineId, n: sql<number>`sum(${deliveryNoteLines.qty})::int` })
       .from(deliveryNoteLines)
       .innerJoin(soLines, eq(soLines.id, deliveryNoteLines.soLineId))
-      .where(eq(soLines.orderId, orderId))
+      .innerJoin(deliveryNotes, eq(deliveryNotes.id, deliveryNoteLines.deliveryNoteId))
+      .where(and(eq(soLines.orderId, orderId), eq(deliveryNotes.status, "delivered")))
       .groupBy(deliveryNoteLines.soLineId),
     db
       .select({ id: invoiceLines.soLineId, n: sql<number>`sum(${invoiceLines.qty})::int` })

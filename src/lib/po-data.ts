@@ -1,4 +1,4 @@
-import { asc, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, isNull, ne } from "drizzle-orm";
 import { db } from "@/db";
 import { fabrics, poLines, purchaseOrders, salesOrders, suppliers } from "@/db/schema";
 import type { PoFabric, PoInitial, PoSupplier } from "@/components/purchases/po-editor";
@@ -7,7 +7,9 @@ import { centiInput } from "./qty";
 
 export async function poEditorData(): Promise<{ suppliers: PoSupplier[]; fabrics: PoFabric[] }> {
   const [s, f] = await Promise.all([
-    db.select({ id: suppliers.id, name: suppliers.name, type: suppliers.type, trn: suppliers.trn }).from(suppliers).where(isNull(suppliers.deletedAt)).orderBy(asc(suppliers.name)),
+    db.select({ id: suppliers.id, name: suppliers.name, type: suppliers.type, trn: suppliers.trn }).from(suppliers)
+      .where(and(isNull(suppliers.deletedAt), ne(suppliers.type, "delivery")))
+      .orderBy(asc(suppliers.name)),
     db.select({ id: fabrics.id, name: fabrics.name, colour: fabrics.colour, costFils: fabrics.costFils }).from(fabrics).where(isNull(fabrics.deletedAt)).orderBy(asc(fabrics.name)),
   ]);
   return { suppliers: s, fabrics: f };

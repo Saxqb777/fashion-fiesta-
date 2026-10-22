@@ -142,7 +142,6 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
               <dd className="font-display text-2xl font-medium">{formatFils(quote.totalFils)}</dd>
             </div>
           </dl>
-          <p className="text-[13px] text-ink-muted">The printable quote arrives in Phase 3 with the other documents.</p>
           <RecentActivity entityId={quote.id} />
         </div>
       </div>

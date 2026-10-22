@@ -122,6 +122,8 @@ const branchSchema = z.object({
   contactName: optionalText,
   phone: optionalText,
   address: optionalText,
+  emirate: optionalText,
+  deliveryInstructions: optionalText,
 });
 
 export async function saveBranch(_prev: FormState, fd: FormData): Promise<FormState> {
@@ -133,6 +135,8 @@ export async function saveBranch(_prev: FormState, fd: FormData): Promise<FormSt
     contactName: text(fd, "contactName"),
     phone: text(fd, "phone"),
     address: text(fd, "address"),
+    emirate: text(fd, "emirate"),
+    deliveryInstructions: text(fd, "deliveryInstructions"),
   });
   if (!parsed.success) return { errors: fieldErrors(parsed.error) };
   const customer = await db.query.customers.findFirst({ where: eq(customers.id, customerId) });
@@ -141,7 +145,7 @@ export async function saveBranch(_prev: FormState, fd: FormData): Promise<FormSt
   if (branchId) {
     await db
       .update(customerBranches)
-      .set(parsed.data)
+      .set({ ...parsed.data, verified: true })
       .where(and(eq(customerBranches.id, branchId), eq(customerBranches.customerId, customerId)));
     await logActivity({
       actor: me,

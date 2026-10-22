@@ -8,9 +8,13 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/db";
 import {
+  accountItems,
+  accountStaff,
   customerBranches,
   customerMeasurements,
   customers,
+  deliveryNoteLines,
+  soLineAllocations,
   quoteLines,
   quotes,
   salesOrders,
@@ -20,6 +24,7 @@ import {
   users,
 } from "@/db/schema";
 import { logActivity } from "@/lib/activity";
+import { customerSeasons } from "@/lib/accounts";
 import { agingByCustomer } from "@/lib/ledger";
 import { syncOutsourcingPOs } from "@/lib/outsourcing";
 import { parseCenti } from "@/lib/qty";
@@ -60,6 +65,12 @@ export type CustomerContext = {
   lastPrices: Record<string, number>;
   /** For the credit warning on new orders. Warn, never block. */
   money: { owedFils: number; overdueFils: number; oldestDue: string | null; creditLimitFils: number | null };
+  /** Key accounts only: agreed prices, staff with sizes and seasons used before. */
+  account: {
+    items: { productId: string | null; name: string; agreedPriceFils: number }[];
+    staff: { id: string; name: string; branchId: string | null; sizes: string | null }[];
+    seasons: string[];
+  } | null;
 };
 
 export async function getCustomerContext(customerId: string): Promise<CustomerContext | null> {
@@ -88,6 +99,21 @@ export async function getCustomerContext(customerId: string): Promise<CustomerCo
       ) x order by product_id, created_at desc`),
     agingByCustomer(customerId),
   ]);
+  const account = customer.isKeyAccount
+    ? await Promise.all([
+        db
+          .select({ productId: accountItems.productId, name: accountItems.name, agreedPriceFils: accountItems.agreedPriceFils })
+          .from(accountItems)
+          .where(and(eq(accountItems.customerId, customerId), isNull(accountItems.deletedAt)))
+          .orderBy(asc(accountItems.sortOrder)),
+        db
+          .select({ id: accountStaff.id, name: accountStaff.name, branchId: accountStaff.branchId, sizes: accountStaff.sizes })
+          .from(accountStaff)
+          .where(and(eq(accountStaff.customerId, customerId), isNull(accountStaff.deletedAt)))
+          .orderBy(asc(accountStaff.name)),
+        customerSeasons(customerId),
+      ]).then(([items, staff, seasons]) => ({ items, staff, seasons }))
+    : null;
   return {
     customer: { id: customer.id, name: customer.name, tier: customer.tier, type: customer.type, phone: customer.phone },
     branches,
@@ -99,6 +125,7 @@ export async function getCustomerContext(customerId: string): Promise<CustomerCo
       oldestDue: aging?.oldestDue ?? null,
       creditLimitFils: customer.creditLimitFils,
     },
+    account,
   };
 }
 
@@ -149,6 +176,19 @@ const lineSchema = z.object({
     }),
   measurementId: uuidOrNull,
   assignments: z.array(assignmentSchema).default([]),
+  /** Optional split per branch and person. When present, the parts add up to the line quantity. */
+  allocations: z
+    .array(
+      z.object({
+        id: uuidOrNull,
+        branchId: uuidOrNull,
+        staffId: uuidOrNull,
+        personName: z.string().trim().max(120).optional().default(""),
+        size: z.string().trim().max(60).optional().default(""),
+        qty: z.number().int("Whole pieces only.").min(1, "At least 1."),
+      }),
+    )
+    .default([]),
 });
 
 const docSchema = z.object({
@@ -166,6 +206,12 @@ const docSchema = z.object({
     .optional()
     .transform((v) => (v ? v : null)),
   sourceQuoteId: uuidOrNull,
+  season: z
+    .string()
+    .trim()
+    .max(60)
+    .optional()
+    .transform((v) => (v ? v : null)),
   /** Only files this app stored from Read their document. */
   customerPoFileUrl: z
     .string()
@@ -365,6 +411,49 @@ async function persistOrder(doc: Doc, intent: "draft" | "confirm", me: Owner): P
       errors["_"] = [`"${l.description}" has work in progress, so it cannot be removed.`];
     }
   }
+
+  // Splits per branch and person. Optional; when used, the parts add up to the line.
+  const allocBranchIds = [...new Set(doc.lines.flatMap((l) => l.allocations.map((a) => a.branchId)).filter(Boolean) as string[])];
+  const allocStaffIds = [...new Set(doc.lines.flatMap((l) => l.allocations.map((a) => a.staffId)).filter(Boolean) as string[])];
+  const [okBranches, okStaff, oldAllocs, onNotes] = await Promise.all([
+    allocBranchIds.length
+      ? db.select({ id: customerBranches.id }).from(customerBranches).where(and(inArray(customerBranches.id, allocBranchIds), eq(customerBranches.customerId, customer.id)))
+      : [],
+    allocStaffIds.length ? db.select({ id: accountStaff.id }).from(accountStaff).where(and(inArray(accountStaff.id, allocStaffIds), eq(accountStaff.customerId, customer.id))) : [],
+    oldLines.length ? db.select().from(soLineAllocations).where(inArray(soLineAllocations.soLineId, oldLines.map((l) => l.id))) : [],
+    oldLines.length
+      ? db
+          .select({ soLineId: deliveryNoteLines.soLineId, allocationId: deliveryNoteLines.allocationId, n: sql<number>`sum(${deliveryNoteLines.qty})::int` })
+          .from(deliveryNoteLines)
+          .where(inArray(deliveryNoteLines.soLineId, oldLines.map((l) => l.id)))
+          .groupBy(deliveryNoteLines.soLineId, deliveryNoteLines.allocationId)
+      : [],
+  ]);
+  const branchOk = new Set(okBranches.map((b) => b.id));
+  const staffOk = new Set(okStaff.map((b) => b.id));
+  const oldAllocById = new Map(oldAllocs.map((a) => [a.id, a]));
+  const keptAllocIds = new Set(doc.lines.flatMap((l) => l.allocations.map((a) => a.id)).filter(Boolean) as string[]);
+  doc.lines.forEach((l, i) => {
+    if (!l.allocations.length) return;
+    const sum = l.allocations.reduce((s, a) => s + a.qty, 0);
+    if (sum !== l.qty) errors[`lines.${i}.allocations`] = [`The parts add up to ${sum}. The line has ${l.qty}.`];
+    for (const a of l.allocations) {
+      if (a.branchId && !branchOk.has(a.branchId)) errors[`lines.${i}.allocations`] = ["A branch is no longer on this customer."];
+      if (a.staffId && !staffOk.has(a.staffId)) errors[`lines.${i}.allocations`] = ["A person is no longer on their staff list."];
+      if (a.id && oldAllocById.get(a.id)?.soLineId !== l.id) errors[`lines.${i}.allocations`] = ["This split changed elsewhere. Reload the page."];
+      const sent = a.id ? (onNotes.find((n) => n.allocationId === a.id)?.n ?? 0) : 0;
+      if (sent > a.qty) errors[`lines.${i}.allocations`] = [`${sent} pieces of one part are already on a delivery note.`];
+      if (a.id && sent && oldAllocById.get(a.id)?.branchId !== a.branchId) errors[`lines.${i}.allocations`] = ["A part already on a delivery note keeps its branch."];
+    }
+  });
+  for (const a of oldAllocs) {
+    if (keptAllocIds.has(a.id) || !onNotes.some((n) => n.allocationId === a.id)) continue;
+    const lineIndex = doc.lines.findIndex((l) => l.id === a.soLineId);
+    errors[lineIndex >= 0 ? `lines.${lineIndex}.allocations` : "_"] = ["A part already on a delivery note cannot be removed."];
+  }
+  for (const l of oldLines) {
+    if (!keptLineIds.has(l.id) && onNotes.some((n) => n.soLineId === l.id)) errors["_"] = [`"${l.description}" is on a delivery note, so it cannot be removed.`];
+  }
   if (Object.keys(errors).length) return { message: errors["_"]?.[0] ?? "Check the highlighted lines.", errors };
 
   // Measurements: copy the chosen set into the line. Unchanged choices keep their frozen copy.
@@ -439,6 +528,7 @@ async function persistOrder(doc: Doc, intent: "draft" | "confirm", me: Owner): P
     orderDate: doc.date ?? todayISO(),
     dueDate: orderDue,
     notes: doc.notes,
+    season: doc.season,
     customerPoNumber: doc.customerPoNumber,
     customerPoFileUrl: doc.customerPoFileUrl,
     customerPoFileName: doc.customerPoFileUrl ? doc.customerPoFileName : null,
@@ -459,6 +549,16 @@ async function persistOrder(doc: Doc, intent: "draft" | "confirm", me: Owner): P
   for (const l of lineRows) {
     batch.push(l.isNew ? db.insert(soLines).values({ id: l.id, ...l.values, createdBy: me.id }) : db.update(soLines).set(l.values).where(eq(soLines.id, l.id)));
   }
+  const lineIds: string[] = lineRows.map((l) => l.id);
+  const removedAllocs = oldAllocs.filter((a) => keptLineIds.has(a.soLineId) && !keptAllocIds.has(a.id)).map((a) => a.id);
+  if (removedAllocs.length) batch.push(db.delete(soLineAllocations).where(inArray(soLineAllocations.id, removedAllocs)));
+  doc.lines.forEach((l, i) => {
+    l.allocations.forEach((a, j) => {
+      const values = { branchId: a.branchId, staffId: a.staffId, personName: a.personName || null, size: a.size || null, qty: a.qty, sort: j };
+      if (a.id) batch.push(db.update(soLineAllocations).set(values).where(eq(soLineAllocations.id, a.id)));
+      else batch.push(db.insert(soLineAllocations).values({ ...values, soLineId: lineIds[i], createdBy: me.id }));
+    });
+  });
   for (const t of taskUpdates) batch.push(db.update(tasks).set(t.values).where(eq(tasks.id, t.id)));
   if (taskInserts.length) batch.push(db.insert(tasks).values(taskInserts));
   if (confirming && quoteId) {

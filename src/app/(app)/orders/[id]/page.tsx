@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { notFound } from "next/navigation";
-import { ChevronRightIcon, CopyIcon, FileTextIcon, MapPinIcon, PencilIcon } from "lucide-react";
+import { ChevronRightIcon, CopyIcon, FileTextIcon, MapPinIcon, PencilIcon, TagIcon } from "lucide-react";
 import { db } from "@/db";
-import { customerBranches, customers, deliveryNoteLines, deliveryNotes, fabrics, invoices, payments, purchaseOrders, quotes, salesOrders, soLines, suppliers, taskPhotos, tasks } from "@/db/schema";
+import { accountStaff, customerBranches, customers, deliveryNoteLines, deliveryNotes, fabrics, soLineAllocations, invoices, payments, purchaseOrders, quotes, salesOrders, soLines, suppliers, taskPhotos, tasks } from "@/db/schema";
 import { PoStageTag } from "@/components/purchases/bits";
 import { poSummaries } from "@/lib/payables";
 import { SwooshStripe } from "@/components/brand/swoosh-stripe";
@@ -47,6 +47,18 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
     order.quoteId ? db.query.quotes.findFirst({ where: eq(quotes.id, order.quoteId), columns: { id: true, number: true } }) : undefined,
   ]);
   const fabricIds = lines.map((l) => l.fabricId).filter(Boolean) as string[];
+  const [splits, branchNames] = await Promise.all([
+    lines.length
+      ? db
+          .select({ a: soLineAllocations, staffName: accountStaff.name })
+          .from(soLineAllocations)
+          .leftJoin(accountStaff, eq(accountStaff.id, soLineAllocations.staffId))
+          .where(inArray(soLineAllocations.soLineId, lines.map((l) => l.id)))
+          .orderBy(asc(soLineAllocations.sort))
+      : [],
+    db.select({ id: customerBranches.id, name: customerBranches.name }).from(customerBranches).where(eq(customerBranches.customerId, order.customerId)),
+  ]);
+  const branchName = (id: string | null) => (id ? (branchNames.find((b) => b.id === id)?.name ?? "Branch") : "No branch");
   const [fabricRows, photos] = await Promise.all([
     fabricIds.length ? db.select().from(fabrics).where(inArray(fabrics.id, fabricIds)) : [],
     ts.length ? db.select().from(taskPhotos).where(inArray(taskPhotos.taskId, ts.map((t) => t.id))) : [],
@@ -79,7 +91,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   const paidOnInvoices = invFig.reduce((sum, f) => sum + f.paidFils, 0);
   const credited = invFig.reduce((sum, f) => sum + f.creditedFils, 0);
   const stillToPay = Math.max(0, order.totalFils - credited - paidOnInvoices - depositLeft);
-  const leftToDeliver = progress.some((l) => l.qty - l.delivered > 0) && !order.deliveredAt;
+  const leftToDeliver = progress.some((l) => l.qty - l.onNotes > 0) && !order.deliveredAt;
   const leftToInvoice = progress.filter((l) => l.qty - l.invoiced > 0);
   const walkInTotal = leftToInvoice.reduce((sum, l) => sum + lineAmounts(l.qty - l.invoiced, l.unitPriceFils, st.vatRateBp).totalFils, 0);
   const walkInDue = walkInTotal - Math.min(walkInTotal, depositLeft + creditLeft);
@@ -160,6 +172,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
         <p className="tabular text-[13px] font-semibold tracking-wide text-ink-muted uppercase">
           {order.number ?? "Draft order"} · {formatShortDate(new Date(`${order.orderDate}T00:00:00`))}
           {order.customerPoNumber ? ` · Customer PO ${order.customerPoNumber}` : ""}
+          {order.season ? ` · ${order.season}` : ""}
           {quote ? (
             <>
               {" "}
@@ -195,6 +208,12 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
             <CopyIcon />
             Order again
           </LinkButton>
+          {!isDraft && order.stage !== "cancelled" ? (
+            <a href={`/api/labels/${order.id}`} target="_blank" rel="noreferrer" className="inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-sm font-semibold hover:bg-paper-deep">
+              <TagIcon className="size-4" />
+              Garment labels
+            </a>
+          ) : null}
           {order.customerPoFileUrl ? (
             <a
               href={order.customerPoFileUrl}
@@ -252,7 +271,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                   </div>
                   <div className="flex flex-col items-end gap-1.5">
                     <p className="tabular font-display text-xl font-medium">{formatFils(l.netFils + l.vatFils)}</p>
-                    {editable && (progress.find((p) => p.id === l.id)?.delivered ?? 0) < l.qty ? (
+                    {editable && (progress.find((p) => p.id === l.id)?.onNotes ?? 0) < l.qty ? (
                       <DueChip date={l.dueDate ?? order.dueDate} done={lineTasks.length > 0 && lineTasks.every((t) => t.status === "approved")} />
                     ) : null}
                   </div>
@@ -268,6 +287,24 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                       <span className="font-semibold">{[fabric.name, fabric.colour].filter(Boolean).join(", ")}</span>
                       {fabric.shelfLocation ? <span className="text-ink-muted"> · {fabric.shelfLocation}</span> : null}
                     </p>
+                  </div>
+                ) : null}
+                {splits.some((x) => x.a.soLineId === l.id) ? (
+                  <div className="mt-3">
+                    <p className="mb-1.5 text-[13px] font-semibold text-ink-muted">Split per branch</p>
+                    <ul className="flex flex-col gap-1">
+                      {[...new Set(splits.filter((x) => x.a.soLineId === l.id).map((x) => x.a.branchId))].map((b) => {
+                        const parts = splits.filter((x) => x.a.soLineId === l.id && x.a.branchId === b);
+                        const people = parts.map((x) => [x.a.personName ?? x.staffName, x.a.size].filter(Boolean).join(" ")).filter(Boolean);
+                        return (
+                          <li key={b ?? "none"} className="flex items-baseline gap-2 text-[14px]">
+                            <span className="tabular w-8 shrink-0 text-right font-semibold">{parts.reduce((sum, x) => sum + x.a.qty, 0)}</span>
+                            <span className="font-semibold">{branchName(b)}</span>
+                            {people.length ? <span className="truncate text-[13px] text-ink-muted">{people.join(", ")}</span> : null}
+                          </li>
+                        );
+                      })}
+                    </ul>
                   </div>
                 ) : null}
                 {l.measurements?.length ? (
@@ -391,6 +428,10 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                   <li key={d.id} className="flex flex-col gap-2 py-3">
                     <p className="text-[14px] font-semibold">
                       Delivery note {d.number}
+                      {d.branchId && d.branchId !== order.branchId ? <span className="ml-2 font-normal">{branchName(d.branchId)}</span> : null}
+                      {d.status === "pending" ? (
+                        <span className="ml-2 inline-flex h-5 items-center rounded-full border border-sun/60 bg-sun/20 px-2 align-middle text-[10px] font-bold tracking-wide uppercase">Pending</span>
+                      ) : null}
                       <span className="tabular ml-2 font-normal text-ink-muted">
                         {formatISODate(d.deliveryDate, true)} · {dnPieces.filter((x) => x.dn === d.id).reduce((sum, x) => sum + x.qty, 0)} pieces
                       </span>

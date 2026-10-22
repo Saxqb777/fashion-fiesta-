@@ -15,8 +15,9 @@ import { EMPTY_FORM_STATE } from "@/lib/forms";
 import { formatFils } from "@/lib/money";
 import { lineAmountsCenti, parseCenti } from "@/lib/qty";
 import { cn } from "cn";
+import type { SupplierType } from "@/db/schema";
 
-export type PoSupplier = { id: string; name: string; type: "fabric" | "outsourcing"; trn: string | null };
+export type PoSupplier = { id: string; name: string; type: SupplierType; trn: string | null };
 export type PoFabric = { id: string; name: string; colour: string | null; costFils: number };
 export type PoLineInput = {
   key: string;

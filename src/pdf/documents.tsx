@@ -1,7 +1,8 @@
 import { renderToBuffer, Text, View } from "@react-pdf/renderer";
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
+  accountStaff,
   creditNoteLines,
   creditNotes,
   customerBranches,
@@ -17,6 +18,7 @@ import {
   quoteLines,
   quotes,
   salesOrders,
+  soLineAllocations,
   soLines,
   suppliers,
 } from "@/db/schema";
@@ -127,11 +129,18 @@ async function orderDoc(id: string): Promise<Built | null> {
 async function deliveryDoc(id: string): Promise<Built | null> {
   const d = await db.query.deliveryNotes.findFirst({ where: eq(deliveryNotes.id, id) });
   if (!d) return null;
-  const [co, p, lines, order] = await Promise.all([
+  const [co, p, lines, order, branch] = await Promise.all([
     company(),
     party(d.customerId, d.branchId),
-    db.select().from(deliveryNoteLines).where(eq(deliveryNoteLines.deliveryNoteId, id)),
+    db
+      .select({ l: deliveryNoteLines, person: soLineAllocations.personName, size: soLineAllocations.size, staffName: accountStaff.name })
+      .from(deliveryNoteLines)
+      .leftJoin(soLineAllocations, eq(soLineAllocations.id, deliveryNoteLines.allocationId))
+      .leftJoin(accountStaff, eq(accountStaff.id, soLineAllocations.staffId))
+      .where(eq(deliveryNoteLines.deliveryNoteId, id))
+      .then((rows) => rows.map((r) => ({ ...r.l, who: [r.person ?? r.staffName, r.size ? `size ${r.size}` : null].filter(Boolean).join(", ") }))),
     db.query.salesOrders.findFirst({ where: eq(salesOrders.id, d.orderId), columns: { number: true } }),
+    d.branchId ? db.query.customerBranches.findFirst({ where: eq(customerBranches.id, d.branchId) }) : undefined,
   ]);
   return {
     filename: `${d.number}.pdf`,
@@ -144,11 +153,12 @@ async function deliveryDoc(id: string): Promise<Built | null> {
           <Party label="Deliver to" name={p.name} lines={p.lines} />
           <Meta rows={[["Delivery note", d.number], ["Date", day(d.deliveryDate)], ["Our order", order?.number], ["Customer PO", d.customerPoNumber]]} />
         </View>
-        <LinesTable columns={[{ title: "Description", flex: 6 }, { title: "Qty", flex: 1, align: "right" }]} rows={lines.map((l) => [l.description, String(l.qty)])} />
+        <LinesTable columns={[{ title: "Description", flex: 6 }, { title: "Qty", flex: 1, align: "right" }]} rows={lines.map((l) => [l.who ? `${l.description}. ${l.who}` : l.description, String(l.qty)])} />
         <View style={[s.row, { marginTop: 10 }]}>
           <Text style={s.muted}>Total pieces</Text>
           <Text style={{ fontFamily: "Fraunces", fontWeight: 600, fontSize: 13 }}>{lines.reduce((t, l) => t + l.qty, 0)}</Text>
         </View>
+        {branch?.deliveryInstructions ? <Text style={s.note}>Delivery: {branch.deliveryInstructions}</Text> : null}
         {d.notes ? <Text style={s.note}>{d.notes}</Text> : null}
         <SignOff>
           {["Received by", "Signature", "Date"].map((k) => (
@@ -175,6 +185,7 @@ async function invoiceDoc(id: string): Promise<Built | null> {
     inv.orderId ? db.query.salesOrders.findFirst({ where: eq(salesOrders.id, inv.orderId), columns: { number: true } }) : undefined,
   ]);
   const f = figures.get(id)!;
+  const breakdown = inv.branchBreakdown ? await branchBreakdown(lines) : [];
   const after: [string, string, boolean?][] = [];
   if (f.advanceFils) after.push(["Paid in advance", aed(f.advanceFils)]);
   if (f.paidFils - f.advanceFils) after.push(["Payments received", aed(f.paidFils - f.advanceFils)]);
@@ -203,10 +214,48 @@ async function invoiceDoc(id: string): Promise<Built | null> {
         <LinesTable columns={LINE_COLUMNS} rows={lineRows(lines)} />
         <Totals rows={[["Subtotal", aed(inv.subtotalFils)], [`VAT ${co.vatRateBp / 100}%`, aed(inv.vatFils)]]} grand={["Total AED", aed(inv.totalFils)]} after={after} paid={f.balanceFils <= 0} />
         {inv.notes ? <Text style={s.note}>{inv.notes}</Text> : null}
+        {breakdown.length ? (
+          <View wrap={false} style={{ marginTop: 14 }}>
+            <Text style={s.label}>Quantities per branch</Text>
+            <LinesTable columns={BREAKDOWN_COLUMNS} rows={breakdown} />
+          </View>
+        ) : null}
         <SignOff />
       </DocShell>
     ),
   };
+}
+
+const BREAKDOWN_COLUMNS = [
+  { title: "Branch", flex: 3 },
+  { title: "Item", flex: 4 },
+  { title: "Qty", flex: 0.8, align: "right" as const },
+];
+
+/** Branch, item, qty rows from how the invoiced lines were split. Parts follow the invoiced quantity. */
+async function branchBreakdown(lines: { soLineId: string | null; description: string; qty: number }[]) {
+  const ids = lines.map((l) => l.soLineId).filter(Boolean) as string[];
+  if (!ids.length) return [];
+  const rows = await db
+    .select({ a: soLineAllocations, branch: customerBranches.name, line: soLines })
+    .from(soLineAllocations)
+    .innerJoin(soLines, eq(soLines.id, soLineAllocations.soLineId))
+    .leftJoin(customerBranches, eq(customerBranches.id, soLineAllocations.branchId))
+    .where(inArray(soLineAllocations.soLineId, ids))
+    .orderBy(asc(customerBranches.name), asc(soLineAllocations.sort));
+  const out: string[][] = [];
+  const grouped = new Map<string, number>();
+  for (const r of rows) {
+    const invLine = lines.find((l) => l.soLineId === r.a.soLineId);
+    // Quantities as split on the order, grouped by branch and item.
+    const k = `${r.branch ?? "No branch"}|${invLine?.description ?? r.line.description}`;
+    grouped.set(k, (grouped.get(k) ?? 0) + r.a.qty);
+  }
+  for (const [k, qty] of grouped) {
+    const [branch, item] = k.split("|");
+    out.push([branch, item, String(qty)]);
+  }
+  return out;
 }
 
 /* ---------- Credit note ---------- */

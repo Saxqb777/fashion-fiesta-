@@ -26,8 +26,9 @@ export function SupplierForm({ supplier }: { supplier?: Supplier }) {
         options={[
           { value: "fabric", label: "Sells fabric" },
           { value: "outsourcing", label: "Stitches for you" },
+          { value: "delivery", label: "Delivers for you" },
         ]}
-        hint="Stitching units are the outside workshops, mostly in Ajman."
+        hint="Stitching units are the outside workshops, mostly in Ajman. Delivery companies take key account orders to their branches."
       />
       <div className="grid gap-5 sm:grid-cols-2">
         <TextField name="contactName" label="Contact person" defaultValue={supplier?.contactName ?? ""} errors={e.contactName} />

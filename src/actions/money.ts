@@ -80,7 +80,7 @@ export async function createDeliveryNote(_prev: FormState, fd: FormData): Promis
   for (const l of chosen) {
     const p = progress.find((x) => x.id === l.soLineId);
     if (!p) errors[`line.${l.soLineId}`] = ["That line is no longer on the order."];
-    else if (l.qty > p.qty - p.delivered) errors[`line.${l.soLineId}`] = [`Only ${p.qty - p.delivered} left to deliver.`];
+    else if (l.qty > p.qty - p.onNotes) errors[`line.${l.soLineId}`] = [`Only ${p.qty - p.onNotes} left to deliver.`];
   }
   if (!chosen.length) return { message: "Enter how many pieces are going out." };
   if (Object.keys(errors).length) return { message: "Some quantities are more than what is left.", errors };
@@ -116,6 +116,7 @@ const invoiceSchema = z.object({
   orderId: uuid,
   date: isoDate,
   notes: z.string().trim().max(1000).optional().default(""),
+  branchBreakdown: z.boolean().optional().default(false),
   lines: z
     .array(
       z.object({
@@ -188,6 +189,7 @@ async function issueInvoice(input: InvoiceInput, me: Owner): Promise<{ id?: stri
       dueDate: await dueDateFor(order.customerId, invoiceDate),
       customerPoNumber: order.customerPoNumber,
       notes: input.notes || null,
+      branchBreakdown: input.branchBreakdown,
       ...totals,
       createdBy: me.id,
     }),
@@ -234,6 +236,7 @@ export async function invoiceAndPay(_prev: FormState, fd: FormData): Promise<For
       orderId,
       date: todayISO(),
       notes: "",
+      branchBreakdown: false,
       lines: remaining.map((l) => ({ soLineId: l.id, productId: l.productId, description: l.description, qty: l.qty - l.invoiced, unitPrice: l.unitPriceFils })),
     },
     me,

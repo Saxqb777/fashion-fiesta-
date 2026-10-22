@@ -242,6 +242,36 @@ Standing permission: small taste improvements (spacing, wording, micro animation
 34. Data export. proposed. Effort: small.
     What: one button exports everything to Excel, so the owners are never locked in.
 
+35. Garment labels. approved. Phase 4.5. Effort: small.
+    What: print a small label per piece from an order: customer, branch, person, size, order number. Tick off each piece at delivery.
+
+36. Embroidery design files. approved. Phase 5, with embroidery jobs. Effort: small.
+    What: store the digitised machine file per customer with thread colours, size and placement notes. The operator downloads it from the embroidery job.
+
+37. Salary advances. approved. Phase 5, with salaries. Effort: small.
+    What: record an advance to a tailor, deduct it automatically on pay day, show the balance on Team.
+
+38. Rework task. proposed. Effort: small.
+    What: one tap from a credit note or an order creates a fix task linked to the original order.
+
+39. Sample stage. proposed. Effort: small.
+    What: an optional "Sample" stage before Stitching, with a photo and the customer's approval date.
+
+40. Tailor language toggle. proposed. Effort: medium.
+    What: Urdu and Hindi hints on tailor screens. English stays the default.
+
+41. Quote accepted by link. proposed. Effort: small.
+    What: the shared quote has an Accept button; tapping it confirms the order with a timestamp and notifies the owner.
+
+42. Push notifications. proposed. Phase 6. Effort: medium.
+    What: the tailor's phone buzzes on a new task; the owner's phone on payment received or task submitted.
+
+43. Embroidery Studio. proposed. After Phase 6, inside Workshop. Effort: large.
+    What: the owner or operator uploads a logo or image, sets the size in cm and the thread colours. The system cleans and vectorises the image, auto digitises it to a machine file (DST by default, format set per machine model in Settings), shows a stitch preview and stitch count, and saves it as the customer's design file. The operator downloads it and finishes the work on the machine and his own software. The system makes the first file, the operator owns the final. Research Ink/Stitch for the digitising step before planning this.
+
+Open questions for Saaqib:
+- Embroidery machine brand and model: confirm with the operator. It decides the machine file format for ideas 36 and 43.
+
 (Ask your shop is idea 13, already in the backlog.)
 
 Notes: Reading customer documents (idea 1) is Phase 3.5. The other AI ideas (11, 12, 13 and supplier note photos) are done together after Phase 6.

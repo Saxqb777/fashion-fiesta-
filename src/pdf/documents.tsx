@@ -21,7 +21,7 @@ import { addDaysISO, todayISO } from "@/lib/dates";
 import { agingByCustomer, invoiceFigures, METHOD_LABEL, statementLedger } from "@/lib/ledger";
 import { getSettings } from "@/lib/settings";
 import type { ShareType } from "@/lib/share";
-import { aed, C, day, DocShell, LinesTable, Meta, Party, s, Totals, type Company } from "./template";
+import { aed, C, day, DocShell, LinesTable, Meta, Party, s, SignOff, Totals, type Company } from "./template";
 
 type Built = { element: React.ReactElement; filename: string; customerName: string; customerPhone: string | null; summary: string };
 
@@ -146,14 +146,14 @@ async function deliveryDoc(id: string): Promise<Built | null> {
           <Text style={{ fontFamily: "Fraunces", fontWeight: 600, fontSize: 13 }}>{lines.reduce((t, l) => t + l.qty, 0)}</Text>
         </View>
         {d.notes ? <Text style={s.note}>{d.notes}</Text> : null}
-        <View style={[s.row, { marginTop: 36 }]} wrap={false}>
+        <SignOff>
           {["Received by", "Signature", "Date"].map((k) => (
-            <View key={k} style={{ width: 150 }}>
+            <View key={k} style={{ width: 96, marginRight: 14 }}>
               <View style={{ borderBottomWidth: 0.75, borderBottomColor: C.ink, height: 26 }} />
               <Text style={[s.label, { marginTop: 4 }]}>{k}</Text>
             </View>
           ))}
-        </View>
+        </SignOff>
       </DocShell>
     ),
   };
@@ -173,7 +173,7 @@ async function invoiceDoc(id: string): Promise<Built | null> {
   const f = figures.get(id)!;
   const after: [string, string, boolean?][] = [];
   if (f.advanceFils) after.push(["Paid in advance", aed(f.advanceFils)]);
-  if (f.paidFils - f.advanceFils) after.push(["Amount paid", aed(f.paidFils - f.advanceFils)]);
+  if (f.paidFils - f.advanceFils) after.push(["Payments received", aed(f.paidFils - f.advanceFils)]);
   if (f.creditedFils) after.push(["Credit notes", aed(f.creditedFils)]);
   after.push(["Balance due", aed(Math.max(0, f.balanceFils)), f.balanceFils > 0]);
   return {
@@ -197,8 +197,9 @@ async function invoiceDoc(id: string): Promise<Built | null> {
           />
         </View>
         <LinesTable columns={LINE_COLUMNS} rows={lineRows(lines)} />
-        <Totals rows={[["Subtotal", aed(inv.subtotalFils)], [`VAT ${co.vatRateBp / 100}%`, aed(inv.vatFils)]]} grand={["Total AED", aed(inv.totalFils)]} after={after} />
+        <Totals rows={[["Subtotal", aed(inv.subtotalFils)], [`VAT ${co.vatRateBp / 100}%`, aed(inv.vatFils)]]} grand={["Total AED", aed(inv.totalFils)]} after={after} paid={f.balanceFils <= 0} />
         {inv.notes ? <Text style={s.note}>{inv.notes}</Text> : null}
+        <SignOff />
       </DocShell>
     ),
   };
@@ -224,6 +225,7 @@ async function creditDoc(id: string): Promise<Built | null> {
         <Text style={s.note}>Reason: {cn.reason}</Text>
         <LinesTable columns={LINE_COLUMNS} rows={lineRows(lines)} />
         <Totals rows={[["Subtotal", aed(cn.subtotalFils)], ["VAT 5%", aed(cn.vatFils)]]} grand={["Total credited AED", aed(cn.totalFils)]} />
+        <SignOff />
       </DocShell>
     ),
   };
@@ -263,7 +265,7 @@ async function receiptDoc(id: string): Promise<Built | null> {
         {allocs.length ? (
           <LinesTable
             columns={[{ title: "Applied to", flex: 4 }, { title: "Date", flex: 1.6 }, { title: "Amount", flex: 1.6, align: "right" }]}
-            rows={allocs.map((a) => [a.kind === "opening_balance" ? "Opening balance" : `Tax Invoice ${a.number}`, day(a.date), aed(a.amount)])}
+            rows={allocs.map((a) => [a.kind === "opening_balance" ? "Balance from previous records" : `Tax Invoice ${a.number}`, day(a.date), aed(a.amount)])}
           />
         ) : null}
         {left > 0 ? (
@@ -299,7 +301,7 @@ async function statementDoc(customerId: string, from?: string, to?: string): Pro
       <DocShell title="Statement of Account" subtitle={`${day(start)} to ${day(end)}`} company={co} terms={termsFor(c.creditDays, c.type, co.defaultCreditDays)}>
         <View style={s.row}>
           <Party label="Customer" name={p.name} lines={p.lines} />
-          <Meta rows={[["From", day(start)], ["To", day(end)], ["Opening balance", `AED ${aed(opening)}`]]} />
+          <Meta rows={[["From", day(start)], ["To", day(end)], [`Balance at ${day(start)}`, `AED ${aed(opening)}`]]} />
         </View>
         <LinesTable
           columns={[
@@ -320,7 +322,7 @@ async function statementDoc(customerId: string, from?: string, to?: string): Pro
             </View>
           ))}
         </View>
-        <Totals rows={[]} grand={[running >= 0 ? "Balance due AED" : "In your favour AED", aed(Math.abs(running))]} />
+        <Totals rows={[]} grand={[running >= 0 ? "Balance due AED" : "Credit on account AED", aed(Math.abs(running))]} />
       </DocShell>
     ),
   };

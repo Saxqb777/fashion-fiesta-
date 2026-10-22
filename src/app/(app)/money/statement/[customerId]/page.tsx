@@ -40,7 +40,7 @@ export default async function StatementPage({ params, searchParams }: { params: 
     phone: customer.phone,
     filename: `Statement ${customer.name} ${end}`,
     query,
-    message: `${s.tradeName}: your statement of account to ${formatISODate(end, true)}. ${ledger.closing > 0 ? `Balance due ${formatFils(ledger.closing)}.` : ledger.closing < 0 ? `${formatFils(-ledger.closing)} in your favour.` : "Nothing is due."} Thank you.`,
+    message: `${s.tradeName}: your statement of account to ${formatISODate(end, true)}. ${ledger.closing > 0 ? `Balance due ${formatFils(ledger.closing)}.` : ledger.closing < 0 ? `${formatFils(-ledger.closing)} credit on account.` : "Nothing is due."} Thank you.`,
   });
   const late = aging ? aging.d1_30 + aging.d31_60 + aging.d61 : 0;
 
@@ -59,7 +59,7 @@ export default async function StatementPage({ params, searchParams }: { params: 
 
       <section className="flex flex-col gap-4 rounded-[14px] border border-line bg-surface p-5 sm:flex-row sm:items-end sm:justify-between sm:p-6">
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-ink-muted">{ledger.closing >= 0 ? `Balance on ${formatISODate(end, true)}` : `In their favour on ${formatISODate(end, true)}`}</p>
+          <p className="text-sm font-semibold text-ink-muted">{ledger.closing >= 0 ? `Balance on ${formatISODate(end, true)}` : `Credit on account on ${formatISODate(end, true)}`}</p>
           <p className="mt-1 font-display text-[2.5rem] leading-none font-medium sm:text-[3rem]">
             <CountUp fils={Math.abs(ledger.closing)} />
           </p>

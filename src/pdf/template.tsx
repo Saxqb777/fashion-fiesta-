@@ -144,9 +144,9 @@ export function Party({ label, name, lines }: { label: string; name: string; lin
   );
 }
 
-export function Totals({ rows, grand, after }: { rows: [string, string][]; grand: [string, string]; after?: [string, string, boolean?][] }) {
-  return (
-    <View style={s.totals} wrap={false}>
+export function Totals({ rows, grand, after, paid }: { rows: [string, string][]; grand: [string, string]; after?: [string, string, boolean?][]; paid?: boolean }) {
+  const box = (
+    <View style={paid ? [s.totals, { marginTop: 0 }] : s.totals} wrap={false}>
       {rows.map(([k, v]) => (
         <View key={k} style={s.totalRow}>
           <Text style={s.muted}>{k}</Text>
@@ -163,6 +163,27 @@ export function Totals({ rows, grand, after }: { rows: [string, string][]; grand
           <Text style={strong ? { fontWeight: 700, color: C.brandDeep } : {}}>{v}</Text>
         </View>
       ))}
+    </View>
+  );
+  if (!paid) return box;
+  return (
+    <View style={{ flexDirection: "row", justifyContent: "flex-end", alignItems: "center", marginTop: 14 }} wrap={false}>
+      <View style={{ marginRight: 28, borderWidth: 2, borderColor: C.brand, borderRadius: 8, paddingHorizontal: 14, paddingTop: 4, paddingBottom: 2, transform: "rotate(-8deg)" }}>
+        <Text style={{ fontFamily: "Fraunces", fontWeight: 600, fontSize: 24, letterSpacing: 4, color: C.brand }}>PAID</Text>
+      </View>
+      {box}
+    </View>
+  );
+}
+
+/** Signature lines (optional) on the left, the authorised signatory and stamp box on the right. */
+export function SignOff({ children }: { children?: React.ReactNode }) {
+  return (
+    <View style={[s.row, { marginTop: 32, alignItems: "flex-end" }]} wrap={false}>
+      <View style={{ flexDirection: "row" }}>{children}</View>
+      <View style={{ width: 180, height: 76, borderWidth: 0.75, borderColor: C.line, borderRadius: 10, padding: 8, justifyContent: "flex-end" }}>
+        <Text style={[s.label, { marginBottom: 0 }]}>Authorised signatory and stamp</Text>
+      </View>
     </View>
   );
 }

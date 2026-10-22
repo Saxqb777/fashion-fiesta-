@@ -178,8 +178,8 @@ export async function statementLedger(customerId: string, start: string, end: st
   const all = [
     ...invs.map((i) => ({
       date: i.invoiceDate,
-      doc: i.number ?? "Opening",
-      text: i.kind === "opening_balance" ? "Opening balance" : `Tax Invoice, due ${formatISODate(i.dueDate, true)}`,
+      doc: i.number ?? "",
+      text: i.kind === "opening_balance" ? "Balance from previous records" : `Tax Invoice, due ${formatISODate(i.dueDate, true)}`,
       debit: i.totalFils,
       credit: 0,
       href: `/money/invoices/${i.id}`,

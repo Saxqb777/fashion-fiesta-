@@ -79,6 +79,7 @@ Rules:
 - Empty states always teach: one sentence and one button to add the first record. Never an empty table.
 - Celebrations: payment received, invoice fully paid, task approved get a short satisfying animation (under 1 second). Big numbers count up on load.
 - Tailor phone screens: max three primary actions per screen, buttons at least 48px tall, camera upload front and centre.
+- Sidebar rule (standing): the sidebar stays at these 8 items forever. Every new feature lives inside an existing page, Today, Reports, Settings or Team. Never a new menu item.
 - Forbidden: purple or blue gradients, emoji in the UI, icons inside coloured circles on stat cards, "Welcome back" banners, lorem ipsum, placeholder avatars, generic admin sidebar with 20 items. Sidebar is short and grouped: Today, Orders, Customers, Money, Workshop, Purchases, Reports, Settings.
 - Copy is plain and warm. "Who owes you", not "Accounts receivable". Keep the accounting term as a small secondary label where it helps.
 - Hyphens and em dashes are not used in UI copy or documents. Use colons or full stops.
@@ -111,7 +112,7 @@ Phase 6: Today screen, Reports (who owes you with aging, sales by customer, VAT 
 Phase 7: Seed script with realistic demo data, handover notes for the owners.
 
 ## Parked for v2
-POS card terminal integration (provider to be confirmed), order planning and branch allocation, tailor salary and attendance, WhatsApp reminders, deeper reports.
+POS card terminal integration (provider to be confirmed), order planning and branch allocation, tailor attendance, WhatsApp reminders, deeper reports. (Salaries moved to Phase 5, idea 17.)
 
 ## Ideas backlog
 Status values: proposed, approved, built. Saaqib marks ideas approved. Build only approved ideas, in the phase they belong to. Never build a proposed idea without approval.
@@ -149,8 +150,8 @@ Standing permission: small taste improvements (spacing, wording, micro animation
    What: every document has a Send button that opens WhatsApp to the customer's number with a short message and the PDF.
    Why: the invoice reaches the school before she puts the phone down.
 
-9. Close the day. proposed. Phase 5. Effort: medium.
-   What: an end of day screen shows expected cash in the drawer, she types the counted amount, the difference is logged in the cash book with a note.
+9. Daily close. approved. Phase 5. Effort: medium.
+   What: end of day screen. The owner enters counted cash; the system shows expected cash, card total and the difference, flagged in red if it does not match. One per day, kept in history.
    Why: thirty seconds at closing, and the morning hero number is true.
 
 10. Can we promise that date. proposed. Phase 2. Effort: medium.
@@ -176,5 +177,36 @@ Standing permission: small taste improvements (spacing, wording, micro animation
 15. Add lines from Excel. built. Phase 2 follow up. Effort: medium.
     What: New order and New quote take a template, an uploaded sheet or pasted rows; preview with errors in red; one draft per branch when a Branch column is present.
     Why: big corporate orders in one go.
+
+16. Opening balances. approved. Phase 3. Effort: medium.
+    What: a setup step and a Settings tab for cash in hand today, who owes you now (customer, amount, since when) and who you owe now (supplier, amount). These seed the first invoices, bills and cash book so day one numbers are right.
+    Why: the app starts with the real numbers, not zero.
+
+17. Salaries. approved. Phase 5 (moved from v2). Effort: medium.
+    What: each tailor on Team has a salary, pay day and pay history. Today warns before pay day with the total. Mark paid writes to the cash book and expenses.
+    Why: pay day never surprises the cash drawer.
+
+18. Profit per order. proposed. Phase 5. Effort: medium.
+    What: price minus fabric used, outsourcing cost and embroidery share, shown on the order page once delivered.
+
+19. Monthly P&L. proposed. Phase 6. Effort: medium.
+    What: sales, minus fabric, outsourcing and embroidery share, minus salaries, minus expenses, equals operating profit. Starts from the go live month, no old data.
+
+20. Customer health. proposed. Phase 6. Effort: small.
+    What: last order date, total this year, average days to pay, and a nudge when a customer has not ordered for 90 days.
+
+21. Tailor scorecard. proposed. Phase 6. Effort: small.
+    What: pieces per week, on time percentage, rejection rate.
+
+22. Catch up feed. proposed. Phase 6. Effort: medium.
+    What: "Needs your attention" on Today covers overdue invoices, tasks to review, tailor questions, salary due, supplier bills due, quotes unanswered for 7 days, fabric running low and the daily close difference. One button each.
+
+23. AI setup assistant. proposed. AI, after Phase 6. Effort: large.
+    What: a chat during setup that asks about the business and imports customers, suppliers, products and opening balances from Excel or photos.
+
+24. Weekly digest. proposed. AI, after Phase 6. Effort: small.
+    What: a Saturday morning summary of what happened, what is due and who to chase.
+
+(Ask your shop is idea 13, already in the backlog.)
 
 Notes: Reading customer documents (idea 1) is Phase 3.5. The other AI ideas (11, 12, 13 and supplier note photos) are done together after Phase 6.

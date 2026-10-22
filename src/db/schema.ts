@@ -35,6 +35,11 @@ export const documentType = pgEnum("document_type", [
 ]);
 export const invoiceKind = pgEnum("invoice_kind", ["tax_invoice", "opening_balance"]);
 export const paymentMethod = pgEnum("payment_method", ["cash", "card", "bank_transfer", "cheque"]);
+export const poKind = pgEnum("po_kind", ["fabric", "outsourcing"]);
+export const poStatus = pgEnum("po_status", ["draft", "sent", "cancelled"]);
+export const qtyUnit = pgEnum("qty_unit", ["m", "pcs"]);
+export const stockMoveKind = pgEnum("stock_move_kind", ["opening", "received", "taken", "sent", "adjusted"]);
+export const billKind = pgEnum("bill_kind", ["bill", "opening_balance"]);
 
 /** Columns every table carries. */
 const audit = () => ({
@@ -130,6 +135,8 @@ export const customers = pgTable(
     address: text("address"),
     /** Null means the shop default from settings. */
     creditDays: integer("credit_days"),
+    /** Null means no limit. Idea 30: warn, never block. */
+    creditLimitFils: integer("credit_limit_fils"),
     notes: text("notes"),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
@@ -189,6 +196,8 @@ export const products = pgTable(
     kind: productKind("kind").notNull().default("custom"),
     /** Price before VAT, in fils. */
     priceFils: integer("price_fils").notNull().default(0),
+    /** Default fabric used per piece, in hundredths of a metre (250 = 2.50 m). Idea 29. */
+    metresPerPieceCenti: integer("metres_per_piece_centi"),
     notes: text("notes"),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
@@ -209,6 +218,8 @@ export const fabrics = pgTable(
     photoUrl: text("photo_url"),
     /** Where the roll sits in the shop, e.g. "Rack B, shelf 2". Idea 6. */
     shelfLocation: text("shelf_location"),
+    /** Warn when stock falls to this many hundredths of a metre. */
+    lowStockCenti: integer("low_stock_centi"),
     notes: text("notes"),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
@@ -323,6 +334,8 @@ export const soLines = pgTable(
     vatFils: integer("vat_fils").notNull(),
     dueDate: date("due_date"),
     fabricId: uuid("fabric_id").references(() => fabrics.id),
+    /** Fabric per piece for this line, hundredths of a metre. Prefilled from the product. */
+    metresPerPieceCenti: integer("metres_per_piece_centi"),
     measurementId: uuid("measurement_id").references(() => customerMeasurements.id),
     /** Frozen copy taken when the order was made. Later edits to the customer card do not change it. */
     measurementLabel: text("measurement_label"),
@@ -522,6 +535,159 @@ export const paymentAllocations = pgTable(
   (t) => [index("allocations_payment_idx").on(t.paymentId), index("allocations_invoice_idx").on(t.invoiceId)],
 );
 
+/* ---------- Phase 4: purchases, stock, supplier bills and payments ---------- */
+
+/** Quantities in purchases and stock are hundredths: 1250 = 12.50 m, 300 = 3 pieces. */
+export const purchaseOrders = pgTable(
+  "purchase_orders",
+  {
+    ...audit(),
+    /** FF-PO number, given on Confirm. Drafts have none. */
+    number: text("number").unique(),
+    kind: poKind("kind").notNull().default("fabric"),
+    status: poStatus("status").notNull().default("draft"),
+    supplierId: uuid("supplier_id").notNull().references(() => suppliers.id),
+    /** Outsourcing POs belong to one sales order. */
+    orderId: uuid("order_id").references(() => salesOrders.id),
+    poDate: date("po_date").notNull(),
+    expectedDate: date("expected_date"),
+    notes: text("notes"),
+    subtotalFils: integer("subtotal_fils").notNull().default(0),
+    vatFils: integer("vat_fils").notNull().default(0),
+    totalFils: integer("total_fils").notNull().default(0),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+  },
+  (t) => [index("po_supplier_idx").on(t.supplierId), index("po_order_idx").on(t.orderId)],
+);
+
+export const poLines = pgTable(
+  "po_lines",
+  {
+    ...audit(),
+    poId: uuid("po_id").notNull().references(() => purchaseOrders.id, { onDelete: "cascade" }),
+    sort: integer("sort").notNull().default(0),
+    fabricId: uuid("fabric_id").references(() => fabrics.id),
+    productId: uuid("product_id").references(() => products.id),
+    /** Outsourcing: the order line and task this stitching charge is for. */
+    soLineId: uuid("so_line_id").references(() => soLines.id, { onDelete: "set null" }),
+    taskId: uuid("task_id").references(() => tasks.id, { onDelete: "set null" }),
+    description: text("description").notNull(),
+    unit: qtyUnit("unit").notNull().default("m"),
+    qtyCenti: integer("qty_centi").notNull(),
+    /** Per metre or per piece, before VAT. */
+    unitPriceFils: integer("unit_price_fils").notNull().default(0),
+    vatRateBp: integer("vat_rate_bp").notNull(),
+    netFils: integer("net_fils").notNull(),
+    vatFils: integer("vat_fils").notNull(),
+  },
+  (t) => [index("po_lines_po_idx").on(t.poId), index("po_lines_task_idx").on(t.taskId)],
+);
+
+export const goodsReceipts = pgTable(
+  "goods_receipts",
+  {
+    ...audit(),
+    poId: uuid("po_id").notNull().references(() => purchaseOrders.id),
+    receivedDate: date("received_date").notNull(),
+    notes: text("notes"),
+  },
+  (t) => [index("receipts_po_idx").on(t.poId)],
+);
+
+export const goodsReceiptLines = pgTable(
+  "goods_receipt_lines",
+  {
+    ...audit(),
+    receiptId: uuid("receipt_id").notNull().references(() => goodsReceipts.id, { onDelete: "cascade" }),
+    poLineId: uuid("po_line_id").notNull().references(() => poLines.id),
+    qtyCenti: integer("qty_centi").notNull(),
+  },
+  (t) => [index("receipt_lines_receipt_idx").on(t.receiptId), index("receipt_lines_po_line_idx").on(t.poLineId)],
+);
+
+/** Every metre in or out. Stock on hand is the sum. */
+export const stockMovements = pgTable(
+  "stock_movements",
+  {
+    ...audit(),
+    fabricId: uuid("fabric_id").notNull().references(() => fabrics.id),
+    kind: stockMoveKind("kind").notNull(),
+    /** Positive comes in, negative goes out. Hundredths of a metre. */
+    qtyCenti: integer("qty_centi").notNull(),
+    movedOn: date("moved_on").notNull(),
+    receiptId: uuid("receipt_id").references(() => goodsReceipts.id, { onDelete: "cascade" }),
+    taskId: uuid("task_id").references(() => tasks.id, { onDelete: "set null" }),
+    poId: uuid("po_id").references(() => purchaseOrders.id),
+    note: text("note"),
+  },
+  (t) => [index("stock_fabric_idx").on(t.fabricId), index("stock_task_idx").on(t.taskId), index("stock_po_idx").on(t.poId)],
+);
+
+export const supplierBills = pgTable(
+  "supplier_bills",
+  {
+    ...audit(),
+    kind: billKind("kind").notNull().default("bill"),
+    supplierId: uuid("supplier_id").notNull().references(() => suppliers.id),
+    poId: uuid("po_id").references(() => purchaseOrders.id),
+    /** The supplier's own invoice number. */
+    billNumber: text("bill_number"),
+    billDate: date("bill_date").notNull(),
+    dueDate: date("due_date").notNull(),
+    /** Their TRN as printed on the bill. Input VAT needs a tax invoice with a TRN. */
+    supplierTrn: text("supplier_trn"),
+    notes: text("notes"),
+    fileUrl: text("file_url"),
+    subtotalFils: integer("subtotal_fils").notNull().default(0),
+    vatFils: integer("vat_fils").notNull().default(0),
+    totalFils: integer("total_fils").notNull().default(0),
+  },
+  (t) => [index("bills_supplier_idx").on(t.supplierId), index("bills_po_idx").on(t.poId), index("bills_due_idx").on(t.dueDate)],
+);
+
+export const supplierBillLines = pgTable(
+  "supplier_bill_lines",
+  {
+    ...audit(),
+    billId: uuid("bill_id").notNull().references(() => supplierBills.id, { onDelete: "cascade" }),
+    sort: integer("sort").notNull().default(0),
+    poLineId: uuid("po_line_id").references(() => poLines.id),
+    description: text("description").notNull(),
+    unit: qtyUnit("unit").notNull().default("pcs"),
+    qtyCenti: integer("qty_centi").notNull(),
+    unitPriceFils: integer("unit_price_fils").notNull(),
+    vatRateBp: integer("vat_rate_bp").notNull(),
+    netFils: integer("net_fils").notNull(),
+    vatFils: integer("vat_fils").notNull(),
+  },
+  (t) => [index("bill_lines_bill_idx").on(t.billId), index("bill_lines_po_line_idx").on(t.poLineId)],
+);
+
+export const supplierPayments = pgTable(
+  "supplier_payments",
+  {
+    ...audit(),
+    supplierId: uuid("supplier_id").notNull().references(() => suppliers.id),
+    paymentDate: date("payment_date").notNull(),
+    amountFils: integer("amount_fils").notNull(),
+    method: paymentMethod("method").notNull(),
+    reference: text("reference"),
+    notes: text("notes"),
+  },
+  (t) => [index("supplier_payments_supplier_idx").on(t.supplierId)],
+);
+
+export const supplierPaymentAllocations = pgTable(
+  "supplier_payment_allocations",
+  {
+    ...audit(),
+    paymentId: uuid("payment_id").notNull().references(() => supplierPayments.id, { onDelete: "cascade" }),
+    billId: uuid("bill_id").notNull().references(() => supplierBills.id),
+    amountFils: integer("amount_fils").notNull(),
+  },
+  (t) => [index("supplier_alloc_payment_idx").on(t.paymentId), index("supplier_alloc_bill_idx").on(t.billId)],
+);
+
 export type User = typeof users.$inferSelect;
 export type Invoice = typeof invoices.$inferSelect;
 export type InvoiceLine = typeof invoiceLines.$inferSelect;
@@ -553,3 +719,9 @@ export type Settings = typeof settings.$inferSelect;
 export type NumberSequence = typeof numberSequences.$inferSelect;
 export type UserRole = (typeof userRole.enumValues)[number];
 export type DocumentType = (typeof documentType.enumValues)[number];
+export type PurchaseOrder = typeof purchaseOrders.$inferSelect;
+export type PoLine = typeof poLines.$inferSelect;
+export type SupplierBill = typeof supplierBills.$inferSelect;
+export type SupplierPayment = typeof supplierPayments.$inferSelect;
+export type StockMovement = typeof stockMovements.$inferSelect;
+export type QtyUnit = (typeof qtyUnit.enumValues)[number];

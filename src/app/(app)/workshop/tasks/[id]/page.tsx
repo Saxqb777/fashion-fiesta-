@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { asc, eq } from "drizzle-orm";
+import { asc, eq, isNull } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { MapPinIcon } from "lucide-react";
 import { db } from "@/db";
@@ -21,6 +21,10 @@ import {
 import { TIME_ZONE } from "@/lib/defaults";
 import { assigneeNames, editorLookups } from "@/lib/editor-data";
 import { requireUser } from "@/lib/session";
+import { FabricOutButton } from "@/components/purchases/fabric-out";
+import { todayISO } from "@/lib/dates";
+import { stockFor, takenForTasks } from "@/lib/payables";
+import { centiInput, formatMetres } from "@/lib/qty";
 import { cn } from "cn";
 import { orderNo } from "@/lib/stages";
 
@@ -45,11 +49,19 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
     assigneeNames(),
   ]);
   if (!line || !order) notFound();
-  const [customer, fabric, lookups] = await Promise.all([
+  const [customer, fabric, lookups, taken, allFabrics] = await Promise.all([
     db.query.customers.findFirst({ where: eq(customers.id, order.customerId), columns: { name: true, id: true } }),
     line.fabricId ? db.query.fabrics.findFirst({ where: eq(fabrics.id, line.fabricId) }) : undefined,
     owner ? editorLookups() : null,
+    takenForTasks([task.id]),
+    db.select({ id: fabrics.id, name: fabrics.name, colour: fabrics.colour }).from(fabrics).where(isNull(fabrics.deletedAt)).orderBy(asc(fabrics.name)),
   ]);
+  const stock = await stockFor(allFabrics.map((f) => f.id));
+  const toCut = line.metresPerPieceCenti ? line.metresPerPieceCenti * task.qty : null;
+  const takenCenti = taken.get(task.id) ?? 0;
+  const onHand = fabric ? (stock.get(fabric.id) ?? 0) : 0;
+  const canTake = task.assigneeType === "tailor" && task.status !== "declined" && (owner || task.tailorId === me.id);
+  const fabricOptions = allFabrics.map((f) => ({ id: f.id, label: [f.name, f.colour].filter(Boolean).join(", "), stockCenti: stock.get(f.id) ?? 0 }));
   const assignee = names.get((task.tailorId ?? task.supplierId)!) ?? "Someone";
   const open = ["assigned", "in_progress", "rejected"].includes(task.status);
   const lastReject = [...messages].reverse().find((m) => m.kind === "rejected");
@@ -150,24 +162,66 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
               <MeasurementGrid values={line.measurements} />
             </Panel>
           ) : null}
-          {fabric ? (
+          {fabric || (canTake && allFabrics.length) ? (
             <Panel title="Fabric">
-              <div className="flex items-center gap-3">
-                {fabric.photoUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={fabric.photoUrl} alt="" className="size-20 rounded-[10px] object-cover" />
-                ) : null}
-                <div>
-                  <p className="text-[16px] font-semibold">{[fabric.name, fabric.colour].filter(Boolean).join(", ")}</p>
-                  {fabric.shelfLocation ? (
-                    <p className="mt-1 inline-flex items-center gap-1 text-[15px] font-semibold text-brand">
-                      <MapPinIcon className="size-4" />
-                      {fabric.shelfLocation}
-                    </p>
+              {fabric ? (
+                <div className="flex items-center gap-3">
+                  {fabric.photoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={fabric.photoUrl} alt="" className="size-20 rounded-[10px] object-cover" />
                   ) : null}
-                  {fabric.code ? <p className="text-[13px] text-ink-muted">Code {fabric.code}</p> : null}
+                  <div>
+                    <p className="text-[16px] font-semibold">{[fabric.name, fabric.colour].filter(Boolean).join(", ")}</p>
+                    {fabric.shelfLocation ? (
+                      <p className="mt-1 inline-flex items-center gap-1 text-[15px] font-semibold text-brand">
+                        <MapPinIcon className="size-4" />
+                        {fabric.shelfLocation}
+                      </p>
+                    ) : null}
+                    {fabric.code ? <p className="text-[13px] text-ink-muted">Code {fabric.code}</p> : null}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <p className="text-[14px] text-ink-muted">No fabric set on the order line.</p>
+              )}
+              {toCut || takenCenti ? (
+                <dl className="tabular mt-4 grid grid-cols-2 gap-3 border-t border-line pt-3 text-[14px]">
+                  {toCut ? (
+                    <div>
+                      <dt className="text-[12px] font-semibold text-ink-muted">Metres to cut</dt>
+                      <dd className="font-display text-xl font-medium">{formatMetres(toCut)} m</dd>
+                      <dd className="text-[12px] text-ink-muted">
+                        {formatMetres(line.metresPerPieceCenti!)} m × {task.qty}
+                      </dd>
+                    </div>
+                  ) : null}
+                  {takenCenti ? (
+                    <div>
+                      <dt className="text-[12px] font-semibold text-ink-muted">Taken so far</dt>
+                      <dd className="font-display text-xl font-medium text-[#4d7a12]">{formatMetres(takenCenti)} m</dd>
+                    </div>
+                  ) : null}
+                </dl>
+              ) : null}
+              {fabric && toCut && !takenCenti && onHand < toCut ? (
+                <p className="mt-3 rounded-[10px] bg-brand-soft px-3 py-2 text-[13px] font-semibold text-brand-deep">
+                  Only {formatMetres(onHand)} m of this fabric in stock. Check before cutting.
+                </p>
+              ) : null}
+              {canTake ? (
+                <div className="mt-4">
+                  <FabricOutButton
+                    mode="taken"
+                    refId={task.id}
+                    fabrics={fabricOptions}
+                    defaultFabricId={fabric?.id ?? null}
+                    defaultMetres={toCut && toCut > takenCenti ? centiInput(toCut - takenCenti) : ""}
+                    today={todayISO()}
+                    size="lg"
+                    className="w-full sm:w-auto"
+                  />
+                </div>
+              ) : null}
             </Panel>
           ) : null}
           {line.notes ? (

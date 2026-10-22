@@ -1,10 +1,15 @@
 import type { Metadata } from "next";
-import { and, asc, eq, isNull } from "drizzle-orm";
+import Link from "next/link";
+import { and, asc, desc, eq, isNull } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { PencilIcon, PhoneIcon, PlusIcon } from "lucide-react";
 import { setSupplierArchived } from "@/actions/suppliers";
 import { db } from "@/db";
-import { fabrics, suppliers } from "@/db/schema";
+import { fabrics, purchaseOrders, supplierPayments, suppliers } from "@/db/schema";
+import { AgingBar } from "@/components/money/bits";
+import { PoStageTag } from "@/components/purchases/bits";
+import { METHOD_LABEL } from "@/lib/ledger";
+import { agingBySupplier, poSummaries } from "@/lib/payables";
 import { SwooshStripe } from "@/components/brand/swoosh-stripe";
 import { ArchiveButton } from "@/components/data/archive-button";
 import { formatFils } from "@/lib/money";
@@ -30,6 +35,13 @@ export default async function SupplierPage({ params }: { params: Promise<{ id: s
       ? await db.query.fabrics.findMany({ where: and(eq(fabrics.supplierId, id), isNull(fabrics.deletedAt)), orderBy: asc(fabrics.name) })
       : [];
   const archived = Boolean(supplier.deletedAt);
+  const [[money], pos, paid] = await Promise.all([
+    agingBySupplier(id),
+    db.select().from(purchaseOrders).where(eq(purchaseOrders.supplierId, id)).orderBy(desc(purchaseOrders.createdAt)).limit(6),
+    db.select().from(supplierPayments).where(eq(supplierPayments.supplierId, id)).orderBy(desc(supplierPayments.paymentDate)).limit(5),
+  ]);
+  const poStages = await poSummaries(pos.map((p) => p.id));
+  const late = money ? money.d1_30 + money.d31_60 + money.d61 : 0;
 
   return (
     <>
@@ -60,11 +72,6 @@ export default async function SupplierPage({ params }: { params: Promise<{ id: s
           <Panel title="Details">
             <Facts
               items={[
-                {
-                  label: "You owe them",
-                  value: supplier.openingBalanceFils ? <span className="tabular font-semibold">{formatFils(supplier.openingBalanceFils)}</span> : null,
-                  hint: supplier.openingBalanceDate ? `Opening balance since ${formatISODate(supplier.openingBalanceDate, true)}` : undefined,
-                },
                 { label: "Contact person", value: supplier.contactName },
                 { label: "Phone", value: supplier.phone },
                 { label: "Email", value: supplier.email },
@@ -107,8 +114,66 @@ export default async function SupplierPage({ params }: { params: Promise<{ id: s
           ) : null}
         </div>
         <div className="flex flex-col gap-4">
-          <Panel title="Bills and payments">
-            <p className="text-sm text-ink-muted">Purchase orders, bills and what you owe them arrive in Phase 4.</p>
+          <Panel title="Money">
+            {money && money.owed > 0 ? (
+              <>
+                <p className="text-[13px] font-semibold text-ink-muted">You owe them</p>
+                <p className="tabular font-display text-[2rem] leading-tight font-medium">{formatFils(money.owed)}</p>
+                <p className="mt-1 text-[14px]">
+                  {late > 0 ? <span className="font-semibold text-brand">{formatFils(late)} late. </span> : <span className="text-[#4d7a12]">Nothing late. </span>}
+                  {money.oldestDue ? <span className="text-ink-muted">Oldest due {formatISODate(money.oldestDue, true)}.</span> : null}
+                </p>
+                <AgingBar notDue={money.notDue} d1_30={money.d1_30} d31_60={money.d31_60} d61={money.d61} className="mt-3" />
+              </>
+            ) : (
+              <p className="text-[15px] text-ink-muted">You owe them nothing right now.</p>
+            )}
+            {money && money.advance > 0 ? <p className="tabular mt-2 text-[14px] text-[#4d7a12]">{formatFils(money.advance)} paid in advance.</p> : null}
+            <div className="mt-4 flex flex-wrap gap-2">
+              <LinkButton href={`/purchases/payments/new?supplier=${supplier.id}`} size="sm" variant={late > 0 ? "default" : "outline"}>
+                Pay
+              </LinkButton>
+              <LinkButton href={`/purchases/bills/new?supplier=${supplier.id}`} size="sm" variant="ghost">
+                Enter a bill
+              </LinkButton>
+            </div>
+            {paid.length ? (
+              <ul className="mt-4 flex flex-col gap-1 border-t border-line pt-3 text-[13px]">
+                {paid.map((p) => (
+                  <li key={p.id} className="tabular flex justify-between gap-3">
+                    <span className="text-ink-muted">
+                      Paid {formatISODate(p.paymentDate, true)} · {METHOD_LABEL[p.method]}
+                    </span>
+                    <span className="font-semibold">{formatFils(p.amountFils)}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </Panel>
+          <Panel
+            title="Purchase orders"
+            action={
+              <LinkButton href={`/purchases/orders/new?supplier=${supplier.id}`} variant="outline" size="sm">
+                <PlusIcon />
+                New PO
+              </LinkButton>
+            }
+          >
+            {pos.length ? (
+              <ul className="flex flex-col divide-y divide-line">
+                {pos.map((p) => (
+                  <li key={p.id}>
+                    <Link href={`/purchases/orders/${p.id}`} className="flex items-center gap-2 py-2.5">
+                      <span className="tabular text-[14px] font-semibold">{p.number ?? "Draft"}</span>
+                      <PoStageTag stage={poStages.get(p.id)?.stage ?? "draft"} />
+                      <span className="tabular ml-auto text-[14px]">{formatFils(p.totalFils)}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-[14px] text-ink-muted">No purchase orders to {supplier.name} yet.</p>
+            )}
           </Panel>
           <RecentActivity entityId={supplier.id} />
           <div className="flex justify-end">

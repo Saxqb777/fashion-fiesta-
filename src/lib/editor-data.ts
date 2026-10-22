@@ -2,11 +2,16 @@ import { and, asc, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { fabrics, products, suppliers, users } from "@/db/schema";
 import { getMeasurementFields } from "./measurements";
+import { stockFor } from "./payables";
 import { getSettings } from "./settings";
 
 export async function editorLookups() {
   const [productRows, fabricRows, tailorRows, unitRows, fields, settings] = await Promise.all([
-    db.select({ id: products.id, name: products.name, priceFils: products.priceFils }).from(products).where(isNull(products.deletedAt)).orderBy(asc(products.name)),
+    db
+      .select({ id: products.id, name: products.name, priceFils: products.priceFils, metresPerPieceCenti: products.metresPerPieceCenti })
+      .from(products)
+      .where(isNull(products.deletedAt))
+      .orderBy(asc(products.name)),
     db
       .select({ id: fabrics.id, name: fabrics.name, colour: fabrics.colour, shelfLocation: fabrics.shelfLocation })
       .from(fabrics)
@@ -25,9 +30,10 @@ export async function editorLookups() {
     getMeasurementFields(),
     getSettings(),
   ]);
+  const stock = await stockFor(fabricRows.map((f) => f.id));
   return {
     products: productRows,
-    fabrics: fabricRows,
+    fabrics: fabricRows.map((f) => ({ ...f, stockCenti: stock.get(f.id) ?? 0 })),
     tailors: tailorRows,
     units: unitRows,
     fields: fields.map((f) => f.name),

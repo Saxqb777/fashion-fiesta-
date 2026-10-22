@@ -34,6 +34,8 @@ Business system for Fashion Fiesta Ladies Tailoring & Textiles, a ladies tailori
 - Everything (bank details, credit days, tailors, categories) is entered inside the app via the Setup Wizard and Settings. Nothing hardcoded except the defaults above.
 - Free typed lines (standing rule): lines on quotes, sales orders, invoices and POs never require an existing product. The owner can type any description, quantity and price directly on the line. When a line is saved with a description that does not match an existing product, the system creates that product automatically (name from the description, category "Uncategorised", price from the line) and links the line to it, silently, no popup. Next time she types the same name, it autocompletes from products with the last price she used for that customer.
 - Same for fabrics on a PO: a new fabric name creates the fabric record automatically.
+- Fabric leaves stock only by a tap: "Fabric taken" on a task (owner or the tailor) or "Fabric sent" on an outsourcing PO, metres prefilled from metres per piece and editable. Lines given to a stitching unit get a draft outsourcing PO, one per unit per order.
+- Quantities in purchases and stock are stored as integer hundredths (1250 = 12.50 m), like money in fils.
 - Price on a product is only a default. The line price is always editable.
 - Naming: a document the customer sends us (their purchase order) is always called "Customer PO" in the app. "PO" alone always means our own purchase order to a supplier, under Purchases.
 - Sales orders have a "Customer PO number" field. It prints on the Delivery Note and the Tax Invoice.
@@ -143,7 +145,7 @@ Standing permission: small taste improvements (spacing, wording, micro animation
    What: a tailor types "25 of 30" and takes one photo of the stack; the order line shows a progress bar instead of 25 separate submissions.
    Why: she sees how far the order is without asking anyone.
 
-6. Pick this roll. approved. Shelf location on fabrics built in Phase 1. Task card and short stock warning in Phase 4. Effort: medium.
+6. Pick this roll. built. Shelf location in Phase 1; task card with metres to cut, Fabric taken and short stock warning in Phase 4. Effort: medium.
    What: a task card shows the fabric photo, its shelf spot and metres to cut; assigning a task warns if stock is short.
    Why: no wrong roll, no half cut orders, no walk to the shelf to check.
 
@@ -224,10 +226,10 @@ Standing permission: small taste improvements (spacing, wording, micro animation
 28. E-invoicing readiness. approved. After Phase 6, Tax tab. Effort: medium.
     What: UAE Peppol PINT format export of every Tax Invoice, so an accredited service provider can be connected before 1 July 2027.
 
-29. Fabric metres per garment. approved. Phase 4. Effort: small.
+29. Fabric metres per garment. built. Phase 4. Effort: small.
     What: each product has a default metres used, editable per order line. Drives fabric stock out and profit per order.
 
-30. Credit limit warning. approved. Phase 4. Effort: small.
+30. Credit limit warning. built. Phase 4. Effort: small.
     What: on new order and on confirm, warn when the customer is over their credit limit or has overdue invoices, with the amounts. Warn, never block.
 
 31. Alterations and repairs. proposed. Effort: small.

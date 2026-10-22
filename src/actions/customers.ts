@@ -28,6 +28,13 @@ const customerSchema = z.object({
   trn: optionalTrn,
   address: optionalText,
   creditDays: optionalDays,
+  /** Empty means no limit. */
+  creditLimitFils: z
+    .string()
+    .trim()
+    .transform((v) => v.replace(/,/g, ""))
+    .refine((v) => v === "" || /^\d+(\.\d{1,2})?$/.test(v), "Enter an amount like 5000 or leave it empty.")
+    .transform((v) => (v === "" ? null : Math.round(Number(v) * 100))),
   notes: optionalText,
 });
 
@@ -41,6 +48,7 @@ function readCustomer(fd: FormData) {
     trn: text(fd, "trn"),
     address: text(fd, "address"),
     creditDays: text(fd, "creditDays"),
+    creditLimitFils: text(fd, "creditLimit"),
     notes: text(fd, "notes"),
   });
 }

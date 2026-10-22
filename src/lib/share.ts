@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-export const SHARE_TYPES = ["quote", "order", "delivery", "invoice", "credit", "receipt", "statement"] as const;
+export const SHARE_TYPES = ["quote", "order", "delivery", "invoice", "credit", "receipt", "statement", "po"] as const;
 export type ShareType = (typeof SHARE_TYPES)[number];
 
 function sign(payload: string) {

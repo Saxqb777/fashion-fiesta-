@@ -198,6 +198,7 @@ export function DocShell({
   company,
   terms,
   bank: showBank = true,
+  thanks,
   children,
 }: {
   title: string;
@@ -206,6 +207,8 @@ export function DocShell({
   terms?: string;
   /** Bank details in the footer. Off for documents that ask for no payment: contact details instead. */
   bank?: boolean;
+  /** Closing line. Customer documents thank them for choosing the shop. */
+  thanks?: string;
   children: React.ReactNode;
 }) {
   registerFonts();
@@ -262,7 +265,7 @@ export function DocShell({
               ) : null}
               {terms ? <Text style={s.footerText}>{terms}</Text> : null}
             </View>
-            <Text style={[s.footerText, { fontFamily: "Fraunces", fontSize: 10, color: C.brand, alignSelf: "flex-end" }]}>Thank you for choosing {company.tradeName}.</Text>
+            <Text style={[s.footerText, { fontFamily: "Fraunces", fontSize: 10, color: C.brand, alignSelf: "flex-end" }]}>{thanks ?? `Thank you for choosing ${company.tradeName}.`}</Text>
           </View>
         </View>
         <Text style={s.pageNo} render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} fixed />

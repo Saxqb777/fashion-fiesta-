@@ -38,6 +38,15 @@ export function FabricForm({ fabric, suppliers }: { fabric?: Fabric; suppliers: 
         <TextField name="cost" label="Cost per metre, AED" inputMode="decimal" defaultValue={filsToInput(fabric?.costFils ?? 0)} errors={e.cost} hint="What you pay, before VAT." className="tabular" />
         <TextField name="price" label="Selling price per metre, AED" inputMode="decimal" defaultValue={filsToInput(fabric?.priceFils ?? 0)} errors={e.price} hint="When a customer buys fabric only, before VAT." className="tabular" />
       </div>
+      <TextField
+        name="lowStock"
+        label="Warn me when stock falls to, metres"
+        inputMode="decimal"
+        defaultValue={fabric?.lowStockCenti ? (fabric.lowStockCenti / 100).toFixed(2) : ""}
+        errors={e.lowStock}
+        hint="Optional. Today shows it when the roll runs low."
+        className="tabular sm:max-w-xs"
+      />
       <TextAreaField name="notes" label="Notes" defaultValue={fabric?.notes ?? ""} errors={e.notes} />
       <div className="flex items-center justify-end gap-2 border-t border-line pt-5">
         <Button variant="ghost" nativeButton={false} render={<Link href="/purchases/fabrics" />}>

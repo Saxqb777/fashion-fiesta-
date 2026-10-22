@@ -12,11 +12,15 @@ import {
   invoices,
   paymentAllocations,
   payments,
+  poLines,
+  purchaseOrders,
   quoteLines,
   quotes,
   salesOrders,
   soLines,
+  suppliers,
 } from "@/db/schema";
+import { formatQty } from "@/lib/qty";
 import { addDaysISO, todayISO } from "@/lib/dates";
 import { agingByCustomer, invoiceFigures, METHOD_LABEL, statementLedger } from "@/lib/ledger";
 import { getSettings } from "@/lib/settings";
@@ -328,6 +332,61 @@ async function statementDoc(customerId: string, from?: string, to?: string): Pro
   };
 }
 
+/* ---------- Purchase order ---------- */
+async function poDoc(id: string): Promise<Built | null> {
+  const po = await db.query.purchaseOrders.findFirst({ where: eq(purchaseOrders.id, id) });
+  if (!po) return null;
+  const [co, sup, lines, order] = await Promise.all([
+    company(),
+    db.query.suppliers.findFirst({ where: eq(suppliers.id, po.supplierId) }),
+    db.select().from(poLines).where(eq(poLines.poId, id)).orderBy(asc(poLines.sort)),
+    po.orderId ? db.query.salesOrders.findFirst({ where: eq(salesOrders.id, po.orderId), columns: { number: true } }) : undefined,
+  ]);
+  const label = po.number ?? "Draft";
+  return {
+    filename: `${po.number ?? "Draft PO"}.pdf`,
+    customerName: sup?.name ?? "Supplier",
+    customerPhone: sup?.phone ?? null,
+    summary: `Purchase order ${label} for AED ${aed(po.totalFils)}`,
+    element: (
+      <DocShell
+        title="Purchase Order"
+        subtitle={label}
+        company={co}
+        bank={false}
+        thanks="Thank you."
+        terms="Please quote our PO number on your delivery note and invoice. All amounts in AED."
+      >
+        <View style={s.row}>
+          <Party label="Supplier" name={sup?.name ?? "Supplier"} lines={[sup?.contactName ? `Attn: ${sup.contactName}` : null, sup?.address ?? sup?.city, sup?.phone, sup?.trn ? `TRN ${sup.trn}` : null]} />
+          <Meta
+            rows={[
+              ["Purchase order", label],
+              ["Date", day(po.poDate)],
+              ["Expected by", day(po.expectedDate)],
+              ["For our order", order?.number],
+              ["Our TRN", co.trn],
+            ]}
+          />
+        </View>
+        <LinesTable
+          columns={[
+            { title: "Description", flex: 3.6 },
+            { title: "Qty", flex: 1.4, align: "right" },
+            { title: "Unit price", flex: 1.4, align: "right" },
+            { title: "VAT", flex: 1.1, align: "right" },
+            { title: "Line total", flex: 1.5, align: "right" },
+          ]}
+          rows={lines.map((l) => [l.description, formatQty(l.qtyCenti, l.unit), `${aed(l.unitPriceFils)}${l.unit === "m" ? " /m" : ""}`, aed(l.vatFils), aed(l.netFils + l.vatFils)])}
+        />
+        <Totals rows={[["Subtotal", aed(po.subtotalFils)], ["VAT", aed(po.vatFils)]]} grand={["Total AED", aed(po.totalFils)]} />
+        {po.notes ? <Text style={s.note}>{po.notes}</Text> : null}
+        <SignOff />
+      </DocShell>
+    ),
+  };
+}
+
 export async function buildDoc(type: ShareType, id: string, opts: { from?: string; to?: string } = {}): Promise<Built | null> {
   switch (type) {
     case "quote":
@@ -344,6 +403,8 @@ export async function buildDoc(type: ShareType, id: string, opts: { from?: strin
       return receiptDoc(id);
     case "statement":
       return statementDoc(id, opts.from, opts.to);
+    case "po":
+      return poDoc(id);
   }
 }
 

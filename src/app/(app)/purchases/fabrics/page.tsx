@@ -5,6 +5,7 @@ import { PlusIcon } from "lucide-react";
 import { db } from "@/db";
 import { fabrics, suppliers } from "@/db/schema";
 import { FabricCard } from "@/components/data/fabric-card";
+import { stockFor } from "@/lib/payables";
 import { hrefWith } from "@/components/data/filter-chips";
 import { Flash } from "@/components/data/flash";
 import { SearchBox } from "@/components/data/search-box";
@@ -48,6 +49,7 @@ export default async function FabricsPage({ searchParams }: { searchParams: Prom
       .limit(300),
     db.select({ total: count() }).from(fabrics),
   ]);
+  const stock = await stockFor(rows.map((r) => r.f.id));
 
   return (
     <>
@@ -81,7 +83,7 @@ export default async function FabricsPage({ searchParams }: { searchParams: Prom
           {rows.length ? (
             <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
               {rows.map(({ f, supplierName }) => (
-                <FabricCard key={f.id} f={f} supplierName={supplierName} />
+                <FabricCard key={f.id} f={f} supplierName={supplierName} stockCenti={stock.get(f.id) ?? 0} />
               ))}
             </ul>
           ) : (

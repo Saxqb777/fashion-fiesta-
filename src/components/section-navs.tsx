@@ -5,9 +5,10 @@ export function PurchasesTabs() {
     <SectionTabs
       label="Purchases sections"
       tabs={[
-        { href: "/purchases/suppliers", label: "Suppliers" },
+        { href: "/purchases/orders", label: "Purchase orders" },
+        { href: "/purchases/owe", label: "Who you owe", exact: true, also: ["/purchases/bills", "/purchases/payments"] },
         { href: "/purchases/fabrics", label: "Fabrics" },
-        { href: "/purchases/orders", label: "Purchase orders", soon: 4 },
+        { href: "/purchases/suppliers", label: "Suppliers" },
       ]}
     />
   );

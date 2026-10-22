@@ -7,6 +7,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import { fabrics, productCategories, products } from "@/db/schema";
 import { logActivity } from "@/lib/activity";
+import { parseCenti } from "@/lib/qty";
 import { fieldErrors, moneySchema, optionalText, requiredName, text, type FormState } from "@/lib/forms";
 import { requireOwner } from "@/lib/session";
 
@@ -56,6 +57,11 @@ const productSchema = z.object({
   categoryId: z.string().trim().transform((v) => (v ? v : null)),
   kind: z.enum(["custom", "ready_made"]),
   priceFils: moneySchema,
+  metresPerPieceCenti: z
+    .string()
+    .trim()
+    .refine((v) => v === "" || /^\d+([.,]\d{1,2})?$/.test(v), "Metres like 2.5 or 2.50.")
+    .transform((v) => (v ? parseCenti(v) : null)),
   notes: optionalText,
 });
 
@@ -67,11 +73,12 @@ export async function saveProduct(_prev: FormState, fd: FormData): Promise<FormS
     categoryId: text(fd, "categoryId"),
     kind: text(fd, "kind") || "custom",
     priceFils: text(fd, "price"),
+    metresPerPieceCenti: text(fd, "metresPerPiece"),
     notes: text(fd, "notes"),
   });
   if (!parsed.success) {
     const errors = fieldErrors(parsed.error);
-    return { errors: { ...errors, price: errors.priceFils } };
+    return { errors: { ...errors, price: errors.priceFils, metresPerPiece: errors.metresPerPieceCenti } };
   }
   if (id) {
     await db.update(products).set(parsed.data).where(eq(products.id, id));
@@ -111,6 +118,11 @@ const fabricSchema = z.object({
     .refine((v) => v === "" || v.startsWith("https://"), "Upload the photo again.")
     .transform((v) => (v ? v : null)),
   shelfLocation: optionalText,
+  lowStockCenti: z
+    .string()
+    .trim()
+    .refine((v) => v === "" || /^\d+([.,]\d{1,2})?$/.test(v), "Metres like 2.5 or 2.50.")
+    .transform((v) => (v ? parseCenti(v) : null)),
   notes: optionalText,
 });
 
@@ -126,11 +138,12 @@ export async function saveFabric(_prev: FormState, fd: FormData): Promise<FormSt
     priceFils: text(fd, "price"),
     photoUrl: text(fd, "photoUrl"),
     shelfLocation: text(fd, "shelfLocation"),
+    lowStockCenti: text(fd, "lowStock"),
     notes: text(fd, "notes"),
   });
   if (!parsed.success) {
     const errors = fieldErrors(parsed.error);
-    return { errors: { ...errors, cost: errors.costFils, price: errors.priceFils } };
+    return { errors: { ...errors, cost: errors.costFils, price: errors.priceFils, lowStock: errors.lowStockCenti } };
   }
   if (id) {
     await db.update(fabrics).set(parsed.data).where(eq(fabrics.id, id));

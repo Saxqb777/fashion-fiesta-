@@ -56,6 +56,15 @@ export function CustomerForm({ customer, defaultCreditDays }: { customer?: Custo
           hint={`Leave empty to use the shop default of ${defaultCreditDays} days.`}
           className="tabular"
         />
+        <TextField
+          name="creditLimit"
+          label="Credit limit, AED"
+          inputMode="decimal"
+          defaultValue={customer?.creditLimitFils ? (customer.creditLimitFils / 100).toFixed(2) : ""}
+          errors={e.creditLimit ?? e.creditLimitFils}
+          hint="Optional. New orders warn when they go over it. Empty means no limit."
+          className="tabular"
+        />
       </div>
       <TextAreaField name="address" label="Address" defaultValue={customer?.address ?? ""} errors={e.address} />
       <TextAreaField name="notes" label="Notes" defaultValue={customer?.notes ?? ""} errors={e.notes} hint="Anything the team should know. Only owners see this." />

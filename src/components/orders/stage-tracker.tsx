@@ -6,12 +6,21 @@ import { STAGES, STAGE_LABEL, type TrackerStage } from "@/lib/stages";
  * Quote → Confirmed → Stitching → Ready → Delivered → Invoiced → Paid.
  * Done stages are ink, the current one red, later ones quiet. The next action sits right under it.
  */
-export function StageTracker({ current, action }: { current: TrackerStage; action?: React.ReactNode }) {
-  const index = STAGES.indexOf(current);
+export function StageTracker({
+  current,
+  action,
+  steps = STAGES.map((s) => ({ key: s, label: STAGE_LABEL[s] })),
+}: {
+  current: TrackerStage | string;
+  action?: React.ReactNode;
+  /** Other documents (a purchase order) pass their own steps. */
+  steps?: { key: string; label: string }[];
+}) {
+  const index = steps.findIndex((s) => s.key === current);
   return (
     <section aria-label="Order stage" className="rounded-[14px] border border-line bg-surface p-4 sm:p-5">
       <ol className="flex items-start">
-        {STAGES.map((s, i) => {
+        {steps.map(({ key: s, label }, i) => {
           const done = i < index;
           const now = i === index;
           return (
@@ -35,7 +44,7 @@ export function StageTracker({ current, action }: { current: TrackerStage; actio
                   now ? "text-brand" : done ? "text-ink" : "text-ink-muted",
                 )}
               >
-                {STAGE_LABEL[s]}
+                {label}
               </span>
             </li>
           );
@@ -43,8 +52,8 @@ export function StageTracker({ current, action }: { current: TrackerStage; actio
       </ol>
       <div className="mt-4 flex flex-col gap-3 border-t border-line pt-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-ink-muted">
-          Now: <span className="font-display text-lg font-medium text-brand">{STAGE_LABEL[current]}</span>
-          {index < STAGES.length - 1 ? <span className="ml-2">Next: {STAGE_LABEL[STAGES[index + 1]]}</span> : null}
+          Now: <span className="font-display text-lg font-medium text-brand">{steps[index]?.label}</span>
+          {index < steps.length - 1 ? <span className="ml-2">Next: {steps[index + 1].label}</span> : null}
         </p>
         {action}
       </div>

@@ -19,10 +19,12 @@ import {
   payments,
   salesOrders,
   settings,
+  supplierBills,
+  supplierPaymentAllocations,
   suppliers,
 } from "@/db/schema";
 import { logActivity } from "@/lib/activity";
-import { todayISO } from "@/lib/dates";
+import { addDaysISO, todayISO } from "@/lib/dates";
 import { flashDone } from "@/lib/flash";
 import { moneySchema, text, type FormState } from "@/lib/forms";
 import { invoiceFigures, dueDateFor, unallocatedByPayment } from "@/lib/ledger";
@@ -438,10 +440,39 @@ export async function saveSupplierOpening(_prev: FormState, fd: FormData): Promi
   if (!parsed.success) return { errors: issuesToErrors(parsed.error) };
   const supplier = await db.query.suppliers.findFirst({ where: eq(suppliers.id, parsed.data.supplierId) });
   if (!supplier) return { errors: { supplierId: ["Pick a supplier."] } };
-  await db
-    .update(suppliers)
-    .set({ openingBalanceFils: parsed.data.amount, openingBalanceDate: parsed.data.amount ? (parsed.data.since ?? todayISO()) : null })
-    .where(eq(suppliers.id, supplier.id));
+  // The opening balance is also their first bill, so Who you owe and payments include it.
+  const since = parsed.data.since ?? todayISO();
+  const opening = await db.query.supplierBills.findFirst({ where: and(eq(supplierBills.supplierId, supplier.id), eq(supplierBills.kind, "opening_balance")) });
+  if (opening) {
+    const [{ n }] = await db.select({ n: sql<number>`count(*)::int` }).from(supplierPaymentAllocations).where(eq(supplierPaymentAllocations.billId, opening.id));
+    if (n > 0) return { message: `Payments are already set against ${supplier.name}'s opening balance, so it stays.` };
+  }
+  const batch: BatchItem<"pg">[] = [
+    db
+      .update(suppliers)
+      .set({ openingBalanceFils: parsed.data.amount, openingBalanceDate: parsed.data.amount ? since : null })
+      .where(eq(suppliers.id, supplier.id)),
+  ];
+  if (opening && !parsed.data.amount) batch.push(db.delete(supplierBills).where(eq(supplierBills.id, opening.id)));
+  else if (opening) {
+    batch.push(db.update(supplierBills).set({ billDate: since, dueDate: addDaysISO(since, supplier.paymentDays ?? 0), subtotalFils: parsed.data.amount, totalFils: parsed.data.amount }).where(eq(supplierBills.id, opening.id)));
+  } else if (parsed.data.amount) {
+    batch.push(
+      db.insert(supplierBills).values({
+        kind: "opening_balance",
+        supplierId: supplier.id,
+        billDate: since,
+        dueDate: addDaysISO(since, supplier.paymentDays ?? 0),
+        notes: "Opening balance",
+        subtotalFils: parsed.data.amount,
+        vatFils: 0,
+        totalFils: parsed.data.amount,
+        createdBy: me.id,
+      }),
+    );
+  }
+  await db.batch(batch as Batch);
+  revalidatePath("/purchases", "layout");
   await logActivity({ actor: me, entityType: "supplier", entityId: supplier.id, action: "updated", summary: `${me.name} set the opening balance owed to ${supplier.name} to ${formatFils(parsed.data.amount)}` });
   revalidatePath("/settings/opening");
   revalidatePath("/setup/opening");

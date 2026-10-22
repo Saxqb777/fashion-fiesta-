@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/page-header";
 import { TaskCard } from "@/components/workshop/task-card";
 import { formatLongDate, todayISO } from "@/lib/dates";
 import { dueSummary } from "@/lib/ledger";
+import { lowStockFabrics, payablesDue } from "@/lib/payables";
 import { formatFils } from "@/lib/money";
 import { requireUser } from "@/lib/session";
 import { taskCardColumns, taskOrder } from "@/lib/task-queries";
@@ -64,7 +65,7 @@ export default async function TodayPage() {
     );
   }
 
-  const [[review], [questions], [declined], [overdue], [ready], [drafts], [toInvoice], due] = await Promise.all([
+  const [[review], [questions], [declined], [overdue], [ready], [drafts], [toInvoice], due, pay, low] = await Promise.all([
     db.select({ n: count() }).from(tasks).where(eq(tasks.status, "submitted")),
     db.select({ n: count() }).from(tasks).where(and(eq(tasks.openQuestion, true), ne(tasks.status, "approved"))),
     db.select({ n: count() }).from(tasks).where(eq(tasks.status, "declined")),
@@ -73,6 +74,8 @@ export default async function TodayPage() {
     db.select({ n: count() }).from(salesOrders).where(eq(salesOrders.stage, "draft")),
     db.select({ n: count() }).from(salesOrders).where(eq(salesOrders.stage, "delivered")),
     dueSummary(),
+    payablesDue(),
+    lowStockFabrics(),
   ]);
   const items: Item[] = [
     due.overdueCount && {
@@ -95,6 +98,28 @@ export default async function TodayPage() {
       detail: `${plural(due.weekCount, "invoice", "invoices")} due in the next 7 days.`,
       href: "/money/invoices?show=open",
       action: "See invoices",
+    },
+    pay.overdueCount && {
+      key: "bills-late",
+      text: `${formatFils(pay.overdueFils)} to suppliers is past the pay by date`,
+      detail: `${plural(pay.overdueCount, "bill", "bills")} late.`,
+      href: "/purchases/owe",
+      action: "See who you owe",
+      urgent: true,
+    },
+    pay.weekCount && {
+      key: "bills-week",
+      text: `${formatFils(pay.weekFils)} to pay suppliers this week`,
+      detail: `${plural(pay.weekCount, "bill", "bills")} due in the next 7 days.`,
+      href: "/purchases/bills?show=open",
+      action: "See bills",
+    },
+    low.length && {
+      key: "low-stock",
+      text: low.length === 1 ? `${low[0].name} is running low` : `${low.length} fabrics are running low`,
+      detail: low.map((f) => `${f.name}: ${(f.stockCenti / 100).toFixed(2)} m`).slice(0, 3).join(". ") + ".",
+      href: low.length === 1 ? `/purchases/fabrics/${low[0].id}` : "/purchases/fabrics",
+      action: "Order more",
     },
     drafts.n && { key: "drafts", text: `${plural(drafts.n, "draft order is", "draft orders are")} waiting to be confirmed`, href: "/orders?view=drafts", action: "Review" },
   ].filter(Boolean) as Item[];

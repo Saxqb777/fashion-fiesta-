@@ -4,7 +4,9 @@ import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { ChevronRightIcon, CopyIcon, FileTextIcon, MapPinIcon, PencilIcon } from "lucide-react";
 import { db } from "@/db";
-import { customerBranches, customers, deliveryNoteLines, deliveryNotes, fabrics, invoices, payments, quotes, salesOrders, soLines, taskPhotos, tasks } from "@/db/schema";
+import { customerBranches, customers, deliveryNoteLines, deliveryNotes, fabrics, invoices, payments, purchaseOrders, quotes, salesOrders, soLines, suppliers, taskPhotos, tasks } from "@/db/schema";
+import { PoStageTag } from "@/components/purchases/bits";
+import { poSummaries } from "@/lib/payables";
 import { SwooshStripe } from "@/components/brand/swoosh-stripe";
 import { BackLink, Panel } from "@/components/data/detail";
 import { Flash } from "@/components/data/flash";
@@ -50,14 +52,20 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
     ts.length ? db.select().from(taskPhotos).where(inArray(taskPhotos.taskId, ts.map((t) => t.id))) : [],
   ]);
   const fabricById = new Map(fabricRows.map((f) => [f.id, f]));
-  const [progress, dns, invs, pays, credit, st] = await Promise.all([
+  const [progress, dns, invs, pays, credit, st, unitPos] = await Promise.all([
     orderLineProgress(id),
     db.select().from(deliveryNotes).where(eq(deliveryNotes.orderId, id)).orderBy(asc(deliveryNotes.createdAt)),
     db.select().from(invoices).where(eq(invoices.orderId, id)).orderBy(asc(invoices.createdAt)),
     db.select().from(payments).where(eq(payments.orderId, id)).orderBy(desc(payments.paymentDate)),
     db.select({ id: payments.id }).from(payments).where(and(eq(payments.customerId, order.customerId), eq(payments.isDeposit, false))),
     getSettings(),
+    db
+      .select({ po: purchaseOrders, supplierName: suppliers.name })
+      .from(purchaseOrders)
+      .innerJoin(suppliers, eq(suppliers.id, purchaseOrders.supplierId))
+      .where(eq(purchaseOrders.orderId, id)),
   ]);
+  const unitPoStages = await poSummaries(unitPos.map((p) => p.po.id));
   const dnPieces = dns.length
     ? await db
         .select({ dn: deliveryNoteLines.deliveryNoteId, qty: deliveryNoteLines.qty })
@@ -410,6 +418,21 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                       <span className="tabular font-normal text-ink-muted">
                         {formatFils(p.amountFils)} · {METHOD_LABEL[p.method]} · {formatISODate(p.paymentDate, true)}
                       </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </Panel>
+          ) : null}
+          {unitPos.length ? (
+            <Panel title="Stitching units">
+              <ul className="flex flex-col divide-y divide-line">
+                {unitPos.map(({ po, supplierName }) => (
+                  <li key={po.id}>
+                    <Link href={`/purchases/orders/${po.id}`} className="flex flex-wrap items-center gap-2 py-2.5 text-[14px] first:pt-0">
+                      <span className="font-semibold">{supplierName}</span>
+                      <PoStageTag stage={unitPoStages.get(po.id)?.stage ?? "draft"} />
+                      <span className="tabular ml-auto text-ink-muted">{po.number ?? "Draft PO"}</span>
                     </Link>
                   </li>
                 ))}

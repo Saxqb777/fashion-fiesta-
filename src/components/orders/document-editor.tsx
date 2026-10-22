@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { formatISODate } from "@/lib/dates";
 import { EMPTY_FORM_STATE } from "@/lib/forms";
 import { lineAmounts } from "@/lib/lines";
 import { formatFils } from "@/lib/money";
@@ -31,6 +32,8 @@ export type EditorLine = {
   notes: string;
   dueDate: string;
   fabricId: string;
+  /** Fabric per piece in metres, as typed. Prefilled from the product. */
+  metresPerPiece?: string;
   measurementId: string;
   measurementLabel?: string | null;
   assignments: EditorAssignment[];
@@ -52,8 +55,8 @@ export type EditorInitial = {
   sourceQuoteId?: string | null;
   lines: EditorLine[];
 };
-type Product = { id: string; name: string; priceFils: number };
-type Fabric = { id: string; name: string; colour: string | null; shelfLocation: string | null };
+type Product = { id: string; name: string; priceFils: number; metresPerPieceCenti?: number | null };
+type Fabric = { id: string; name: string; colour: string | null; shelfLocation: string | null; stockCenti?: number };
 type Option = { id: string; name: string };
 
 let seq = 0;
@@ -137,6 +140,12 @@ export function DocumentEditor({
   const update = (k: string, patch: Partial<EditorLine>) => setLines((ls) => ls.map((l) => (l.key === k ? { ...l, ...patch } : l)));
 
   const amounts = lines.map((l) => lineAmounts(toQty(l.qty), toFils(l.unitPrice), vatRateBp));
+  // Metres every line needs from each fabric, for the short stock warning.
+  const fabricNeed = new Map<string, number>();
+  for (const l of lines) {
+    const mpp = Number(l.metresPerPiece || 0);
+    if (l.fabricId && mpp > 0 && toQty(l.qty)) fabricNeed.set(l.fabricId, (fabricNeed.get(l.fabricId) ?? 0) + Math.round(mpp * 100) * toQty(l.qty));
+  }
   const subtotal = amounts.reduce((s, a) => s + a.netFils, 0);
   const vat = amounts.reduce((s, a) => s + a.vatFils, 0);
 
@@ -161,6 +170,7 @@ export function DocumentEditor({
       notes: l.notes,
       dueDate: l.dueDate,
       fabricId: l.fabricId || null,
+      metresPerPiece: isOrder ? (l.metresPerPiece ?? "") : "",
       measurementId: l.measurementId || null,
       assignments: isOrder ? l.assignments.map((a) => ({ taskId: a.taskId ?? null, type: a.type, assigneeId: a.assigneeId, qty: Number(a.qty) })) : [],
     })),
@@ -178,6 +188,7 @@ export function DocumentEditor({
           error={errors.customerId?.[0]}
         />
         {loadingCtx ? <p className="text-sm text-ink-muted">Loading their branches and measurements</p> : null}
+        {isOrder && ctx ? <CreditWarning ctx={ctx} orderFils={subtotal + vat} /> : null}
         <div className="grid gap-4 sm:grid-cols-3">
           {ctx?.branches.length ? (
             <div className="flex flex-col gap-1.5">
@@ -265,6 +276,7 @@ export function DocumentEditor({
             tailors={tailors}
             units={units}
             ctx={ctx}
+            fabricNeedCenti={l.fabricId ? (fabricNeed.get(l.fabricId) ?? 0) : 0}
             canRemove={lines.length > 1 && !l.assignments.some((a) => a.locked)}
             onChange={(patch) => update(l.key, patch)}
             onRemove={() => setLines((ls) => ls.filter((x) => x.key !== l.key))}
@@ -396,6 +408,7 @@ function LineCard({
   tailors,
   units,
   ctx,
+  fabricNeedCenti,
   canRemove,
   onChange,
   onRemove,
@@ -411,6 +424,7 @@ function LineCard({
   tailors: Option[];
   units: Option[];
   ctx: CustomerContext | null;
+  fabricNeedCenti: number;
   canRemove: boolean;
   onChange: (patch: Partial<EditorLine>) => void;
   onRemove: () => void;
@@ -430,13 +444,19 @@ function LineCard({
   const left = qty - assigned;
   const set = ctx?.measurements.find((m) => m.id === line.measurementId);
   const doc = line.fromDocument;
+  const fabricInfo = line.fabricId ? fabrics.find((f) => f.id === line.fabricId) : undefined;
   const docUnsure = (f: "description" | "qty" | "unitPrice") => Boolean(doc?.unsure.includes(f));
   /** A field she edits by hand is no longer in doubt. */
   const settle = (f: "description" | "qty" | "unitPrice") => (doc ? { fromDocument: { ...doc, unsure: doc.unsure.filter((u) => u !== f) } } : {});
 
   const pickProduct = (p: Product) => {
     const price = ctx?.lastPrices[p.id] ?? p.priceFils;
-    onChange({ productId: p.id, description: p.name, unitPrice: price ? filsInput(price) : line.unitPrice });
+    onChange({
+      productId: p.id,
+      description: p.name,
+      unitPrice: price ? filsInput(price) : line.unitPrice,
+      ...(!line.metresPerPiece && p.metresPerPieceCenti ? { metresPerPiece: (p.metresPerPieceCenti / 100).toFixed(2) } : {}),
+    });
     setSuggest(false);
   };
 
@@ -465,7 +485,12 @@ function LineCard({
               onChange={(ev) => {
                 const v = ev.target.value;
                 const exact = products.find((p) => p.name.toLowerCase() === v.trim().toLowerCase());
-                onChange({ description: v, productId: exact?.id ?? null, ...settle("description") });
+                onChange({
+                  description: v,
+                  productId: exact?.id ?? null,
+                  ...settle("description"),
+                  ...(exact?.metresPerPieceCenti && !line.metresPerPiece ? { metresPerPiece: (exact.metresPerPieceCenti / 100).toFixed(2) } : {}),
+                });
                 setSuggest(true);
               }}
               onFocus={() => setSuggest(true)}
@@ -544,7 +569,7 @@ function LineCard({
 
           {mode === "order" ? (
             <>
-              <div className="grid gap-2 sm:grid-cols-3 sm:gap-3">
+              <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-[1fr_1.3fr_0.8fr_1.4fr]">
                 <div className="flex flex-col gap-1">
                   <Label className="text-[12px] text-ink-muted">Due</Label>
                   <Input type="date" value={line.dueDate} onChange={(ev) => onChange({ dueDate: ev.target.value })} aria-label={`Line ${index + 1} due date`} />
@@ -565,6 +590,18 @@ function LineCard({
                       </option>
                     ))}
                   </select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label className="text-[12px] text-ink-muted">Metres per piece</Label>
+                  <Input
+                    value={line.metresPerPiece ?? ""}
+                    inputMode="decimal"
+                    placeholder="0.00"
+                    onChange={(ev) => onChange({ metresPerPiece: ev.target.value.replace(/[^\d.]/g, "") })}
+                    aria-label={`Line ${index + 1} metres per piece`}
+                    aria-invalid={e("metresPerPiece") ? true : undefined}
+                    className="tabular"
+                  />
                 </div>
                 <div className="flex flex-col gap-1">
                   <Label className="text-[12px] text-ink-muted">Measurements, optional</Label>
@@ -590,6 +627,13 @@ function LineCard({
                   </div>
                 </div>
               </div>
+              {fabricInfo && fabricNeedCenti > 0 ? (
+                <p className={cn("-mt-1 text-[12px]", fabricNeedCenti > (fabricInfo.stockCenti ?? 0) ? "font-semibold text-brand-deep" : "text-ink-muted")}>
+                  {fabricNeedCenti > (fabricInfo.stockCenti ?? 0)
+                    ? `Short of fabric: this order needs ${(fabricNeedCenti / 100).toFixed(2)} m of ${fabricInfo.name}, ${((fabricInfo.stockCenti ?? 0) / 100).toFixed(2)} m in stock.`
+                    : `Needs ${(fabricNeedCenti / 100).toFixed(2)} m of ${fabricInfo.name}. ${((fabricInfo.stockCenti ?? 0) / 100).toFixed(2)} m in stock.`}
+                </p>
+              ) : null}
               {set ? (
                 <p className="-mt-1 text-[12px] text-ink-muted">
                   {set.values.map((v) => `${v.name} ${v.value}`).join(" · ")}
@@ -709,5 +753,31 @@ function LineCard({
         ) : null}
       </div>
     </article>
+  );
+}
+
+/** Warn, never block: overdue invoices, and going over the credit limit with this order. */
+function CreditWarning({ ctx, orderFils }: { ctx: CustomerContext; orderFils: number }) {
+  const { owedFils, overdueFils, creditLimitFils } = ctx.money;
+  const after = owedFils + orderFils;
+  const over = creditLimitFils !== null && after > creditLimitFils;
+  if (!overdueFils && !over) return null;
+  return (
+    <div role="status" className="flex flex-col gap-1 rounded-[10px] border border-brand/40 bg-brand-soft/60 px-4 py-3 text-[14px]">
+      <p className="font-semibold text-brand-deep">Check before confirming</p>
+      {overdueFils ? (
+        <p>
+          {ctx.customer.name} has <span className="tabular font-semibold">{formatFils(overdueFils)}</span> overdue
+          {ctx.money.oldestDue ? `, the oldest was due ${formatISODate(ctx.money.oldestDue, true)}` : ""}.
+        </p>
+      ) : null}
+      {over ? (
+        <p>
+          With this order they would owe <span className="tabular font-semibold">{formatFils(after)}</span>, over their credit limit of{" "}
+          <span className="tabular font-semibold">{formatFils(creditLimitFils!)}</span>.
+        </p>
+      ) : null}
+      <p className="text-[12px] text-ink-muted">You can still save. This is only a warning.</p>
+    </div>
   );
 }

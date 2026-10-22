@@ -47,6 +47,15 @@ export function ProductForm({
           ))}
         </SelectField>
         <TextField name="price" label="Usual price, AED" inputMode="decimal" defaultValue={filsToInput(product?.priceFils ?? 0)} errors={e.price} hint="Before VAT. You can change it on each order." className="tabular" />
+        <TextField
+          name="metresPerPiece"
+          label="Fabric per piece, metres"
+          inputMode="decimal"
+          defaultValue={product?.metresPerPieceCenti ? (product.metresPerPieceCenti / 100).toFixed(2) : ""}
+          errors={e.metresPerPiece}
+          hint="Optional. Fills the metres on each order line, so fabric stock goes out right."
+          className="tabular"
+        />
       </div>
       <TextAreaField name="notes" label="Notes" defaultValue={product?.notes ?? ""} errors={e.notes} />
       <div className="flex justify-end">

@@ -23,6 +23,8 @@ export const taskCardColumns = {
     (select f.photo_url from fabrics f where f.id = ${soLines.fabricId})
   )`,
   fabricShelf: sql<string | null>`(select f.shelf_location from fabrics f where f.id = ${soLines.fabricId})`,
+  /** Metres to cut for this task: metres per piece on the line times the pieces. */
+  metresToCutCenti: sql<number | null>`(${soLines.metresPerPieceCenti} * ${tasks.qty})::int`,
 };
 
 export type TaskCardRow = {

@@ -20,6 +20,9 @@ import {
   users,
 } from "@/db/schema";
 import { logActivity } from "@/lib/activity";
+import { agingByCustomer } from "@/lib/ledger";
+import { syncOutsourcingPOs } from "@/lib/outsourcing";
+import { parseCenti } from "@/lib/qty";
 import { likeTerm } from "@/lib/archive";
 import { todayISO } from "@/lib/dates";
 import { moneySchema, optionalText, text, type FormState } from "@/lib/forms";
@@ -55,6 +58,8 @@ export type CustomerContext = {
   branches: { id: string; name: string }[];
   measurements: { id: string; label: string; values: { name: string; value: string }[]; createdAt: string }[];
   lastPrices: Record<string, number>;
+  /** For the credit warning on new orders. Warn, never block. */
+  money: { owedFils: number; overdueFils: number; oldestDue: string | null; creditLimitFils: number | null };
 };
 
 export async function getCustomerContext(customerId: string): Promise<CustomerContext | null> {
@@ -62,7 +67,7 @@ export async function getCustomerContext(customerId: string): Promise<CustomerCo
   if (!/^[0-9a-f-]{36}$/.test(customerId)) return null;
   const customer = await db.query.customers.findFirst({ where: eq(customers.id, customerId) });
   if (!customer) return null;
-  const [branches, measurements, prices] = await Promise.all([
+  const [branches, measurements, prices, [aging]] = await Promise.all([
     db
       .select({ id: customerBranches.id, name: customerBranches.name })
       .from(customerBranches)
@@ -81,12 +86,19 @@ export async function getCustomerContext(customerId: string): Promise<CustomerCo
         select l.product_id, l.unit_price_fils, q.created_at from quote_lines l join quotes q on q.id = l.quote_id
           where q.customer_id = ${customerId} and l.product_id is not null
       ) x order by product_id, created_at desc`),
+    agingByCustomer(customerId),
   ]);
   return {
     customer: { id: customer.id, name: customer.name, tier: customer.tier, type: customer.type, phone: customer.phone },
     branches,
     measurements: measurements.map((m) => ({ id: m.id, label: m.label, values: m.values, createdAt: m.createdAt.toISOString() })),
     lastPrices: Object.fromEntries(prices.rows.map((r) => [r.product_id, Number(r.unit_price_fils)])),
+    money: {
+      owedFils: aging?.owed ?? 0,
+      overdueFils: aging ? aging.d1_30 + aging.d31_60 + aging.d61 : 0,
+      oldestDue: aging?.oldestDue ?? null,
+      creditLimitFils: customer.creditLimitFils,
+    },
   };
 }
 
@@ -121,6 +133,20 @@ const lineSchema = z.object({
   notes: optionalText,
   dueDate: isoDate.optional().default(""),
   fabricId: uuidOrNull,
+  /** Fabric per piece in metres, like "2.5". Empty means not set. */
+  metresPerPiece: z
+    .union([z.string(), z.number()])
+    .optional()
+    .nullable()
+    .transform((v, ctx) => {
+      if (v === null || v === undefined || String(v).trim() === "") return null;
+      const c = parseCenti(v);
+      if (c === null) {
+        ctx.addIssue({ code: "custom", message: "Metres like 2.5 or 2.50." });
+        return z.NEVER;
+      }
+      return c;
+    }),
   measurementId: uuidOrNull,
   assignments: z.array(assignmentSchema).default([]),
 });
@@ -378,6 +404,7 @@ async function persistOrder(doc: Doc, intent: "draft" | "confirm", me: Owner): P
         ...lineAmounts(l.qty, l.unitPrice, settings.vatRateBp),
         dueDate: l.dueDate,
         fabricId: l.fabricId,
+        metresPerPieceCenti: l.metresPerPiece,
         measurementId: l.measurementId && (set || keepSnapshot) ? l.measurementId : null,
         measurementLabel: keepSnapshot ? old.measurementLabel : (set?.label ?? null),
         measurements: keepSnapshot ? old.measurements : (set?.values ?? null),
@@ -439,6 +466,10 @@ async function persistOrder(doc: Doc, intent: "draft" | "confirm", me: Owner): P
   }
   await db.batch(batch as Batch);
   await refreshOrderStage(orderId);
+  if (!savingDraft) {
+    await syncOutsourcingPOs(orderId, me);
+    revalidatePath("/purchases", "layout");
+  }
 
   const assignedNote = taskInserts.length ? `, ${taskInserts.length} ${taskInserts.length === 1 ? "task" : "tasks"} assigned` : "";
   await logActivity({

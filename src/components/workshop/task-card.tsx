@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MapPinIcon, MessageCircleQuestionIcon } from "lucide-react";
+import { MapPinIcon, MessageCircleQuestionIcon, ScissorsIcon } from "lucide-react";
 import { DueChip, Progress, TaskStatusTag } from "@/components/orders/bits";
 import type { TaskStatus } from "@/db/schema";
 
@@ -15,6 +15,7 @@ export type TaskCardData = {
   description: string;
   photoUrl: string | null;
   fabricShelf: string | null;
+  metresToCutCenti?: number | null;
   assigneeName?: string;
 };
 
@@ -37,11 +38,21 @@ export function TaskCard({ t, showAssignee }: { t: TaskCardData; showAssignee?: 
               </span>
             ) : null}
           </div>
-          {t.fabricShelf ? (
-            <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full bg-surface/95 px-2.5 py-1 text-[12px] font-semibold">
-              <MapPinIcon className="size-3.5 text-brand" />
-              {t.fabricShelf}
-            </span>
+          {t.fabricShelf || t.metresToCutCenti ? (
+            <div className="absolute bottom-2 left-2 flex flex-wrap gap-1.5">
+              {t.fabricShelf ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-surface/95 px-2.5 py-1 text-[12px] font-semibold">
+                  <MapPinIcon className="size-3.5 text-brand" />
+                  {t.fabricShelf}
+                </span>
+              ) : null}
+              {t.metresToCutCenti ? (
+                <span className="tabular inline-flex items-center gap-1 rounded-full bg-surface/95 px-2.5 py-1 text-[12px] font-semibold">
+                  <ScissorsIcon className="size-3.5 text-brand" />
+                  Cut {(t.metresToCutCenti / 100).toFixed(2)} m
+                </span>
+              ) : null}
+            </div>
           ) : null}
         </div>
         <div className="flex flex-1 flex-col gap-2 p-4">

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "cn";
 
-export type SectionTab = { href: string; label: string; soon?: number };
+export type SectionTab = { href: string; label: string; soon?: number; exact?: boolean; also?: string[] };
 
 /** Pill tabs. A tab with `soon` shows the phase it arrives in and is not a link. */
 export function SectionTabs({ tabs, label }: { tabs: SectionTab[]; label: string }) {
@@ -13,7 +13,7 @@ export function SectionTabs({ tabs, label }: { tabs: SectionTab[]; label: string
     <nav className="-mx-4 mb-6 overflow-x-auto px-4 md:mx-0 md:px-0" aria-label={label}>
       <ul className="flex w-max gap-1.5 rounded-full border border-line bg-surface p-1">
         {tabs.map((t) => {
-          const active = !t.soon && pathname.startsWith(t.href);
+          const active = !t.soon && (t.exact ? pathname === t.href || (t.also ?? []).some((a) => pathname.startsWith(a)) : pathname.startsWith(t.href));
           return (
             <li key={t.href}>
               {t.soon ? (

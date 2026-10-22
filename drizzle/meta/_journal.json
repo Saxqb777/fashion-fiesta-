@@ -15,6 +15,13 @@
       "when": 1792664550198,
       "tag": "0001_master_data",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792665925440,
+      "tag": "0002_orders_workshop",
+      "breakpoints": true
     }
   ]
 }

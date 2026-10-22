@@ -4,6 +4,8 @@ import { AppShell } from "@/components/shell/app-shell";
 import { SignOutButton } from "@/components/shell/sign-out-button";
 import { requireUser } from "@/lib/session";
 import { getSettings } from "@/lib/settings";
+import { FlashToast } from "@/components/flash-toast";
+import { readFlash } from "@/lib/flash";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
@@ -21,7 +23,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     );
   }
 
+  const flash = await readFlash();
   return (
-    <AppShell user={{ name: user.name ?? "", role: user.role }}>{children}</AppShell>
+    <AppShell user={{ name: user.name ?? "", role: user.role }}>
+      <FlashToast flash={flash} />
+      {children}
+    </AppShell>
   );
 }

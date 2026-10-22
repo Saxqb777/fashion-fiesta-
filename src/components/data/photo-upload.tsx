@@ -20,8 +20,26 @@ async function shrink(file: File, maxSide = 1600): Promise<Blob> {
   }
 }
 
-export function PhotoUpload({ name, folder, defaultUrl, label }: { name: string; folder: string; defaultUrl?: string | null; label: string }) {
-  const [url, setUrl] = useState(defaultUrl ?? "");
+export function PhotoUpload({
+  name,
+  folder,
+  defaultUrl,
+  label,
+  emptyText = "Take or choose a photo",
+  onChange,
+}: {
+  name: string;
+  folder: string;
+  defaultUrl?: string | null;
+  label?: string;
+  emptyText?: string;
+  onChange?: (url: string) => void;
+}) {
+  const [url, setUrlState] = useState(defaultUrl ?? "");
+  const setUrl = (next: string) => {
+    setUrlState(next);
+    onChange?.(next);
+  };
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const input = useRef<HTMLInputElement>(null);
@@ -48,7 +66,7 @@ export function PhotoUpload({ name, folder, defaultUrl, label }: { name: string;
 
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="text-sm font-semibold text-ink">{label}</span>
+      {label ? <span className="text-sm font-semibold text-ink">{label}</span> : null}
       <input type="hidden" name={name} value={url} />
       <input ref={input} type="file" accept="image/*" capture="environment" className="sr-only" onChange={(e) => onFile(e.target.files?.[0])} />
       {url ? (
@@ -75,7 +93,7 @@ export function PhotoUpload({ name, folder, defaultUrl, label }: { name: string;
           )}
         >
           {busy ? <Loader2Icon className="size-7 animate-spin" /> : <CameraIcon className="size-8" />}
-          <span className="text-[15px] font-semibold">{busy ? "Uploading" : "Take or choose a photo"}</span>
+          <span className="text-[15px] font-semibold">{busy ? "Uploading" : emptyText}</span>
         </button>
       )}
       {error ? <p className="text-[13px] font-medium text-brand-deep">{error}</p> : null}

@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 
 const MAX_BYTES = 6 * 1024 * 1024;
-const FOLDERS = new Set(["fabrics"]);
+const FOLDERS = new Set(["fabrics", "tasks"]);
 
 export async function POST(request: Request) {
   const session = await auth();

@@ -1,10 +1,18 @@
 import type { Metadata } from "next";
-import { and, asc, eq, isNull } from "drizzle-orm";
+import Link from "next/link";
+import { and, asc, desc, eq, isNull } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { PencilIcon, PhoneIcon } from "lucide-react";
 import { setCustomerArchived } from "@/actions/customers";
 import { db } from "@/db";
-import { customerBranches, customers } from "@/db/schema";
+import { customerBranches, customerMeasurements, customers, quotes, salesOrders } from "@/db/schema";
+import { StageTag } from "@/components/orders/bits";
+import { getMeasurementFields } from "@/lib/measurements";
+import { formatFils } from "@/lib/money";
+import { formatISODate } from "@/lib/dates";
+import { QUOTE_STATUS_LABEL } from "@/lib/stages";
+import { CopyIcon, PlusIcon } from "lucide-react";
+import { Measurements } from "./measurements";
 import { ArchiveButton } from "@/components/data/archive-button";
 import { BackLink, Facts, Panel } from "@/components/data/detail";
 import { Flash } from "@/components/data/flash";
@@ -24,12 +32,20 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
   const { id } = await params;
   const customer = /^[0-9a-f-]{36}$/.test(id) ? await db.query.customers.findFirst({ where: eq(customers.id, id) }) : undefined;
   if (!customer) notFound();
-  const [settings, branches] = await Promise.all([
+  const [settings, branches, sets, fields, orders, quoteRows] = await Promise.all([
     getSettings(),
     db.query.customerBranches.findMany({
       where: and(eq(customerBranches.customerId, id), isNull(customerBranches.deletedAt)),
       orderBy: asc(customerBranches.name),
     }),
+    db
+      .select()
+      .from(customerMeasurements)
+      .where(and(eq(customerMeasurements.customerId, id), isNull(customerMeasurements.deletedAt)))
+      .orderBy(asc(customerMeasurements.label)),
+    getMeasurementFields(),
+    db.select().from(salesOrders).where(eq(salesOrders.customerId, id)).orderBy(desc(salesOrders.createdAt)).limit(8),
+    db.select().from(quotes).where(and(eq(quotes.customerId, id))).orderBy(desc(quotes.createdAt)).limit(5),
   ]);
   const archived = Boolean(customer.deletedAt);
   const credit =
@@ -81,13 +97,55 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
               <p className="text-sm text-ink-muted">Only the name is saved. Add a phone number so you can call them from here.</p>
             ) : null}
           </Panel>
+          <Measurements
+            customerId={customer.id}
+            fields={fields.map((f) => f.name)}
+            sets={sets.map((m) => ({ id: m.id, label: m.label, values: m.values, notes: m.notes, createdAt: m.createdAt.toISOString() }))}
+          />
           {customer.type === "wholesale" || branches.length ? <Branches customerId={customer.id} branches={branches} /> : null}
         </div>
         <div className="flex flex-col gap-4">
-          <Panel title="Orders and money">
-            <p className="text-sm text-ink-muted">Orders arrive in Phase 2. What they owe you arrives in Phase 3.</p>
+          <Panel
+            title="Orders"
+            action={
+              <LinkButton href={`/orders/new?customer=${customer.id}`} variant="outline" size="sm">
+                <PlusIcon />
+                New order
+              </LinkButton>
+            }
+          >
+            {orders.length || quoteRows.some((q) => q.status !== "accepted") ? (
+              <ul className="flex flex-col divide-y divide-line">
+                {orders.map((o) => (
+                  <li key={o.id} className="flex items-center gap-2 py-2.5 first:pt-0">
+                    <Link href={`/orders/${o.id}`} className="tabular flex-1 text-[15px] font-semibold hover:underline">
+                      {o.number}
+                      <span className="ml-2 text-[12px] font-medium text-ink-muted">{formatISODate(o.orderDate)}</span>
+                    </Link>
+                    <StageTag stage={o.stage} />
+                    <span className="tabular hidden w-24 text-right text-sm sm:inline">{formatFils(o.totalFils, { currency: false })}</span>
+                    <LinkButton href={`/orders/new?copy=${o.id}`} variant="ghost" size="icon-sm" aria-label={`Order ${o.number} again`} title="Order again">
+                      <CopyIcon className="text-ink-muted" />
+                    </LinkButton>
+                  </li>
+                ))}
+                {quoteRows
+                  .filter((q) => q.status !== "accepted")
+                  .map((q) => (
+                    <li key={q.id} className="flex items-center gap-2 py-2.5">
+                      <Link href={`/orders/quotes/${q.id}`} className="tabular flex-1 text-[15px] font-semibold hover:underline">
+                        {q.number}
+                        <span className="ml-2 text-[12px] font-medium text-ink-muted">Quote, {QUOTE_STATUS_LABEL[q.status].toLowerCase()}</span>
+                      </Link>
+                      <span className="tabular hidden w-24 text-right text-sm sm:inline">{formatFils(q.totalFils, { currency: false })}</span>
+                    </li>
+                  ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-ink-muted">No orders yet. What they owe you arrives in Phase 3.</p>
+            )}
           </Panel>
-          <RecentActivity entityId={customer.id} relatedIds={branches.map((b) => b.id)} />
+          <RecentActivity entityId={customer.id} relatedIds={[...branches.map((b) => b.id), ...sets.map((m) => m.id)]} />
           <div className="flex justify-end">
             <ArchiveButton action={setCustomerArchived} id={customer.id} archived={archived} noun="customer" />
           </div>

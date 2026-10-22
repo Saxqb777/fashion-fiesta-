@@ -18,8 +18,21 @@ export function OrdersTabs() {
     <SectionTabs
       label="Orders sections"
       tabs={[
-        { href: "/orders/list", label: "Orders", soon: 2 },
+        { href: "/orders", label: "Orders", exact: true },
+        { href: "/orders/quotes", label: "Quotes" },
         { href: "/orders/products", label: "Products" },
+      ]}
+    />
+  );
+}
+
+export function WorkshopTabs({ owner }: { owner: boolean }) {
+  return (
+    <SectionTabs
+      label="Workshop sections"
+      tabs={[
+        { href: "/workshop", label: owner ? "Tasks" : "My tasks", exact: true },
+        { href: "/workshop/gallery", label: "Gallery" },
       ]}
     />
   );

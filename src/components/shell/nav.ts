@@ -28,7 +28,7 @@ export const NAV_GROUPS: NavItem[][] = [
     { href: "/money", label: "Money", icon: Wallet, phase: 3, roles: ["owner"] },
   ],
   [
-    { href: "/workshop", label: "Workshop", icon: Shirt, phase: 2, roles: ["owner", "tailor"] },
+    { href: "/workshop", label: "Workshop", icon: Shirt, phase: 0, roles: ["owner", "tailor"] },
     { href: "/purchases", label: "Purchases", icon: Package, phase: 0, roles: ["owner"] },
   ],
   [
@@ -42,7 +42,6 @@ export function navForRole(role: UserRole) {
 }
 
 export const SECTION_COPY: Record<string, { title: string; sentence: string; phase: number }> = {
-  orders: { title: "Orders", sentence: "Quotes, sales orders and the stage tracker arrive in Phase 2.", phase: 2 },
   customers: {
     title: "Customers",
     sentence: "Customers with branches, tiers and credit terms arrive in Phase 1.",

@@ -10,6 +10,7 @@ const TABS = [
   { href: "/settings/numbering", label: "Numbering" },
   { href: "/settings/team", label: "Team" },
   { href: "/settings/categories", label: "Categories" },
+  { href: "/settings/measurements", label: "Measurements" },
 ];
 
 export function SettingsTabs() {

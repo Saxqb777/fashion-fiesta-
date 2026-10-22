@@ -91,7 +91,7 @@ One shared template family: Quote, Sales Order confirmation, Delivery Note, Tax 
 - Numbering: FF-Q-0001, FF-SO-0001, FF-DN-0001, FF-INV-0001, FF-RCT-0001, FF-PO-0001. Prefixes editable in Settings, never reused.
 
 ## Data model (core tables)
-users, customers, customer_branches, suppliers (type: fabric | outsourcing), products, fabrics, quotes, quote_lines, sales_orders, so_lines, tasks (status: assigned | in_progress | submitted | approved | rejected, photos as blob urls), purchase_orders, po_lines, supplier_bills, supplier_payments, invoices, invoice_lines, payments (with allocations to invoices), embroidery_jobs, expenses, cash_book, pos_sales, pos_sale_lines, stock_movements, notifications, activity_log, settings.
+users, customers, customer_branches, suppliers (type: fabric | outsourcing), products, fabrics, quotes, quote_lines, sales_orders, so_lines, tasks (status: assigned | in_progress | submitted | approved | rejected | declined, photos as blob urls; assigned to a tailor or, until Phase 4 POs exist, to a stitching unit), purchase_orders, po_lines, supplier_bills, supplier_payments, invoices, invoice_lines, payments (with allocations to invoices), embroidery_jobs, expenses, cash_book, pos_sales, pos_sale_lines, stock_movements, notifications, activity_log, settings.
 - Every table: id (uuid), created_at, updated_at, created_by.
 - Soft delete where a record can have history (customers, suppliers, products). Hard delete only for drafts.
 - activity_log records who did what on every create, update, status change.
@@ -125,11 +125,11 @@ Standing permission: small taste improvements (spacing, wording, micro animation
    What: an order line prefills the unit price from this customer's last order of the same product, with a small "last time 45.00" chip.
    Why: she never has to remember what she charged the school in March.
 
-4. Order again. proposed. Phase 2. Effort: small.
+4. Order again. approved. Phase 2. Effort: small.
    What: one tap on any past sales order copies its lines, sizes and prices into a new order; she only edits quantities.
    Why: school uniform repeats every term take seconds, not a rebuild.
 
-5. Batch done. proposed. Phase 2. Effort: small.
+5. Batch done. approved. Phase 2. Effort: small.
    What: a tailor types "25 of 30" and takes one photo of the stack; the order line shows a progress bar instead of 25 separate submissions.
    Why: she sees how far the order is without asking anyone.
 

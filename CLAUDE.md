@@ -172,11 +172,11 @@ Standing permission: small taste improvements (spacing, wording, micro animation
     What: Claude writes what to say when calling about dues, from the customer's invoices, payments and past promises. Builds on idea 7.
     Why: a polite, prepared call every time.
 
-12. WhatsApp message drafts. proposed. AI, together after Phase 6. Effort: small.
+12. WhatsApp message drafts. built, inside Fiesta (idea 45). AI, together after Phase 6. Effort: small.
     What: ready to send messages: payment reminder, order ready, quote follow up, in the customer's tone and language.
     Why: no typing the same message twenty times a week.
 
-13. Ask your shop. proposed. AI, together after Phase 6. Effort: medium.
+13. Ask your shop. built, inside Fiesta (idea 45). AI, together after Phase 6. Effort: medium.
     What: type a question such as "how much did Bedashing order this year" or "who is late paying" and get the answer from the shop's own data.
     Why: answers without building a report.
 
@@ -277,7 +277,7 @@ Standing permission: small taste improvements (spacing, wording, micro animation
 44. Email from the system. built. Phase 6, sent from the shop domain through Resend with replies to the sending owner (decided in Phase 6 instead of Gmail sign in). Effort: medium.
     What: Settings gets "Connect email": an owner signs in with Google once and the system sends from her own Gmail address (send permission only, never reads the inbox). A second owner can connect her own. Every PDF (Quote, Sales Order confirmation, Delivery Note, Tax Invoice, Credit Note, Receipt, Statement, Purchase Order) gets a "Send by email" button next to "Send on WhatsApp": a ready email with the recipient from the customer or branch contact, subject and short body from a template editable in Settings, PDF attached; she reviews and taps Send. Sent emails are logged on the record (when, to whom, by whom, the PDF version that went) with one tap Resend. Due reminders and statements go the same way from Who owes you, one customer or several at once. With no email connected, the button explains in one line how to connect it.
 
-45. Fiesta, the Fashion Fiesta assistant. approved. After Phase 6, the first AI item, before the Tax tab. Effort: large.
+45. Fiesta, the Fashion Fiesta assistant. built. After Phase 6, the first AI item, before the Tax tab. Effort: large.
     What: a floating button bottom right on every page, owner only at first, opening a chat panel powered by Claude that knows this business from the live data: shop, customers, orders, money, workshop, fabric, tailors, embroidery and UAE VAT rules.
     - Takes her there: "open Bedashing", "show overdue", "new quote for Al Dahra" navigates to the page or record with filters and fields prefilled.
     - Answers from the data: "how much did Bedashing order this year", "who hasn't paid", "how many pants did Ahmed stitch this month", "which fabric is low".

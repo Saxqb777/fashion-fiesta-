@@ -1,5 +1,6 @@
 import type { UserRole } from "@/db/schema";
 import { cn } from "cn";
+import { Fiesta } from "@/components/fiesta/fiesta";
 import { MissionsMount } from "@/components/practice/missions-panel";
 import { ModeSwitch } from "@/components/practice/mode-switch";
 import { PracticeRibbon } from "@/components/practice/ribbon";
@@ -41,6 +42,7 @@ export function AppShell({
         <BottomNav user={user} signOut={<SignOutButton />} />
       </div>
       {practice.on ? <MissionsMount owner={user.role === "owner"} /> : null}
+      {user.role === "owner" && !user.practiceOnly ? <Fiesta /> : null}
       <RegisterServiceWorker />
     </div>
   );

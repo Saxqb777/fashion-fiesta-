@@ -4,8 +4,9 @@ Newest at top. Keep under 150 lines. Rules for this file are in CLAUDE.md under 
 
 ## Where we are (2026-10-22)
 - Live: https://fashion-fiesta-three.vercel.app (Vercel production, deploys from main)
-- Done and live: Phases 0 to 7 (7, Practice mode and missions, shipped 2026-10-22, checklist sent).
-- Next: Fiesta (idea 45), then the Tax tab (25 to 28). Post a plan and wait for "go".
+- Done and live: Phases 0 to 7 and Fiesta (idea 45, shipped 2026-10-23, checklist sent).
+- Next: the Tax tab (ideas 25 to 28). Post a plan and wait for "go".
+- Open: Saaqib asked for his main login password. It cannot be read back; offered a reset (his own new password, or a temporary one). Waiting for his choice. Do nothing until he says.
 - Email is built but waits on the Resend API key from Saaqib, then the DNS records.
 - Domain: Saaqib adds the CNAME after everything is live (record is under Open questions).
 - Phase 4.5 Key Account mode shipped 2026-10-22. Bedashing is a key account with 24 unverified branches on production. Checklist sent.
@@ -19,6 +20,13 @@ Newest at top. Keep under 150 lines. Rules for this file are in CLAUDE.md under 
 
 ## Half done
 - Nothing.
+
+## How Fiesta works (for later work)
+- Floating button bottom right for owners only (not tailors, not practice logins). Chat panel: right sheet on a laptop, full screen on a phone.
+- POST /api/fiesta streams NDJSON events (text, tool status, card, nav, error, done). Model claude-opus-5-5, adaptive thinking, effort medium, server side refusal fallbacks ("default"), cached system prompt and tools. Max 10 turns per question.
+- Tools in lib/fiesta/tools.ts: read tools (customers, orders, reports, tailor output, tasks, team, fabric, money) and prepare tools (navigate, payment, reassign task, draft order or quote, statement email, message draft). Prepare tools only return a card.
+- Her tap goes to actions/fiesta.ts confirmCard, which calls the same actions the screens use (recordPayment, reassignTask, importDrafts, sendDocEmail), so every rule still applies. A "Confirmed card <id>" line is appended to the chat so the card shows Done later.
+- Transcript per conversation in fiesta_messages, stored exactly as exchanged and only appended to. Today's date and the screen text travel with each message, never in the system prompt (keeps the cache). Works in Practice on sandbox data.
 
 ## How Phase 7 works (for later phases)
 - Two databases on the Neon project: neondb (Live) and practice (sandbox). `db` from "@/db" picks per request: the proxy reads the signed session and sets header x-ff-db (browser values are stripped); dbMode() reads it from Next's request store. withDb("practice" | "live", fn) forces one; liveDb is always Live.
@@ -53,6 +61,7 @@ Newest at top. Keep under 150 lines. Rules for this file are in CLAUDE.md under 
 - Agreed prices (account_items) beat last price when she picks the item.
 
 ## Decisions (newest first)
+- 2026-10-23 Fiesta: Saaqib said "plan it and go". Curated tools instead of free SQL, so passwords and secrets can never reach the model. Navigation needs no tap; anything that saves or sends always needs her tap on a card. Ideas 12 and 13 are covered by Fiesta.
 - 2026-10-22 Phase 7 build: on a laptop the missions card sits inside the sidebar so it never covers a button; on a phone it starts folded as a pill. Seeded photos are drawn illustrations (no stock photos). Fabric mission uses the new Add lines from Excel on the PO screen.
 - 2026-10-22 Phase 7 go: Phase 7 is now Practice mode and missions (CLAUDE.md roadmap updated). Practice is a second Neon database "practice" on the same project. Real tailors always stay on Live; tailor missions use practice only tailor logins. The PO screen gets "Add lines from Excel" for mission 9. Reset practice also clears mission progress.
 - 2026-10-22 Phase 6 build: Reports tabs are Who owes you, Sales, Profit, VAT, Tailors, Customers. Settings got an Email tab. The "Soon" and Phase badges were removed from the menu, since every section is now built.
@@ -105,6 +114,6 @@ Newest at top. Keep under 150 lines. Rules for this file are in CLAUDE.md under 
 - Vercel: project prj_grSCaYpWGqE93VbWkOQzahVzymA0, team team_yKuXQ8P3eoGrvRnTWMIqSiGo, region sin1.
 - Env vars are in Vercel for all three environments: DATABASE_URL, AUTH_SECRET, BLOB_READ_WRITE_TOKEN, ANTHROPIC_API_KEY, CRON_SECRET. They are never in git.
 - Cron: /api/cron/backup at 22:00 UTC.
-- Migrations live in /drizzle and run during build, on Live and Practice. The latest is 0014_practice.
+- Migrations live in /drizzle and run during build, on Live and Practice. The latest is 0015_fiesta.
 - Vercel also has NEXT_PUBLIC_VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT, EMAIL_DOMAIN, PRACTICE_DATABASE_URL. RESEND_API_KEY to come.
 - Careful: .env.local holds the production DATABASE_URL. For tests always export the branch URL after sourcing it.

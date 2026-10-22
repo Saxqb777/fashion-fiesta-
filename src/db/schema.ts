@@ -1133,3 +1133,32 @@ export const practiceMeta = pgTable("practice_meta", {
   key: text("key").notNull().unique(),
   value: jsonb("value").$type<unknown>().notNull(),
 });
+
+/* ---------- Fiesta, the assistant (idea 45) ---------- */
+
+/** One chat with Fiesta, per owner. The title is her first question. */
+export const fiestaConversations = pgTable(
+  "fiesta_conversations",
+  {
+    ...audit(),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    title: text("title").notNull(),
+  },
+  (t) => [index("fiesta_conversations_user_idx").on(t.userId, t.updatedAt)],
+);
+
+/**
+ * Every turn exactly as sent to and returned by the model, in order, never edited:
+ * the next request replays them as they are.
+ */
+export const fiestaMessages = pgTable(
+  "fiesta_messages",
+  {
+    ...audit(),
+    conversationId: uuid("conversation_id").notNull().references(() => fiestaConversations.id, { onDelete: "cascade" }),
+    seq: integer("seq").notNull(),
+    role: text("role").$type<"user" | "assistant">().notNull(),
+    content: jsonb("content").$type<unknown[]>().notNull(),
+  },
+  (t) => [uniqueIndex("fiesta_messages_seq").on(t.conversationId, t.seq)],
+);

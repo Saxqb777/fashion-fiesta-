@@ -9,6 +9,7 @@ import { logActivity } from "@/lib/activity";
 import { text, type FormState } from "@/lib/forms";
 import { flashDone } from "@/lib/flash";
 import { refreshOrderStage } from "@/lib/order-stage";
+import { recordPiecesOnPo, unitPoLineFor } from "@/lib/unit-pieces";
 import { requireOwner, requireUser } from "@/lib/session";
 
 type Actor = Awaited<ReturnType<typeof requireUser>>;
@@ -181,6 +182,9 @@ export async function receiveUnitWork(_prev: FormState, fd: FormData): Promise<F
   if (task.status === "approved") return { message: "All pieces are already received." };
   const qty = Number(text(fd, "qtyDone"));
   if (!Number.isInteger(qty) || qty < 0 || qty > task.qty) return { errors: { qtyDone: [`Between 0 and ${task.qty}.`] } };
+  // The unit's PO may already show pieces back; the task cannot go below that.
+  const link = await unitPoLineFor(task.id);
+  if (link && qty < link.backPieces) return { errors: { qtyDone: [`The PO ${link.po.number} already shows ${link.backPieces} back.`] } };
   const photo = text(fd, "photoUrl");
   if (photo && photoUrl.safeParse(photo).success) {
     await db.insert(taskPhotos).values({ taskId: task.id, url: photo, kind: qty === task.qty ? "submission" : "progress", createdBy: me.id });
@@ -191,7 +195,9 @@ export async function receiveUnitWork(_prev: FormState, fd: FormData): Promise<F
     .set({ qtyDone: qty, status: done ? "approved" : "in_progress", ...(done ? { approvedAt: new Date(), submittedAt: new Date() } : {}) })
     .where(eq(tasks.id, task.id));
   if (done) await db.insert(taskReviews).values({ taskId: task.id, decision: "approved", createdBy: me.id });
+  await recordPiecesOnPo(task.id, qty, me.id);
   await logActivity({ actor: me, entityType: "task", entityId: task.id, action: "updated", summary: `${me.name} received ${qty} of ${task.qty} pieces from the unit on ${orderNumber}` });
+  if (link) revalidatePath(`/purchases/orders/${link.po.id}`);
   await refreshOrderStage(task.orderId);
   refresh(task);
   return flashDone(done ? "All pieces received." : `${qty} of ${task.qty} received.`);

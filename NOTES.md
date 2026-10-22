@@ -5,15 +5,16 @@ Newest at top. Keep under 150 lines. Rules for this file are in CLAUDE.md under 
 ## Where we are (2026-10-22)
 - Live: https://fashion-fiesta-three.vercel.app (Vercel production, deploys from main)
 - Done and live: Phases 0, 1, 2, 3, 3.5, 4.
-- Now: measurement templates per garment type (small deploy), then Phase 4.5 Key Account mode.
-- Built locally, not deployed yet (ships with the measurement templates deploy):
-  - Pieces link: a unit task's "pieces received" and the unit PO's "pieces came back" update each other.
-  - Nightly backup: every table to Excel at 02:00 Abu Dhabi, kept 30 days, plus Settings > Data with "Download everything now" (covers idea 34).
+- Now: Phase 4.5 Key Account mode.
+- Small deploy (measurement templates, pieces link, nightly backup, bug fixes) shipped 2026-10-22. Checklist sent.
+- Bugs fixed in that deploy, all in earlier phases:
+  - A deposit already used could be applied again on the next invoice. No real payments were in production yet, so no data was affected.
+  - The customer list always showed 0 branches, and the supplier list always showed 0 fabrics.
+  - On the order editor, Save could fire before the customer's details had loaded.
+  - Save buttons with their own disabled rule did not grey out while saving.
+  - Cause of the first two: a Drizzle subquery without a join renders a bare "id". Always write the table name in raw subqueries.
 
 ## Half done
-- Measurement templates:
-  - Done: table and migration 0008, the five default templates seeded on first use, Settings > Measurements "Garment templates" (add, edit, reorder, archive), template chips in the measure dialog, the order line opens on its product's template, the set records the template used.
-  - Left: category to template picker in Settings > Categories, template name shown on saved sets, the customer page dialog, then test, deploy and checklist.
 - Phase 4.5 plan approved ("go"), not started:
   - Schema: key account switch, branch emirate and verified flag, account staff, account catalogue, line allocations, delivery runs, season, invoice branch breakdown, Delivery supplier type, label layout setting.
   - Customer page tabs: Overview, Branches, Staff, Catalogue, Orders, Deliveries, Report.
@@ -57,4 +58,4 @@ Newest at top. Keep under 150 lines. Rules for this file are in CLAUDE.md under 
 - Vercel: project prj_grSCaYpWGqE93VbWkOQzahVzymA0, team team_yKuXQ8P3eoGrvRnTWMIqSiGo, region sin1.
 - Env vars are in Vercel for all three environments: DATABASE_URL, AUTH_SECRET, BLOB_READ_WRITE_TOKEN, ANTHROPIC_API_KEY, CRON_SECRET. They are never in git.
 - Cron: /api/cron/backup at 22:00 UTC.
-- Migrations live in /drizzle and run during build. The latest is 0008_measurement_templates, not yet on production.
+- Migrations live in /drizzle and run during build. The latest is 0008_measurement_templates.

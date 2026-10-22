@@ -61,7 +61,7 @@ export async function unallocatedByPayment(paymentIds: string[]) {
   const rows = await db
     .select({
       id: payments.id,
-      left: sql<number>`(${payments.amountFils} - coalesce((select sum(a.amount_fils) from payment_allocations a where a.payment_id = ${payments.id}),0))::int`,
+      left: sql<number>`(${payments.amountFils} - coalesce((select sum(a.amount_fils) from payment_allocations a where a.payment_id = payments.id),0))::int`,
     })
     .from(payments)
     .where(inArray(payments.id, paymentIds));

@@ -18,7 +18,7 @@ import { formatFils } from "@/lib/money";
 import { cn } from "cn";
 import { BulkImportDialog } from "./bulk-import";
 import { CustomerPicker } from "./customer-picker";
-import { MeasurementDialog, type MeasurementSet } from "./measurement-dialog";
+import { MeasurementDialog, type MeasurementSet, type MeasurementTemplate } from "./measurement-dialog";
 import { ReadDocumentDialog } from "./read-document";
 
 export type EditorAssignment = { key: string; taskId?: string | null; type: "tailor" | "unit"; assigneeId: string; qty: string; locked?: boolean };
@@ -55,7 +55,7 @@ export type EditorInitial = {
   sourceQuoteId?: string | null;
   lines: EditorLine[];
 };
-type Product = { id: string; name: string; priceFils: number; metresPerPieceCenti?: number | null };
+type Product = { id: string; name: string; priceFils: number; metresPerPieceCenti?: number | null; templateId?: string | null };
 type Fabric = { id: string; name: string; colour: string | null; shelfLocation: string | null; stockCenti?: number };
 type Option = { id: string; name: string };
 
@@ -90,6 +90,7 @@ export function DocumentEditor({
   tailors,
   units,
   fields,
+  templates,
   vatRateBp,
   cancelHref,
 }: {
@@ -100,6 +101,7 @@ export function DocumentEditor({
   tailors: Option[];
   units: Option[];
   fields: string[];
+  templates: MeasurementTemplate[];
   vatRateBp: number;
   cancelHref: string;
 }) {
@@ -369,11 +371,11 @@ export function DocumentEditor({
           Cancel
         </Button>
         {canDraft ? (
-          <SubmitButton name="intent" value="draft" variant="outline" size="lg" pendingText="Saving">
+          <SubmitButton name="intent" value="draft" variant="outline" size="lg" pendingText="Saving" disabled={loadingCtx}>
             Save as draft
           </SubmitButton>
         ) : null}
-        <SubmitButton name="intent" value="confirm" size="lg" pendingText="Saving">
+        <SubmitButton name="intent" value="confirm" size="lg" pendingText="Saving" disabled={loadingCtx}>
           {isOrder ? (canDraft ? "Confirm order" : "Save changes") : initial.id ? "Save changes" : "Save quote"}
         </SubmitButton>
         {isOrder && canDraft ? (
@@ -387,6 +389,8 @@ export function DocumentEditor({
           onOpenChange={(o) => !o && setMeasureFor(null)}
           customerId={ctx.customer.id}
           fields={fields}
+          templates={templates}
+          defaultTemplateId={products.find((p) => p.id === lines.find((l) => l.key === measureFor)?.productId)?.templateId ?? null}
           onSaved={(set: MeasurementSet) => {
             setCtx((c) => (c ? { ...c, measurements: [...c.measurements, set] } : c));
             if (measureFor) update(measureFor, { measurementId: set.id });
@@ -617,7 +621,7 @@ function LineCard({
                       {line.measurementId && !set && line.measurementLabel ? <option value={line.measurementId}>{line.measurementLabel} (as taken)</option> : null}
                       {ctx?.measurements.map((m) => (
                         <option key={m.id} value={m.id}>
-                          {m.label}
+                          {m.templateName ? `${m.label}, ${m.templateName}` : m.label}
                         </option>
                       ))}
                     </select>

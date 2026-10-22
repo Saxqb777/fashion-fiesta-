@@ -20,6 +20,8 @@ export const authConfig = {
       const { pathname } = request.nextUrl;
       // Shared document links sent on WhatsApp open without a login.
       if (pathname.startsWith("/d/")) return true;
+      // The nightly backup checks its own secret.
+      if (pathname.startsWith("/api/cron/")) return true;
       if (pathname.startsWith("/login")) {
         return loggedIn ? Response.redirect(new URL("/today", request.nextUrl)) : true;
       }

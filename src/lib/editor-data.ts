@@ -1,15 +1,22 @@
 import { and, asc, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
-import { fabrics, products, suppliers, users } from "@/db/schema";
-import { getMeasurementFields } from "./measurements";
+import { fabrics, productCategories, products, suppliers, users } from "@/db/schema";
+import { getMeasurementFields, getMeasurementTemplates } from "./measurements";
 import { stockFor } from "./payables";
 import { getSettings } from "./settings";
 
 export async function editorLookups() {
-  const [productRows, fabricRows, tailorRows, unitRows, fields, settings] = await Promise.all([
+  const [productRows, fabricRows, tailorRows, unitRows, fields, settings, templates] = await Promise.all([
     db
-      .select({ id: products.id, name: products.name, priceFils: products.priceFils, metresPerPieceCenti: products.metresPerPieceCenti })
+      .select({
+        id: products.id,
+        name: products.name,
+        priceFils: products.priceFils,
+        metresPerPieceCenti: products.metresPerPieceCenti,
+        templateId: productCategories.measurementTemplateId,
+      })
       .from(products)
+      .leftJoin(productCategories, eq(productCategories.id, products.categoryId))
       .where(isNull(products.deletedAt))
       .orderBy(asc(products.name)),
     db
@@ -29,6 +36,7 @@ export async function editorLookups() {
       .orderBy(asc(suppliers.name)),
     getMeasurementFields(),
     getSettings(),
+    getMeasurementTemplates(),
   ]);
   const stock = await stockFor(fabricRows.map((f) => f.id));
   return {
@@ -37,6 +45,7 @@ export async function editorLookups() {
     tailors: tailorRows,
     units: unitRows,
     fields: fields.map((f) => f.name),
+    templates: templates.map((t) => ({ id: t.id, name: t.name, fields: t.fields })),
     vatRateBp: settings.vatRateBp,
     defaultCreditDays: settings.defaultCreditDays,
   };

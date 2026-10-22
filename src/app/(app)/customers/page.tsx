@@ -29,7 +29,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
     db
       .select({
         ...getTableColumns(customers),
-        branchCount: sql<number>`(select count(*)::int from customer_branches b where b.customer_id = ${customers.id} and b.deleted_at is null)`,
+        branchCount: sql<number>`(select count(*)::int from customer_branches b where b.customer_id = customers.id and b.deleted_at is null)`,
       })
       .from(customers)
       .where(

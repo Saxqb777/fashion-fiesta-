@@ -56,7 +56,7 @@ export async function searchCustomers(q: string): Promise<CustomerOption[]> {
 export type CustomerContext = {
   customer: CustomerOption;
   branches: { id: string; name: string }[];
-  measurements: { id: string; label: string; values: { name: string; value: string }[]; createdAt: string }[];
+  measurements: { id: string; label: string; values: { name: string; value: string }[]; createdAt: string; templateId: string | null; templateName: string | null }[];
   lastPrices: Record<string, number>;
   /** For the credit warning on new orders. Warn, never block. */
   money: { owedFils: number; overdueFils: number; oldestDue: string | null; creditLimitFils: number | null };
@@ -91,7 +91,7 @@ export async function getCustomerContext(customerId: string): Promise<CustomerCo
   return {
     customer: { id: customer.id, name: customer.name, tier: customer.tier, type: customer.type, phone: customer.phone },
     branches,
-    measurements: measurements.map((m) => ({ id: m.id, label: m.label, values: m.values, createdAt: m.createdAt.toISOString() })),
+    measurements: measurements.map((m) => ({ id: m.id, label: m.label, values: m.values, createdAt: m.createdAt.toISOString(), templateId: m.templateId, templateName: m.templateName })),
     lastPrices: Object.fromEntries(prices.rows.map((r) => [r.product_id, Number(r.unit_price_fils)])),
     money: {
       owedFils: aging?.owed ?? 0,

@@ -7,7 +7,7 @@ import { setCustomerArchived } from "@/actions/customers";
 import { db } from "@/db";
 import { customerBranches, customerMeasurements, customers, quotes, salesOrders } from "@/db/schema";
 import { StageTag } from "@/components/orders/bits";
-import { getMeasurementFields } from "@/lib/measurements";
+import { getMeasurementFields, getMeasurementTemplates } from "@/lib/measurements";
 import { formatFils } from "@/lib/money";
 import { formatISODate } from "@/lib/dates";
 import { QUOTE_STATUS_LABEL, orderNo } from "@/lib/stages";
@@ -34,7 +34,7 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
   const { id } = await params;
   const customer = /^[0-9a-f-]{36}$/.test(id) ? await db.query.customers.findFirst({ where: eq(customers.id, id) }) : undefined;
   if (!customer) notFound();
-  const [settings, branches, sets, fields, orders, quoteRows, [money]] = await Promise.all([
+  const [settings, branches, sets, fields, orders, quoteRows, [money], templates] = await Promise.all([
     getSettings(),
     db.query.customerBranches.findMany({
       where: and(eq(customerBranches.customerId, id), isNull(customerBranches.deletedAt)),
@@ -49,6 +49,7 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
     db.select().from(salesOrders).where(eq(salesOrders.customerId, id)).orderBy(desc(salesOrders.createdAt)).limit(8),
     db.select().from(quotes).where(and(eq(quotes.customerId, id))).orderBy(desc(quotes.createdAt)).limit(5),
     agingByCustomer(id),
+    getMeasurementTemplates(),
   ]);
   const late = money ? money.d1_30 + money.d31_60 + money.d61 : 0;
   const archived = Boolean(customer.deletedAt);
@@ -104,7 +105,16 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
           <Measurements
             customerId={customer.id}
             fields={fields.map((f) => f.name)}
-            sets={sets.map((m) => ({ id: m.id, label: m.label, values: m.values, notes: m.notes, createdAt: m.createdAt.toISOString() }))}
+            templates={templates.map((t) => ({ id: t.id, name: t.name, fields: t.fields }))}
+            sets={sets.map((m) => ({
+              id: m.id,
+              label: m.label,
+              values: m.values,
+              notes: m.notes,
+              createdAt: m.createdAt.toISOString(),
+              templateId: m.templateId,
+              templateName: m.templateName,
+            }))}
           />
           {customer.type === "wholesale" || branches.length ? <Branches customerId={customer.id} branches={branches} /> : null}
         </div>

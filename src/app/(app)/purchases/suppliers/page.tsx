@@ -31,7 +31,7 @@ export default async function SuppliersPage({ searchParams }: { searchParams: Pr
     db
       .select({
         ...getTableColumns(suppliers),
-        fabricCount: sql<number>`(select count(*)::int from fabrics f where f.supplier_id = ${suppliers.id} and f.deleted_at is null)`,
+        fabricCount: sql<number>`(select count(*)::int from fabrics f where f.supplier_id = suppliers.id and f.deleted_at is null)`,
       })
       .from(suppliers)
       .where(

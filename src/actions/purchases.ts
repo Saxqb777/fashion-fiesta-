@@ -19,6 +19,7 @@ import { isoDate, issuesToErrors, uuidOrNull } from "@/lib/payload";
 import { poLineProgress, stockFor } from "@/lib/payables";
 import { formatQty, lineAmountsCenti, parseCenti } from "@/lib/qty";
 import { requireOwner, requireUser } from "@/lib/session";
+import { applyPoPiecesToTasks } from "@/lib/unit-pieces";
 import { getSettings } from "@/lib/settings";
 
 type Batch = [BatchItem<"pg">, ...BatchItem<"pg">[]];
@@ -210,6 +211,12 @@ export async function receiveGoods(_prev: FormState, fd: FormData): Promise<Form
     );
   }
   await db.batch(batch as Batch);
+  // Pieces back from a stitching unit also move its tasks on.
+  if (po.kind === "outsourcing") {
+    await applyPoPiecesToTasks(chosen.map((c) => c.line.id), me.id);
+    revalidatePath("/workshop");
+    revalidatePath("/orders", "layout");
+  }
   await logActivity({
     actor: me,
     entityType: "purchase_order",

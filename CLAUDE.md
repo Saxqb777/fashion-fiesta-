@@ -244,7 +244,7 @@ Standing permission: small taste improvements (spacing, wording, micro animation
 33. Bank statement import. proposed. Effort: medium.
     What: upload the bank Excel, match payments to invoices, flag what does not match.
 
-34. Data export. proposed. Effort: small.
+34. Data export. built. Covered by the nightly backup and Settings > Data. Effort: small.
     What: one button exports everything to Excel, so the owners are never locked in.
 
 35. Garment labels. approved. Phase 4.5. Effort: small.

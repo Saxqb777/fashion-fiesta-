@@ -1,9 +1,11 @@
 "use client";
 
 import { ActionForm } from "@/components/form/action-form";
-import { useActionState, useState } from "react";
+import { useActionState, useState, useTransition } from "react";
+import { toast } from "sonner";
 import { CheckIcon, PencilIcon, XIcon } from "lucide-react";
 import { archiveCategory, saveCategory } from "@/actions/catalog";
+import { setCategoryTemplate } from "@/actions/measurements";
 import { ArchiveButton } from "@/components/data/archive-button";
 import { useFormFeedback } from "@/components/forms/use-form-feedback";
 import { SubmitButton } from "@/components/form/submit-button";
@@ -35,7 +37,40 @@ function CategoryInput({ id, name, onDone }: { id?: string; name?: string; onDon
   );
 }
 
-export function CategoryList({ categories }: { categories: { id: string; name: string }[] }) {
+/** How a category is measured. Saves as soon as she picks. */
+function TemplatePick({ categoryId, value, templates }: { categoryId: string; value: string | null; templates: { id: string; name: string }[] }) {
+  const [current, setCurrent] = useState(value ?? "");
+  const [pending, start] = useTransition();
+  return (
+    <select
+      value={current}
+      disabled={pending}
+      aria-label="Measured as"
+      onChange={(e) => {
+        const next = e.target.value;
+        const before = current;
+        setCurrent(next);
+        start(async () => {
+          const res = await setCategoryTemplate(categoryId, next || null);
+          if (res.error) {
+            setCurrent(before);
+            toast.error(res.error);
+          } else toast.success(next ? `Measured as ${templates.find((t) => t.id === next)?.name}.` : "Shows all measurements.");
+        });
+      }}
+      className="h-9 max-w-44 rounded-[10px] border border-line bg-surface px-2 text-[13px] font-medium text-ink"
+    >
+      <option value="">All measurements</option>
+      {templates.map((t) => (
+        <option key={t.id} value={t.id}>
+          {t.name}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+export function CategoryList({ categories, templates = [] }: { categories: { id: string; name: string; templateId?: string | null }[]; templates?: { id: string; name: string }[] }) {
   const [editing, setEditing] = useState<string | null>(null);
   return (
     <div className="flex flex-col gap-4">
@@ -47,7 +82,8 @@ export function CategoryList({ categories }: { categories: { id: string; name: s
                 <CategoryInput id={c.id} name={c.name} onDone={() => setEditing(null)} />
               ) : (
                 <div className="flex items-center gap-2">
-                  <p className="flex-1 text-[15px] font-semibold">{c.name}</p>
+                  <p className="min-w-0 flex-1 text-[15px] font-semibold">{c.name}</p>
+                  {templates.length ? <TemplatePick categoryId={c.id} value={c.templateId ?? null} templates={templates} /> : null}
                   <Button variant="ghost" size="icon-sm" aria-label={`Rename ${c.name}`} onClick={() => setEditing(c.id)}>
                     <PencilIcon className="text-ink-muted" />
                   </Button>

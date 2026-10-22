@@ -6,10 +6,20 @@ import { archiveMeasurementSet } from "@/actions/measurements";
 import { ArchiveButton } from "@/components/data/archive-button";
 import { Panel } from "@/components/data/detail";
 import { MeasurementGrid } from "@/components/orders/bits";
-import { MeasurementDialog, type MeasurementSet } from "@/components/orders/measurement-dialog";
+import { MeasurementDialog, type MeasurementSet, type MeasurementTemplate } from "@/components/orders/measurement-dialog";
 import { Button } from "@/components/ui/button";
 
-export function Measurements({ customerId, sets, fields }: { customerId: string; sets: (MeasurementSet & { notes: string | null })[]; fields: string[] }) {
+export function Measurements({
+  customerId,
+  sets,
+  fields,
+  templates,
+}: {
+  customerId: string;
+  sets: (MeasurementSet & { notes: string | null })[];
+  fields: string[];
+  templates: MeasurementTemplate[];
+}) {
   const [editing, setEditing] = useState<MeasurementSet | "new" | null>(null);
   return (
     <Panel
@@ -30,6 +40,7 @@ export function Measurements({ customerId, sets, fields }: { customerId: string;
               <div className="flex flex-wrap items-center gap-2">
                 <p className="flex-1 text-[15px] font-semibold">
                   {s.label}
+                  {s.templateName ? <span className="ml-2 rounded-full border border-line px-2 py-0.5 align-middle text-[11px] font-semibold text-ink-muted">{s.templateName}</span> : null}
                   <span className="ml-2 text-[12px] font-medium text-ink-muted">
                     {new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(new Date(s.createdAt))}
                   </span>
@@ -59,6 +70,7 @@ export function Measurements({ customerId, sets, fields }: { customerId: string;
         onOpenChange={(o) => !o && setEditing(null)}
         customerId={customerId}
         fields={fields}
+        templates={templates}
         editing={editing === "new" ? null : editing}
       />
     </Panel>

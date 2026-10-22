@@ -184,6 +184,8 @@ export const suppliers = pgTable(
 export const productCategories = pgTable("product_categories", {
   ...audit(),
   name: text("name").notNull(),
+  /** Which measurements to take for products in this category. */
+  measurementTemplateId: uuid("measurement_template_id"),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
@@ -238,6 +240,16 @@ export const measurementFields = pgTable("measurement_fields", {
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
+/** A garment's measurements: an ordered pick of the master fields. Pant: Waist, Hips, Length... */
+export const measurementTemplates = pgTable("measurement_templates", {
+  ...audit(),
+  name: text("name").notNull(),
+  /** Field ids from measurement_fields, in the order they are taken. */
+  fieldIds: jsonb("field_ids").$type<string[]>().notNull().default([]),
+  sortOrder: integer("sort_order").notNull().default(0),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
+});
+
 export const customerMeasurements = pgTable(
   "customer_measurements",
   {
@@ -245,6 +257,9 @@ export const customerMeasurements = pgTable(
     customerId: uuid("customer_id").notNull().references(() => customers.id),
     /** "Self", "Daughter", "Size M", a branch size run. */
     label: text("label").notNull(),
+    /** The garment template used when measuring. Older sets have none. */
+    templateId: uuid("template_id"),
+    templateName: text("template_name"),
     values: jsonb("values").$type<MeasurementValue[]>().notNull(),
     notes: text("notes"),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
@@ -696,6 +711,7 @@ export type CreditNote = typeof creditNotes.$inferSelect;
 export type DeliveryNote = typeof deliveryNotes.$inferSelect;
 export type PaymentMethod = (typeof paymentMethod.enumValues)[number];
 export type MeasurementField = typeof measurementFields.$inferSelect;
+export type MeasurementTemplate = typeof measurementTemplates.$inferSelect;
 export type CustomerMeasurement = typeof customerMeasurements.$inferSelect;
 export type Quote = typeof quotes.$inferSelect;
 export type QuoteLine = typeof quoteLines.$inferSelect;

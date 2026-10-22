@@ -8,8 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "cn";
 
 export type MeasurementSet = NonNullable<MeasurementSetResult["set"]>;
+export type MeasurementTemplate = { id: string; name: string; fields: string[] };
 
 /** Add or re measure a set. Re measuring keeps the old one in history. */
 export function MeasurementDialog({
@@ -17,6 +19,8 @@ export function MeasurementDialog({
   onOpenChange,
   customerId,
   fields,
+  templates = [],
+  defaultTemplateId,
   editing,
   onSaved,
 }: {
@@ -24,13 +28,24 @@ export function MeasurementDialog({
   onOpenChange: (open: boolean) => void;
   customerId: string;
   fields: string[];
+  /** Garment templates. Picking one shows only its fields, in its order. */
+  templates?: MeasurementTemplate[];
+  defaultTemplateId?: string | null;
   editing?: MeasurementSet | null;
   onSaved?: (set: MeasurementSet) => void;
 }) {
   const [pending, start] = useTransition();
   const [errors, setErrors] = useState<Record<string, string[]>>({});
+  const startTemplate = editing ? editing.templateId : defaultTemplateId;
+  const [picked, setPicked] = useState<{ for: string; id: string }>({ for: "", id: "" });
+  // The pick resets whenever the dialog opens for something else.
+  const openKey = `${open}:${editing?.id ?? ""}:${startTemplate ?? ""}`;
+  const templateId = picked.for === openKey ? picked.id : templates.some((t) => t.id === startTemplate) ? startTemplate! : "";
+  const template = templates.find((t) => t.id === templateId);
   const current = new Map(editing?.values.map((v) => [v.name, v.value]));
-  const allFields = [...fields, ...(editing?.values.map((v) => v.name).filter((n) => !fields.includes(n)) ?? [])];
+  const base = template ? template.fields : fields;
+  // Values already taken always show, so re measuring never hides them.
+  const allFields = [...base, ...(editing?.values.map((v) => v.name).filter((n) => !base.includes(n)) ?? [])];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -58,6 +73,7 @@ export function MeasurementDialog({
                 label: String(fd.get("label") ?? ""),
                 values,
                 notes: String(fd.get("notes") ?? ""),
+                templateId: template?.id ?? null,
               });
               if (res.ok && res.set) {
                 setErrors({});
@@ -76,6 +92,28 @@ export function MeasurementDialog({
             <Input id="label" name="label" defaultValue={editing?.label ?? ""} placeholder="Self, Daughter, Size M" aria-invalid={errors.label ? true : undefined} />
             {errors.label ? <p className="text-[13px] font-medium text-brand-deep">{errors.label[0]}</p> : null}
           </div>
+          {templates.length ? (
+            <div className="flex flex-col gap-1.5">
+              <p className="text-[13px] font-semibold">Garment</p>
+              <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="Garment">
+                {[...templates.map((t) => ({ id: t.id, name: t.name })), { id: "", name: "All measurements" }].map((t) => (
+                  <button
+                    key={t.id || "all"}
+                    type="button"
+                    role="radio"
+                    aria-checked={templateId === t.id}
+                    onClick={() => setPicked({ for: openKey, id: t.id })}
+                    className={cn(
+                      "h-9 rounded-full border px-3.5 text-[13px] font-semibold transition-colors",
+                      templateId === t.id ? "border-ink bg-ink text-paper" : "border-line bg-surface text-ink hover:border-ink-muted",
+                    )}
+                  >
+                    {t.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {allFields.map((f) => (
               <div key={f} className="flex flex-col gap-1">

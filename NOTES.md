@@ -34,6 +34,7 @@ Newest at top. Keep under 150 lines. Rules for this file are in CLAUDE.md under 
 - Agreed prices (account_items) beat last price when she picks the item.
 
 ## Decisions (newest first)
+- 2026-10-22: Opening bank balance added next to opening cash (Settings, Opening balances). It seeds the cash book's Bank pot. Reason: card and transfer money made the bank go negative without a start figure.
 - 2026-10-22 Phase 5 answers: quick sale prints a Simplified Tax Invoice in its own series FF-POS. Embroidery 50/50 runs as one balance with the operator, settled any time. Card money goes to the Bank pot. Salaries are paid from cash or bank, chosen each time.
 - 2026-10-22: Every document series starts at 1001 (FF-Q-1001 and so on, FF-POS-1001 too). Live sequences reset; checked first that nothing had been issued. Reason: Saaqib's choice.
 - 2026-10-22: Domain DNS record will be added by Saaqib after everything is fully live.
@@ -78,4 +79,4 @@ Newest at top. Keep under 150 lines. Rules for this file are in CLAUDE.md under 
 - Vercel: project prj_grSCaYpWGqE93VbWkOQzahVzymA0, team team_yKuXQ8P3eoGrvRnTWMIqSiGo, region sin1.
 - Env vars are in Vercel for all three environments: DATABASE_URL, AUTH_SECRET, BLOB_READ_WRITE_TOKEN, ANTHROPIC_API_KEY, CRON_SECRET. They are never in git.
 - Cron: /api/cron/backup at 22:00 UTC.
-- Migrations live in /drizzle and run during build. The latest is 0010_quote_terms_stamp.
+- Migrations live in /drizzle and run during build. The latest is 0012_opening_bank.

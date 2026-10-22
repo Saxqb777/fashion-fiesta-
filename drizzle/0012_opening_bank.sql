@@ -1,0 +1,1 @@
+ALTER TABLE "settings" ADD COLUMN "opening_bank_fils" integer DEFAULT 0 NOT NULL;

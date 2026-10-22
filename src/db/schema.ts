@@ -117,6 +117,8 @@ export const settings = pgTable("settings", {
   embroideryShopSharePercent: integer("embroidery_shop_share_percent").notNull().default(50),
   /** Opening balances: cash in the drawer on the go live day. Seeds the cash book in Phase 5. */
   openingCashFils: integer("opening_cash_fils").notNull().default(0),
+  /** Money in the bank account on the go live day. Seeds the cash book's Bank pot. */
+  openingBankFils: integer("opening_bank_fils").notNull().default(0),
   openingDate: date("opening_date"),
   /** Quotes: days a new quote stays valid, and the terms printed on it. */
   quoteValidityDays: integer("quote_validity_days").notNull().default(14),

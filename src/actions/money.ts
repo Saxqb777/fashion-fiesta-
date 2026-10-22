@@ -391,22 +391,29 @@ export async function recordPayment(_prev: FormState, fd: FormData): Promise<For
 export async function saveOpeningCash(_prev: FormState, fd: FormData): Promise<FormState> {
   const me = await requireOwner();
   const amount = moneySchema.safeParse(text(fd, "cash"));
+  const bank = moneySchema.safeParse(text(fd, "bank"));
   const date = isoDate.safeParse(text(fd, "date"));
   if (!amount.success) return { errors: { cash: [amount.error.issues[0]?.message ?? "Enter an amount."] } };
+  if (!bank.success) return { errors: { bank: [bank.error.issues[0]?.message ?? "Enter an amount."] } };
   if (!date.success || !date.data) return { errors: { date: ["Pick the go live date."] } };
   const s = await getSettings();
-  // The cash book's opening row follows this figure.
+  // The cash book's opening rows, one per pot, follow these figures.
   await db.batch([
-    db.update(settings).set({ openingCashFils: amount.data, openingDate: date.data }).where(eq(settings.id, s.id)),
+    db.update(settings).set({ openingCashFils: amount.data, openingBankFils: bank.data, openingDate: date.data }).where(eq(settings.id, s.id)),
     clearCashFor("opening", s.id),
     ...(amount.data
       ? [cashEntry({ date: date.data, pot: "cash", kind: "opening", amountFils: amount.data, description: "Cash in hand on the go live day", sourceType: "opening", sourceId: s.id, actorId: me.id })]
       : []),
+    ...(bank.data
+      ? [cashEntry({ date: date.data, pot: "bank", kind: "opening", amountFils: bank.data, description: "Bank balance on the go live day", sourceType: "opening", sourceId: s.id, actorId: me.id })]
+      : []),
   ]);
-  await logActivity({ actor: me, entityType: "settings", entityId: s.id, action: "updated", summary: `${me.name} set opening cash to ${formatFils(amount.data)} on ${date.data}` });
+  await logActivity({ actor: me, entityType: "settings", entityId: s.id, action: "updated", summary: `${me.name} set opening cash to ${formatFils(amount.data)} and bank to ${formatFils(bank.data)} on ${date.data}` });
   revalidatePath("/settings/opening");
   revalidatePath("/setup/opening");
-  return { ok: true, message: "Opening cash saved.", savedAt: Date.now() };
+  revalidatePath("/money", "layout");
+  revalidatePath("/today");
+  return { ok: true, message: "Opening cash and bank saved.", savedAt: Date.now() };
 }
 
 export async function addOpeningBalance(_prev: FormState, fd: FormData): Promise<FormState> {

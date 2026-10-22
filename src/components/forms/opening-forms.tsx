@@ -10,15 +10,16 @@ import { useFormFeedback } from "./use-form-feedback";
 
 const filsInput = (fils: number) => (fils ? (fils / 100).toFixed(2) : "");
 
-export function OpeningCashForm({ cashFils, date, today }: { cashFils: number; date: string | null; today: string }) {
+export function OpeningCashForm({ cashFils, bankFils, date, today }: { cashFils: number; bankFils: number; date: string | null; today: string }) {
   const [state, action] = useActionState(saveOpeningCash, EMPTY_FORM_STATE);
   useFormFeedback(state);
   const e = state.errors ?? {};
   return (
     <ActionForm action={action} className="flex flex-wrap items-end gap-4">
       <TextField name="cash" label="Cash in the drawer, AED" inputMode="decimal" defaultValue={filsInput(cashFils)} placeholder="0.00" errors={e.cash} className="tabular w-full sm:w-52" />
-      <TextField name="date" label="Counted on" type="date" defaultValue={date ?? today} errors={e.date} className="w-full sm:w-44" />
-      <SubmitButton pendingText="Saving">Save cash</SubmitButton>
+      <TextField name="bank" label="In the bank, AED" inputMode="decimal" defaultValue={filsInput(bankFils)} placeholder="0.00" errors={e.bank} className="tabular w-full sm:w-52" hint="From the bank app on that day." />
+      <TextField name="date" label="On" type="date" defaultValue={date ?? today} errors={e.date} className="w-full sm:w-44" />
+      <SubmitButton pendingText="Saving">Save</SubmitButton>
     </ActionForm>
   );
 }

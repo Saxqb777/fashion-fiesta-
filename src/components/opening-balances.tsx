@@ -31,9 +31,9 @@ export async function OpeningBalances() {
   return (
     <div className="flex flex-col gap-8">
       <section>
-        <h2 className="font-sans text-base font-semibold">Cash in hand</h2>
-        <p className="mb-4 text-[14px] text-ink-muted">Count the drawer on the day you start. The cash book starts from this number.</p>
-        <OpeningCashForm cashFils={s.openingCashFils} date={s.openingDate} today={today} />
+        <h2 className="font-sans text-base font-semibold">Cash and bank</h2>
+        <p className="mb-4 text-[14px] text-ink-muted">Count the drawer and check the bank on the day you start. The cash book starts from these numbers.</p>
+        <OpeningCashForm cashFils={s.openingCashFils} bankFils={s.openingBankFils} date={s.openingDate} today={today} />
       </section>
 
       <section className="border-t border-line pt-6">

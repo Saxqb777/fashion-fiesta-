@@ -10,6 +10,8 @@ Business system for Fashion Fiesta Ladies Tailoring & Textiles, a ladies tailori
 - Never skip ahead, never refactor other phases without asking.
 - Keep answers short. No long explanations unless asked.
 - Commit at the end of each phase with a clear message. Push to GitHub so Vercel deploys.
+- Every phase ends deployed on Vercel production. No local testing by Saaqib, ever. You run typecheck, lint, build and your own checks locally, then push to main, wait for the Vercel deploy to finish, confirm it is live with no runtime errors using the Vercel MCP, and only then post the checklist with the live URL. Saaqib tests on the live URL and sends change requests. Changes get pushed and deployed the same way. Never ask him to run a dev server, open localhost, or check a preview URL.
+- Seed a test owner login on the first deploy and tell him the credentials once, so he can log in immediately.
 
 ## Infra
 - GitHub: Saxqb777/fashion-fiesta-

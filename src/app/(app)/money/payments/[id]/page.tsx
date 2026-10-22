@@ -42,6 +42,9 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
   const left = payment.amountFils - used;
   const send = await sendDocProps("receipt", id, {
     phone: customer?.phone,
+    email: customer?.email,
+    name: customer?.name,
+    title: `Receipt ${payment.number}`,
     filename: `${payment.number} ${customer?.name ?? ""}`,
     message: `${s.tradeName}: receipt ${payment.number}. We received ${formatFils(payment.amountFils)} on ${formatISODate(payment.paymentDate, true)}. Thank you.`,
   });

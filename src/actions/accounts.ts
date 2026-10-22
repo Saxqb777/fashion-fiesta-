@@ -20,6 +20,7 @@ import {
 } from "@/db/schema";
 import { deliveryNotePieces, matchEmirate, pendingByBranch } from "@/lib/accounts";
 import { logActivity } from "@/lib/activity";
+import { notify } from "@/lib/notify";
 import { todayISO } from "@/lib/dates";
 import { fieldErrors, moneySchema, optionalText, requiredName, text, type FormState } from "@/lib/forms";
 import { formatFils } from "@/lib/money";
@@ -323,6 +324,7 @@ export async function markDelivered(input: { deliveryNoteId: string; receivedBy:
   }
   await refreshOrderStage(dn.orderId);
   await logActivity({ actor: me, entityType: "sales_order", entityId: dn.orderId, action: "status_changed", summary: `${me.name} marked ${dn.number} delivered, received by ${receivedBy}` });
+  await notify("owners", { kind: "delivered", title: `Delivered: ${dn.number}`, body: `Received by ${receivedBy}.`, href: `/orders/${dn.orderId}` }, me.id);
   refresh(dn.customerId);
   revalidatePath(`/orders/${dn.orderId}`);
   revalidatePath("/orders");

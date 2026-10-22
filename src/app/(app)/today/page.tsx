@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
-import { and, count, desc, eq, inArray, lt, ne } from "drizzle-orm";
+import { and, count, desc, eq, gte, inArray, isNull, lt, lte, ne, or } from "drizzle-orm";
 import { PlusIcon } from "lucide-react";
 import { db } from "@/db";
 import Link from "next/link";
-import { customers, dailyCloses, posSales, salesOrders, soLines, tasks } from "@/db/schema";
+import { customers, dailyCloses, posSales, quotes, salesOrders, soLines, tasks } from "@/db/schema";
+import { NoticeList } from "@/components/notifications/notice-list";
+import { PhoneSetup } from "@/components/pwa/phone-setup";
+import { quietCustomers } from "@/lib/health";
+import { recentNotices } from "@/lib/notices";
 import { CountUp } from "@/components/money/count-up";
 import { potBalances } from "@/lib/cash";
 import { payDayWarning } from "@/lib/salaries";
@@ -11,7 +15,7 @@ import { EmptyState } from "@/components/empty-state";
 import { LinkButton } from "@/components/link-button";
 import { PageHeader } from "@/components/page-header";
 import { TaskCard } from "@/components/workshop/task-card";
-import { formatLongDate, todayISO } from "@/lib/dates";
+import { addDaysISO, formatLongDate, todayISO } from "@/lib/dates";
 import { dueSummary } from "@/lib/ledger";
 import { lowStockFabrics, payablesDue } from "@/lib/payables";
 import { formatFils } from "@/lib/money";
@@ -47,6 +51,7 @@ export default async function TodayPage() {
       .from(posSales)
       .where(and(eq(posSales.soldBy, user.id!), eq(posSales.saleDate, today)))
       .orderBy(desc(posSales.createdAt));
+    const notices = await recentNotices(user.id!, 5);
     return (
       <>
         <PageHeader
@@ -93,6 +98,10 @@ export default async function TodayPage() {
         ) : (
           <EmptyState sentence="Nothing assigned to you right now. New work shows up here as a photo card." action={<LinkButton href="/workshop/gallery" variant="outline">See the Gallery</LinkButton>} />
         )}
+        <NoticeList notices={notices} />
+        <div className="mt-6">
+          <PhoneSetup />
+        </div>
       </>
     );
   }
@@ -109,7 +118,20 @@ export default async function TodayPage() {
     payablesDue(),
     lowStockFabrics(),
   ]);
-  const [balances, todayClose, payDay] = await Promise.all([potBalances(), db.query.dailyCloses.findFirst({ where: eq(dailyCloses.closeDate, today) }), payDayWarning(today)]);
+  const yesterday = addDaysISO(today, -1);
+  const [balances, todayClose, payDay, lastClose, [staleQuotes], quiet, notices] = await Promise.all([
+    potBalances(),
+    db.query.dailyCloses.findFirst({ where: eq(dailyCloses.closeDate, today) }),
+    payDayWarning(today),
+    db.query.dailyCloses.findFirst({ where: eq(dailyCloses.closeDate, yesterday) }),
+    // Quotes sent a week ago or more with no answer, still valid.
+    db
+      .select({ n: count() })
+      .from(quotes)
+      .where(and(eq(quotes.status, "sent"), lte(quotes.quoteDate, addDaysISO(today, -7)), or(isNull(quotes.validUntil), gte(quotes.validUntil, today)))),
+    quietCustomers(today),
+    recentNotices(user.id!, 8),
+  ]);
   const items: Item[] = [
     due.overdueCount && {
       key: "unpaid",
@@ -161,6 +183,31 @@ export default async function TodayPage() {
       href: "/settings/team",
       action: "Pay salaries",
       urgent: payDay.soonest <= 0,
+    },
+    lastClose?.differenceFils && {
+      key: "close-diff",
+      text: `Yesterday's close was ${lastClose.differenceFils > 0 ? "over" : "short"} by ${formatFils(Math.abs(lastClose.differenceFils))}`,
+      detail: lastClose.notes ?? "Counted cash did not match the cash book.",
+      href: "/money/cash",
+      action: "See the cash book",
+      urgent: lastClose.differenceFils < 0,
+    },
+    staleQuotes.n && {
+      key: "stale-quotes",
+      text: `${plural(staleQuotes.n, "quote has", "quotes have")} had no answer for a week`,
+      detail: "A short follow up often wins the order.",
+      href: "/orders/quotes?status=sent",
+      action: "Follow up",
+    },
+    quiet.length && {
+      key: "quiet",
+      text: quiet.length === 1 ? `${quiet[0].name} has not ordered for 90 days` : `${quiet.length} customers have not ordered for 90 days`,
+      detail: quiet
+        .slice(0, 3)
+        .map((c) => c.name)
+        .join(", "),
+      href: quiet.length === 1 ? `/customers/${quiet[0].customerId}` : "/reports/customers?show=quiet",
+      action: quiet.length === 1 ? "Open" : "See who",
     },
     drafts.n && { key: "drafts", text: `${plural(drafts.n, "draft order is", "draft orders are")} waiting to be confirmed`, href: "/orders?view=drafts", action: "Review" },
   ].filter(Boolean) as Item[];
@@ -216,6 +263,10 @@ export default async function TodayPage() {
           />
         )}
       </section>
+      <NoticeList notices={notices} />
+      <div className="mt-6">
+        <PhoneSetup />
+      </div>
     </>
   );
 }

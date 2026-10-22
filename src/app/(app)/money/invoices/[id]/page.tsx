@@ -51,12 +51,15 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
     ? null
     : await sendDocProps("invoice", id, {
         phone: customer?.phone,
+        email: customer?.email,
+        name: customer?.name,
+        title: `Tax Invoice ${invoice.number}`,
         filename: `${invoice.number} ${customer?.name ?? ""}`,
         message: `${s.tradeName}: Tax Invoice ${invoice.number} for ${formatFils(invoice.totalFils)}${f.balanceFils > 0 ? `, ${formatFils(f.balanceFils)} due by ${formatISODate(invoice.dueDate, true)}` : ", paid in full"}. Thank you.`,
       });
   const creditSends = await Promise.all(
     credits.map((c) =>
-      sendDocProps("credit", c.id, { phone: customer?.phone, filename: `${c.number} ${customer?.name ?? ""}`, message: `${s.tradeName}: Credit Note ${c.number} for ${formatFils(c.totalFils)} against ${invoice.number}.` }),
+      sendDocProps("credit", c.id, { phone: customer?.phone, email: customer?.email, name: customer?.name, title: `Credit Note ${c.number}`, filename: `${c.number} ${customer?.name ?? ""}`, message: `${s.tradeName}: Credit Note ${c.number} for ${formatFils(c.totalFils)} against ${invoice.number}.` }),
     ),
   );
 

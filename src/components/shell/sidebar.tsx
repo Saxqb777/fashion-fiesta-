@@ -41,11 +41,6 @@ export function Sidebar({
                   >
                     <Icon className={cn("size-[18px]", active ? "text-brand" : "text-ink-muted")} />
                     <span className="flex-1">{item.label}</span>
-                    {item.phase > 0 ? (
-                      <span className="rounded-full bg-paper-deep px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-ink-muted uppercase">
-                        soon
-                      </span>
-                    ) : null}
                   </Link>
                 </li>
               );

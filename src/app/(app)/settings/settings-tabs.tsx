@@ -9,6 +9,7 @@ const TABS = [
   { href: "/settings/money", label: "Money" },
   { href: "/settings/opening", label: "Opening balances" },
   { href: "/settings/numbering", label: "Numbering" },
+  { href: "/settings/email", label: "Email" },
   { href: "/settings/team", label: "Team" },
   { href: "/settings/categories", label: "Categories" },
   { href: "/settings/measurements", label: "Measurements" },

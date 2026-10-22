@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Celebrate } from "@/components/money/celebrate";
 import Link from "next/link";
 import { asc, eq, isNull } from "drizzle-orm";
 import { notFound } from "next/navigation";
@@ -70,6 +71,7 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
 
   return (
     <>
+      <Celebrate />
       <BackLink href="/workshop" label={owner ? "Workshop" : "My tasks"} />
       <ApprovalCelebration approvedAt={task.status === "approved" ? (task.approvedAt?.toISOString() ?? null) : null} />
 

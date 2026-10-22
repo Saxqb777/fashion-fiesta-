@@ -38,6 +38,8 @@ export default async function StatementPage({ params, searchParams }: { params: 
   const query = `?from=${start}&to=${end}`;
   const send = await sendDocProps("statement", customerId, {
     phone: customer.phone,
+    email: customer.email,
+    name: customer.name,
     filename: `Statement ${customer.name} ${end}`,
     query,
     message: `${s.tradeName}: your statement of account to ${formatISODate(end, true)}. ${ledger.closing > 0 ? `Balance due ${formatFils(ledger.closing)}.` : ledger.closing < 0 ? `${formatFils(-ledger.closing)} credit on account.` : "Nothing is due."} Thank you.`,

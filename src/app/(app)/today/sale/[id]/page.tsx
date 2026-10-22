@@ -29,6 +29,8 @@ export default async function SaleReceiptPage({ params }: { params: Promise<{ id
   ]);
   const send = await sendDocProps("pos", sale.id, {
     phone: sale.customerPhone,
+    name: sale.customerName,
+    title: `Invoice ${sale.number}`,
     filename: sale.number,
     message: `${st.tradeName}: thank you for your purchase. Invoice ${sale.number}, ${formatFils(sale.totalFils)}.`,
   });

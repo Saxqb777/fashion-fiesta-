@@ -2,10 +2,12 @@
 
 import { and, eq, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/db";
 import { salesOrders, suppliers, taskMessages, taskPhotos, taskReviews, tasks, users, type Task } from "@/db/schema";
 import { logActivity } from "@/lib/activity";
+import { notify } from "@/lib/notify";
 import { text, type FormState } from "@/lib/forms";
 import { flashDone } from "@/lib/flash";
 import { refreshOrderStage } from "@/lib/order-stage";
@@ -66,6 +68,7 @@ export async function submitTask(_prev: FormState, fd: FormData): Promise<FormSt
   await db.update(tasks).set({ status: "submitted", qtyDone: task.qty, submittedAt: new Date(), openQuestion: false }).where(eq(tasks.id, task.id));
   await db.insert(taskPhotos).values({ taskId: task.id, url: photo.data, kind: "submission", createdBy: me.id });
   await logActivity({ actor: me, entityType: "task", entityId: task.id, action: "status_changed", summary: `${me.name} submitted ${task.qty} pieces on ${orderNumber}` });
+  await notify("owners", { kind: "task_submitted", title: `${me.name} finished work on ${orderNumber}`, body: `${task.qty} pieces to review.`, href: `/workshop/tasks/${task.id}` }, me.id);
   await refreshOrderStage(task.orderId);
   refresh(task);
   return flashDone("Submitted. The owner will review it.");
@@ -80,6 +83,7 @@ export async function askQuestion(_prev: FormState, fd: FormData): Promise<FormS
   await message(task, me, "question", body.slice(0, 1000));
   await db.update(tasks).set({ openQuestion: true }).where(eq(tasks.id, task.id));
   await logActivity({ actor: me, entityType: "task", entityId: task.id, action: "updated", summary: `${me.name} asked a question on ${orderNumber}` });
+  await notify("owners", { kind: "task_question", title: `${me.name} has a question on ${orderNumber}`, body: body.slice(0, 140), href: `/workshop/tasks/${task.id}` }, me.id);
   refresh(task);
   return flashDone("Question sent.");
 }
@@ -94,6 +98,7 @@ export async function declineTask(_prev: FormState, fd: FormData): Promise<FormS
   await message(task, me, "declined", reason.slice(0, 1000));
   await db.update(tasks).set({ status: "declined", openQuestion: false }).where(eq(tasks.id, task.id));
   await logActivity({ actor: me, entityType: "task", entityId: task.id, action: "status_changed", summary: `${me.name} declined a task on ${orderNumber}` });
+  await notify("owners", { kind: "task_declined", title: `${me.name} declined a task on ${orderNumber}`, body: reason.slice(0, 140), href: `/workshop/tasks/${task.id}` }, me.id);
   refresh(task);
   return flashDone("Declined. The owner will reassign it.");
 }
@@ -108,6 +113,7 @@ export async function answerQuestion(_prev: FormState, fd: FormData): Promise<Fo
   if (body.length < 1) return { errors: { body: ["Type your answer."] } };
   await message(task, me, "answer", body.slice(0, 1000));
   await db.update(tasks).set({ openQuestion: false }).where(eq(tasks.id, task.id));
+  if (task.tailorId) await notify([task.tailorId], { kind: "task_answer", title: "Your question was answered", body: body.slice(0, 140), href: `/workshop/tasks/${task.id}` }, me.id);
   refresh(task);
   return flashDone("Answer sent.");
 }
@@ -121,9 +127,11 @@ export async function approveTask(_prev: FormState, fd: FormData): Promise<FormS
   await db.insert(taskReviews).values({ taskId: task.id, decision: "approved", createdBy: me.id });
   await message(task, me, "approved", "Approved.");
   await logActivity({ actor: me, entityType: "task", entityId: task.id, action: "status_changed", summary: `${me.name} approved ${task.qty} pieces on ${orderNumber}` });
+  if (task.tailorId) await notify([task.tailorId], { kind: "task_approved", title: "Your work was approved", body: `${task.qty} pieces on ${orderNumber}. It is in the Gallery.`, href: `/workshop/tasks/${task.id}` }, me.id);
   await refreshOrderStage(task.orderId);
   refresh(task);
-  return flashDone("Approved. Added to the Gallery.");
+  await flashDone("Approved. Added to the Gallery.");
+  redirect(`/workshop/tasks/${task.id}?celebrate=approved`);
 }
 
 export async function rejectTask(_prev: FormState, fd: FormData): Promise<FormState> {
@@ -137,6 +145,7 @@ export async function rejectTask(_prev: FormState, fd: FormData): Promise<FormSt
   await db.insert(taskReviews).values({ taskId: task.id, decision: "rejected", reason, createdBy: me.id });
   await message(task, me, "rejected", reason.slice(0, 1000));
   await logActivity({ actor: me, entityType: "task", entityId: task.id, action: "status_changed", summary: `${me.name} sent work back on ${orderNumber}: ${reason}` });
+  if (task.tailorId) await notify([task.tailorId], { kind: "task_rejected", title: `Sent back to fix: ${orderNumber}`, body: reason.slice(0, 140), href: `/workshop/tasks/${task.id}` }, me.id);
   refresh(task);
   return flashDone("Sent back with your reason.");
 }
@@ -169,6 +178,7 @@ export async function reassignTask(_prev: FormState, fd: FormData): Promise<Form
     .where(eq(tasks.id, task.id));
   await message(task, me, "note", `Reassigned to ${name}.`);
   await logActivity({ actor: me, entityType: "task", entityId: task.id, action: "updated", summary: `${me.name} reassigned a task on ${orderNumber} to ${name}` });
+  if (type === "tailor" && id) await notify([id], { kind: "task_assigned", title: `New task on ${orderNumber}`, body: `${task.qty} pieces.`, href: `/workshop/tasks/${task.id}` }, me.id);
   refresh(task);
   return flashDone(`Reassigned to ${name}.`);
 }

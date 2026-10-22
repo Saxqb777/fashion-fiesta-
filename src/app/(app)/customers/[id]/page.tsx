@@ -36,6 +36,7 @@ import { getSettings } from "@/lib/settings";
 import { Branches } from "./branches";
 import { AgingBar } from "@/components/money/bits";
 import { agingByCustomer } from "@/lib/ledger";
+import { customerHealth } from "@/lib/health";
 import { keyAccountData, pendingByBranch } from "@/lib/accounts";
 import {
   AccountTabs,
@@ -79,6 +80,7 @@ export default async function CustomerPage({
     quoteRows,
     [money],
     templates,
+    [health],
   ] = await Promise.all([
     getSettings(),
     db.query.customerBranches.findMany({
@@ -113,7 +115,9 @@ export default async function CustomerPage({
       .limit(5),
     agingByCustomer(id),
     getMeasurementTemplates(),
+    customerHealth(todayISO(), id),
   ]);
+  const quietDays = health?.lastOrder ? Math.round((Date.parse(todayISO()) - Date.parse(health.lastOrder)) / 86400000) : 0;
   const late = money ? money.d1_30 + money.d31_60 + money.d61 : 0;
   const archived = Boolean(customer.deletedAt);
   const account = customer.isKeyAccount
@@ -343,6 +347,19 @@ export default async function CustomerPage({
                       ) : null,
                     },
                     { label: "Address", value: customer.address },
+                    {
+                      label: "Last order",
+                      value: health?.lastOrder ? formatISODate(health.lastOrder, true) : null,
+                      hint: quietDays > 90 ? `No order for ${quietDays} days. Worth a call.` : undefined,
+                    },
+                    {
+                      label: "Ordered this year",
+                      value: health?.yearFils ? <span className="tabular">{formatFils(health.yearFils)}</span> : null,
+                    },
+                    {
+                      label: "Days to pay, average",
+                      value: health?.avgDaysToPay !== null && health?.avgDaysToPay !== undefined ? `${health.avgDaysToPay} days` : null,
+                    },
                     {
                       label: "Notes",
                       value: customer.notes ? (

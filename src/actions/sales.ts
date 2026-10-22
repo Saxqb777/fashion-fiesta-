@@ -7,6 +7,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import { posSaleLines, posSales } from "@/db/schema";
 import { logActivity } from "@/lib/activity";
+import { notify } from "@/lib/notify";
 import { cashEntry, potFor } from "@/lib/cash";
 import { todayISO } from "@/lib/dates";
 import { moneySchema, type FormState } from "@/lib/forms";
@@ -72,6 +73,7 @@ export async function createQuickSale(_prev: FormState, fd: FormData): Promise<F
     cashEntry({ date, pot: potFor(s.method), kind: "quick_sale", amountFils: totals.totalFils, description: `Quick sale ${number}`, sourceType: "pos_sale", sourceId: id, actorId: me.id }),
   ]);
   await logActivity({ actor: me, entityType: "pos_sale", entityId: id, action: "created", summary: `${me.name} sold ${formatFils(totals.totalFils)} by ${s.method}, ${number}` });
+  await notify("owners", { kind: "quick_sale", title: `Quick sale: ${formatFils(totals.totalFils)}`, body: `${me.name}, ${s.method}, ${number}.`, href: `/today/sale/${id}` }, me.id);
   revalidatePath("/money", "layout");
   revalidatePath("/today", "layout");
   redirect(`/today/sale/${id}?celebrate=paid`);

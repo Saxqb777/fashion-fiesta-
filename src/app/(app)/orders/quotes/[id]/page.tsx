@@ -41,6 +41,9 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
   const st = await getSettings();
   const send = await sendDocProps("quote", id, {
     phone: customer?.phone,
+    email: customer?.email,
+    name: customer?.name,
+    title: `Quote ${quote.number}`,
     filename: `${quote.number} ${customer?.name ?? ""}`,
     message: `${st.tradeName}: quote ${quote.number} for ${formatFils(quote.totalFils)}${quote.validUntil ? `, valid until ${formatISODate(quote.validUntil, true)}` : ""}. Thank you.`,
   });

@@ -4,8 +4,9 @@ Newest at top. Keep under 150 lines. Rules for this file are in CLAUDE.md under 
 
 ## Where we are (2026-10-22)
 - Live: https://fashion-fiesta-three.vercel.app (Vercel production, deploys from main)
-- Done and live: Phases 0, 1, 2, 3, 3.5, 4, 4.5, 5.
-- Next: Phase 6 (Today feed, Reports, notifications, celebrations, PWA, polish). Post the plan and wait for "go".
+- Done and live: Phases 0 to 6 (6 shipped 2026-10-22, checklist sent).
+- Next: Phase 7 (demo seed, handover notes), then Fiesta (idea 45), then the Tax tab (25 to 28). Post a plan and wait for "go".
+- Email is built but waits on the Resend API key from Saaqib, then the DNS records.
 - Domain: Saaqib adds the CNAME after everything is live (record is under Open questions).
 - Phase 4.5 Key Account mode shipped 2026-10-22. Bedashing is a key account with 24 unverified branches on production. Checklist sent.
 - Small deploy (measurement templates, pieces link, nightly backup, bug fixes) shipped 2026-10-22. Checklist sent.
@@ -18,6 +19,15 @@ Newest at top. Keep under 150 lines. Rules for this file are in CLAUDE.md under 
 
 ## Half done
 - Nothing.
+
+## How Phase 6 works (for later phases)
+- notify(to, note) in lib/notify.ts: one row per user in notifications, then web push after the response. Dead push subscriptions are removed on 404/410.
+- Reports read from lib/reports.ts. Each report is a Table, so the page and the Excel download (/api/reports/[name]) share the same data via lib/report-registry.ts.
+- VAT quarters start from settings.vatPeriodStartMonth (Settings, Money). Purchases count for input VAT only with VAT and a supplier TRN.
+- P&L: fabric is a cost when taken or sent (cost per metre), not when bought. Before VAT throughout.
+- Email: lib/email.ts posts to Resend from {emailFromLocal}@EMAIL_DOMAIN, reply to the sending owner, PDF attached. Every send is in email_log and shows on the record. Templates in Settings, Email; empty means default.
+- Statements to many customers at once: Money, Who owes you, Email statements.
+- Raw SQL: do not use month, week, or other keywords as bare aliases.
 
 ## How Phase 5 works (for later phases)
 - cash_book is the single money ledger. Every money action writes its own row in the same batch (cashEntry in lib/cash.ts): customer payments, quick sales, supplier payments, expenses, salaries, advances, embroidery settlements, moves between pots, daily close differences, opening cash. Pots: cash (drawer) and bank (card, transfer, cheque).
@@ -34,6 +44,8 @@ Newest at top. Keep under 150 lines. Rules for this file are in CLAUDE.md under 
 - Agreed prices (account_items) beat last price when she picks the item.
 
 ## Decisions (newest first)
+- 2026-10-22 Phase 6 build: Reports tabs are Who owes you, Sales, Profit, VAT, Tailors, Customers. Settings got an Email tab. The "Soon" and Phase badges were removed from the menu, since every section is now built.
+- 2026-10-22 Phase 6 answers: email is sent from an address on fashionfiestauae.com through Resend, with replies going to the owner's Gmail. Ideas 19, 20, 21, 22 and 42 approved; push notifications go to owners and tailors. The VAT period is calendar quarters by default, with the start month as a setting in Settings, Money (Saaqib confirms it from the FTA certificate).
 - 2026-10-22: Opening bank balance added next to opening cash (Settings, Opening balances). It seeds the cash book's Bank pot. Reason: card and transfer money made the bank go negative without a start figure.
 - 2026-10-22 Phase 5 answers: quick sale prints a Simplified Tax Invoice in its own series FF-POS. Embroidery 50/50 runs as one balance with the operator, settled any time. Card money goes to the Bank pot. Salaries are paid from cash or bank, chosen each time.
 - 2026-10-22: Every document series starts at 1001 (FF-Q-1001 and so on, FF-POS-1001 too). Live sequences reset; checked first that nothing had been issued. Reason: Saaqib's choice.
@@ -70,6 +82,8 @@ Newest at top. Keep under 150 lines. Rules for this file are in CLAUDE.md under 
 - 40 customers were seeded into production by a one time script. Bedashing has the note "Key account, Phase 4.5".
 
 ## Open questions for Saaqib
+- Resend account and API key (Saaqib creates it). Then I store it in Vercel, register fashionfiestauae.com via the API and give one DNS table with the studio CNAME. Nothing else to build: sending switches on by itself.
+- Real VAT tax period start month, from the FTA certificate.
 - Add the DNS record for studio.fashionfiestauae.com: CNAME, name "studio", value 94f92b8040c50980.vercel-dns-016.com. Then tell me to confirm it is live.
 - Embroidery machine brand and model: to confirm with the operator. It decides the file format for ideas 36 and 43.
 - Neon Launch plan (later, his call): gives a 7 day rewind window and daily snapshots. He adds a card in Neon billing, then I set both up.
@@ -79,4 +93,6 @@ Newest at top. Keep under 150 lines. Rules for this file are in CLAUDE.md under 
 - Vercel: project prj_grSCaYpWGqE93VbWkOQzahVzymA0, team team_yKuXQ8P3eoGrvRnTWMIqSiGo, region sin1.
 - Env vars are in Vercel for all three environments: DATABASE_URL, AUTH_SECRET, BLOB_READ_WRITE_TOKEN, ANTHROPIC_API_KEY, CRON_SECRET. They are never in git.
 - Cron: /api/cron/backup at 22:00 UTC.
-- Migrations live in /drizzle and run during build. The latest is 0012_opening_bank.
+- Migrations live in /drizzle and run during build. The latest is 0013_notifications_email.
+- Vercel also has NEXT_PUBLIC_VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT, EMAIL_DOMAIN. RESEND_API_KEY to come.
+- Careful: .env.local holds the production DATABASE_URL. For tests always export the branch URL after sourcing it.

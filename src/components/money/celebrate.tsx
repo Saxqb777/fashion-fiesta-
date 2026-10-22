@@ -10,21 +10,22 @@ const COLOURS = ["bg-sky", "bg-sun", "bg-leaf", "bg-magenta", "bg-brand"];
 
 /**
  * Payment received: a small burst. Invoice fully paid: a wider burst of the swoosh colours.
- * Under a second, then gone. Triggered by ?celebrate=payment or ?celebrate=paid.
+ * Task approved: a small burst in red. Under a second, then gone.
+ * Triggered by ?celebrate=payment, ?celebrate=paid or ?celebrate=approved.
  */
 export function Celebrate() {
   const params = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
   const reduce = useReducedMotion();
-  const [kind, setKind] = useState<"payment" | "paid" | null>(null);
+  const [kind, setKind] = useState<"payment" | "paid" | "approved" | null>(null);
 
   useEffect(() => {
     const k = params.get("celebrate");
-    if (k !== "payment" && k !== "paid") return;
+    if (k !== "payment" && k !== "paid" && k !== "approved") return;
     const on = setTimeout(() => setKind(k), 0);
     const off = setTimeout(() => setKind(null), 950);
-    toast.success(k === "paid" ? "Paid in full." : "Payment received.");
+    if (k !== "approved") toast.success(k === "paid" ? "Paid in full." : "Payment received.");
     router.replace(pathname, { scroll: false });
     return () => {
       clearTimeout(on);
@@ -51,7 +52,7 @@ export function Celebrate() {
             );
           })}
           <motion.span
-            className={`flex items-center justify-center rounded-full text-white ${kind === "paid" ? "size-20 bg-leaf" : "size-14 bg-ink"}`}
+            className={`flex items-center justify-center rounded-full text-white ${kind === "paid" ? "size-20 bg-leaf" : kind === "approved" ? "size-16 bg-brand" : "size-14 bg-ink"}`}
             initial={reduce ? false : { scale: 0.3 }}
             animate={{ scale: 1 }}
             transition={{ type: "spring", stiffness: 500, damping: 20 }}

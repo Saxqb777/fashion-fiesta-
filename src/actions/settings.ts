@@ -462,3 +462,16 @@ export async function saveStamp(input: { url: string; on: boolean }): Promise<{ 
   revalidatePath("/settings/shop");
   return { ok: true };
 }
+
+/** The month the shop's VAT quarters start in, from the FTA certificate. Quarters run in threes from it. */
+export async function saveVatPeriod(_prev: FormState, fd: FormData): Promise<FormState> {
+  const me = await requireOwner();
+  const month = Number(text(fd, "vatPeriodStartMonth"));
+  if (!Number.isInteger(month) || month < 1 || month > 12) return { errors: { vatPeriodStartMonth: ["Pick a month."] } };
+  const current = await getSettings();
+  await db.update(settings).set({ vatPeriodStartMonth: month }).where(eq(settings.id, current.id));
+  await logActivity({ actor: me, entityType: "settings", action: "updated", summary: `${me.name} set VAT quarters to start in month ${month}` });
+  revalidatePath("/settings/money");
+  revalidatePath("/reports/vat");
+  return { ok: true, savedAt: Date.now(), message: "VAT period saved." };
+}

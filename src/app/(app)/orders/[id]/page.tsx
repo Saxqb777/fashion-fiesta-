@@ -98,17 +98,20 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   const isRetail = customer?.type === "retail";
   const openInvoice = invs.find((i) => (figures.get(i.id)?.balanceFils ?? 0) > 0);
   const phone = customer?.phone;
+  const who = { email: customer?.email, name: customer?.name };
   const [orderSend, dnSends, invSends] = await Promise.all([
     order.number
-      ? sendDocProps("order", id, { phone, filename: `${order.number} ${customer?.name ?? ""}`, message: `${st.tradeName}: order ${order.number} confirmed, ${formatFils(order.totalFils)}. Thank you.` })
+      ? sendDocProps("order", id, { phone, ...who, title: `Sales Order ${order.number}`, filename: `${order.number} ${customer?.name ?? ""}`, message: `${st.tradeName}: order ${order.number} confirmed, ${formatFils(order.totalFils)}. Thank you.` })
       : null,
-    Promise.all(dns.map((d) => sendDocProps("delivery", d.id, { phone, filename: `${d.number} ${customer?.name ?? ""}`, message: `${st.tradeName}: delivery note ${d.number} for order ${order.number}.` }))),
+    Promise.all(dns.map((d) => sendDocProps("delivery", d.id, { phone, ...who, title: `Delivery Note ${d.number}`, filename: `${d.number} ${customer?.name ?? ""}`, message: `${st.tradeName}: delivery note ${d.number} for order ${order.number}.` }))),
     Promise.all(
       invs
         .filter((i) => i.number)
         .map((i) =>
           sendDocProps("invoice", i.id, {
             phone,
+            ...who,
+            title: `Tax Invoice ${i.number}`,
             filename: `${i.number} ${customer?.name ?? ""}`,
             message: `${st.tradeName}: Tax Invoice ${i.number} for ${formatFils(i.totalFils)}, due by ${formatISODate(i.dueDate, true)}. Thank you.`,
           }),

@@ -1,17 +1,19 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { count } from "drizzle-orm";
+import { count, inArray } from "drizzle-orm";
 import { db } from "@/db";
-import { invoices } from "@/db/schema";
+import { customers, invoices } from "@/db/schema";
 import { TierTag } from "@/components/data/tags";
 import { EmptyState } from "@/components/empty-state";
 import { LinkButton } from "@/components/link-button";
 import { AgingBar, AgingLegend } from "@/components/money/bits";
 import { CountUp } from "@/components/money/count-up";
+import { EmailStatements } from "@/components/money/email-statements";
 import { PageHeader } from "@/components/page-header";
 import { MoneyTabs } from "@/components/section-navs";
 import { formatISODate, todayISO } from "@/lib/dates";
 import { agingByCustomer } from "@/lib/ledger";
+import { emailReady } from "@/lib/email";
 import { formatFils } from "@/lib/money";
 import { requireOwner } from "@/lib/session";
 
@@ -25,10 +27,23 @@ export default async function WhoOwesYouPage() {
   const overdue = owing.reduce((s, r) => s + r.d1_30 + r.d31_60 + r.d61, 0);
   const sums = owing.reduce((a, r) => ({ notDue: a.notDue + r.notDue, d1_30: a.d1_30 + r.d1_30, d31_60: a.d31_60 + r.d31_60, d61: a.d61 + r.d61 }), { notDue: 0, d1_30: 0, d31_60: 0, d61: 0 });
   const today = todayISO();
+  const emails = owing.length
+    ? new Map((await db.select({ id: customers.id, email: customers.email }).from(customers).where(inArray(customers.id, owing.map((r) => r.customerId)))).map((c) => [c.id, c.email]))
+    : new Map<string, string | null>();
 
   return (
     <>
-      <PageHeader title="Money" />
+      <PageHeader
+        title="Money"
+        actions={
+          owing.length ? (
+            <EmailStatements
+              ready={emailReady()}
+              rows={owing.map((r) => ({ id: r.customerId, name: r.name, email: emails.get(r.customerId) ?? null, owed: r.owed, late: r.d1_30 + r.d31_60 + r.d61 }))}
+            />
+          ) : undefined
+        }
+      />
       <MoneyTabs />
       {invoiceCount === 0 ? (
         <EmptyState

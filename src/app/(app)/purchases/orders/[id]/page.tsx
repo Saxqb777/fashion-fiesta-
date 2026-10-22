@@ -53,6 +53,9 @@ export default async function PurchaseOrderPage({ params }: { params: Promise<{ 
   const send = po.number
     ? await sendDocProps("po", id, {
         phone: supplier?.phone,
+        email: supplier?.email,
+        name: supplier?.name,
+        title: `Purchase Order ${po.number}`,
         filename: `${po.number} ${supplier?.name ?? ""}`,
         message: `${st.tradeName}: purchase order ${po.number} for ${formatFils(po.totalFils)}${po.expectedDate ? `, needed by ${formatISODate(po.expectedDate, true)}` : ""}. Please quote this number on your delivery note and invoice. Thank you.`,
       })

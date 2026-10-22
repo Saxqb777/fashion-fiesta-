@@ -3,10 +3,13 @@
 import { useState } from "react";
 import { FileTextIcon, Loader2Icon, MessageCircleIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import type { MailProps } from "@/lib/doc-links";
+import { EmailDoc } from "./email-doc";
 
 /**
  * PDF and Send on WhatsApp. On a phone the PDF itself is shared into WhatsApp.
  * On a laptop WhatsApp opens with a message and a link the customer can open without logging in.
+ * Owners also get Send by email, with the PDF attached.
  */
 export function SendDoc({
   pdfUrl,
@@ -14,6 +17,7 @@ export function SendDoc({
   whatsapp,
   filename,
   message,
+  mail,
   size = "sm",
 }: {
   pdfUrl: string;
@@ -21,6 +25,7 @@ export function SendDoc({
   whatsapp: string | null;
   filename: string;
   message: string;
+  mail?: MailProps | null;
   size?: "sm" | "default";
 }) {
   const [busy, setBusy] = useState(false);
@@ -57,6 +62,7 @@ export function SendDoc({
         {busy ? <Loader2Icon className="animate-spin" /> : <MessageCircleIcon />}
         Send on WhatsApp
       </Button>
+      {mail ? <EmailDoc mail={mail} size={size} /> : null}
     </div>
   );
 }

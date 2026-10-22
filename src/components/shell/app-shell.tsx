@@ -2,6 +2,7 @@ import type { UserRole } from "@/db/schema";
 import { BottomNav, MobileTopBar } from "./mobile-nav";
 import { Sidebar } from "./sidebar";
 import { SignOutButton } from "./sign-out-button";
+import { RegisterServiceWorker } from "@/components/pwa/register-sw";
 
 export function AppShell({
   user,
@@ -20,6 +21,7 @@ export function AppShell({
         </main>
       </div>
       <BottomNav user={user} signOut={<SignOutButton />} />
+      <RegisterServiceWorker />
     </div>
   );
 }

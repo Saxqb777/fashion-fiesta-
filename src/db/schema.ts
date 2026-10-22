@@ -120,6 +120,12 @@ export const settings = pgTable("settings", {
   /** Money in the bank account on the go live day. Seeds the cash book's Bank pot. */
   openingBankFils: integer("opening_bank_fils").notNull().default(0),
   openingDate: date("opening_date"),
+  /** VAT return periods are quarters starting in this month (1 = Jan to Mar, Apr to Jun...). */
+  vatPeriodStartMonth: integer("vat_period_start_month").notNull().default(1),
+  /** Email: the part before @fashionfiestauae.com, and the sender name. Replies go to the owner who sends. */
+  emailFromLocal: text("email_from_local").notNull().default("orders"),
+  emailFromName: text("email_from_name"),
+  emailTemplates: jsonb("email_templates").$type<Record<string, { subject: string; body: string }>>(),
   /** Quotes: days a new quote stays valid, and the terms printed on it. */
   quoteValidityDays: integer("quote_validity_days").notNull().default(14),
   quoteTerms: text("quote_terms"),
@@ -1042,3 +1048,53 @@ export type CashKind = (typeof cashKind.enumValues)[number];
 export type EmbroideryJob = typeof embroideryJobs.$inferSelect;
 export type Expense = typeof expenses.$inferSelect;
 export type PosSale = typeof posSales.$inferSelect;
+
+/* ---------- Phase 6: notifications, push, email ---------- */
+
+/** Something that happened, for one person. Shown on Today and sent as a push when they allow it. */
+export const notifications = pgTable(
+  "notifications",
+  {
+    ...audit(),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    kind: text("kind").notNull(),
+    title: text("title").notNull(),
+    body: text("body"),
+    href: text("href"),
+    readAt: timestamp("read_at", { withTimezone: true }),
+  },
+  (t) => [index("notifications_user_idx").on(t.userId, t.readAt)],
+);
+
+export const pushSubscriptions = pgTable(
+  "push_subscriptions",
+  {
+    ...audit(),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    endpoint: text("endpoint").notNull().unique(),
+    p256dh: text("p256dh").notNull(),
+    auth: text("auth").notNull(),
+    userAgent: text("user_agent"),
+  },
+  (t) => [index("push_subscriptions_user_idx").on(t.userId)],
+);
+
+/** Every email the app sent or tried to send, shown on the record it was about. */
+export const emailLog = pgTable(
+  "email_log",
+  {
+    ...audit(),
+    docType: text("doc_type").notNull(),
+    docId: uuid("doc_id").notNull(),
+    toEmail: text("to_email").notNull(),
+    subject: text("subject").notNull(),
+    replyTo: text("reply_to"),
+    filename: text("filename"),
+    status: text("status").notNull(),
+    providerId: text("provider_id"),
+    error: text("error"),
+  },
+  (t) => [index("email_log_doc_idx").on(t.docType, t.docId)],
+);
+
+export type Notification = typeof notifications.$inferSelect;

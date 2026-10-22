@@ -15,44 +15,26 @@ export type NavItem = {
   href: string;
   label: string;
   icon: LucideIcon;
-  /** Phase in which this section becomes real. 0 means built. */
-  phase: number;
   roles: UserRole[];
 };
 
 export const NAV_GROUPS: NavItem[][] = [
-  [{ href: "/today", label: "Today", icon: Sun, phase: 0, roles: ["owner", "tailor"] }],
+  [{ href: "/today", label: "Today", icon: Sun, roles: ["owner", "tailor"] }],
   [
-    { href: "/orders", label: "Orders", icon: Scissors, phase: 0, roles: ["owner"] },
-    { href: "/customers", label: "Customers", icon: Users, phase: 0, roles: ["owner"] },
-    { href: "/money", label: "Money", icon: Wallet, phase: 0, roles: ["owner"] },
+    { href: "/orders", label: "Orders", icon: Scissors, roles: ["owner"] },
+    { href: "/customers", label: "Customers", icon: Users, roles: ["owner"] },
+    { href: "/money", label: "Money", icon: Wallet, roles: ["owner"] },
   ],
   [
-    { href: "/workshop", label: "Workshop", icon: Shirt, phase: 0, roles: ["owner", "tailor"] },
-    { href: "/purchases", label: "Purchases", icon: Package, phase: 0, roles: ["owner"] },
+    { href: "/workshop", label: "Workshop", icon: Shirt, roles: ["owner", "tailor"] },
+    { href: "/purchases", label: "Purchases", icon: Package, roles: ["owner"] },
   ],
   [
-    { href: "/reports", label: "Reports", icon: ChartColumn, phase: 6, roles: ["owner"] },
-    { href: "/settings", label: "Settings", icon: Settings, phase: 0, roles: ["owner"] },
+    { href: "/reports", label: "Reports", icon: ChartColumn, roles: ["owner"] },
+    { href: "/settings", label: "Settings", icon: Settings, roles: ["owner"] },
   ],
 ];
 
 export function navForRole(role: UserRole) {
   return NAV_GROUPS.map((g) => g.filter((i) => i.roles.includes(role))).filter((g) => g.length > 0);
 }
-
-export const SECTION_COPY: Record<string, { title: string; sentence: string; phase: number }> = {
-  customers: {
-    title: "Customers",
-    sentence: "Customers with branches, tiers and credit terms arrive in Phase 1.",
-    phase: 1,
-  },
-  money: { title: "Money", sentence: "Invoices, payments, receipts and who owes you arrive in Phase 3.", phase: 3 },
-  workshop: { title: "Workshop", sentence: "Tailor tasks, photo cards and the Gallery arrive in Phase 2.", phase: 2 },
-  purchases: {
-    title: "Purchases",
-    sentence: "Purchase orders, fabric stock and supplier bills arrive in Phase 4.",
-    phase: 4,
-  },
-  reports: { title: "Reports", sentence: "Who owes you, sales by customer and the VAT summary arrive in Phase 6.", phase: 6 },
-};

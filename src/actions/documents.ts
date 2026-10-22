@@ -24,6 +24,7 @@ import {
   users,
 } from "@/db/schema";
 import { logActivity } from "@/lib/activity";
+import { notify } from "@/lib/notify";
 import { customerSeasons } from "@/lib/accounts";
 import { agingByCustomer } from "@/lib/ledger";
 import { syncOutsourcingPOs } from "@/lib/outsourcing";
@@ -583,6 +584,12 @@ async function persistOrder(doc: Doc, intent: "draft" | "confirm", me: Owner): P
         ? `${me.name} confirmed order ${number} for ${customer.name}${assignedNote}`
         : `${me.name} updated order ${number}`,
   });
+  // Each tailor hears about new work once, with the piece count.
+  const newWork = new Map<string, number>();
+  for (const t of taskInserts) if (t.tailorId) newWork.set(t.tailorId, (newWork.get(t.tailorId) ?? 0) + t.qty);
+  for (const [tailorId, qty] of newWork) {
+    await notify([tailorId], { kind: "task_assigned", title: `New work on ${number}`, body: `${qty} ${qty === 1 ? "piece" : "pieces"} for ${customer.name}.`, href: "/workshop" }, me.id);
+  }
   revalidatePath("/orders");
   revalidatePath("/workshop");
   revalidatePath("/today");

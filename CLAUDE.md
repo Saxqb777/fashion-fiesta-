@@ -199,16 +199,16 @@ Standing permission: small taste improvements (spacing, wording, micro animation
 18. Profit per order. proposed. Phase 5. Effort: medium.
     What: price minus fabric used, outsourcing cost and embroidery share, shown on the order page once delivered.
 
-19. Monthly P&L. proposed. Phase 6. Effort: medium.
+19. Monthly P&L. built. Phase 6. Effort: medium.
     What: sales, minus fabric, outsourcing and embroidery share, minus salaries, minus expenses, equals operating profit. Starts from the go live month, no old data.
 
-20. Customer health. proposed. Phase 6. Effort: small.
+20. Customer health. built. Phase 6. Effort: small.
     What: last order date, total this year, average days to pay, and a nudge when a customer has not ordered for 90 days.
 
-21. Tailor scorecard. proposed. Phase 6. Effort: small.
+21. Tailor scorecard. built. Phase 6. Effort: small.
     What: pieces per week, on time percentage, rejection rate.
 
-22. Catch up feed. proposed. Phase 6. Effort: medium.
+22. Catch up feed. built. Phase 6. Effort: medium.
     What: "Needs your attention" on Today covers overdue invoices, tasks to review, tailor questions, salary due, supplier bills due, quotes unanswered for 7 days, fabric running low and the daily close difference. One button each.
 
 23. AI setup assistant. proposed. AI, after Phase 6. Effort: large.
@@ -268,13 +268,13 @@ Standing permission: small taste improvements (spacing, wording, micro animation
 41. Quote accepted by link. proposed. Effort: small.
     What: the shared quote has an Accept button; tapping it confirms the order with a timestamp and notifies the owner.
 
-42. Push notifications. proposed. Phase 6. Effort: medium.
+42. Push notifications. built. Phase 6, owners and tailors. Effort: medium.
     What: the tailor's phone buzzes on a new task; the owner's phone on payment received or task submitted.
 
 43. Embroidery Studio. proposed. After Phase 6, inside Workshop. Effort: large.
     What: the owner or operator uploads a logo or image, sets the size in cm and the thread colours. The system cleans and vectorises the image, auto digitises it to a machine file (DST by default, format set per machine model in Settings), shows a stitch preview and stitch count, and saves it as the customer's design file. The operator downloads it and finishes the work on the machine and his own software. The system makes the first file, the operator owns the final. Research Ink/Stitch for the digitising step before planning this.
 
-44. Email from the system. approved. Phase 6. Effort: medium.
+44. Email from the system. built. Phase 6, sent from the shop domain through Resend with replies to the sending owner (decided in Phase 6 instead of Gmail sign in). Effort: medium.
     What: Settings gets "Connect email": an owner signs in with Google once and the system sends from her own Gmail address (send permission only, never reads the inbox). A second owner can connect her own. Every PDF (Quote, Sales Order confirmation, Delivery Note, Tax Invoice, Credit Note, Receipt, Statement, Purchase Order) gets a "Send by email" button next to "Send on WhatsApp": a ready email with the recipient from the customer or branch contact, subject and short body from a template editable in Settings, PDF attached; she reviews and taps Send. Sent emails are logged on the record (when, to whom, by whom, the PDF version that went) with one tap Resend. Due reminders and statements go the same way from Who owes you, one customer or several at once. With no email connected, the button explains in one line how to connect it.
 
 45. Fiesta, the Fashion Fiesta assistant. approved. After Phase 6, the first AI item, before the Tax tab. Effort: large.

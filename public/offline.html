@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#D7182A">
+<title>Offline · Fashion Fiesta</title>
+<style>
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #FAF7F2; color: #1F1A17; font-family: system-ui, sans-serif; padding: 24px; box-sizing: border-box; }
+  main { max-width: 360px; text-align: center; }
+  img { width: 72px; height: 72px; border-radius: 16px; }
+  h1 { font-family: Georgia, serif; font-weight: 500; font-size: 28px; margin: 20px 0 8px; }
+  p { color: #6F6560; font-size: 16px; line-height: 1.5; margin: 0 0 24px; }
+  .stripe { display: flex; height: 4px; width: 72px; margin: 0 auto 20px; border-radius: 4px; overflow: hidden; }
+  .stripe span { flex: 1; }
+  button { height: 52px; padding: 0 28px; border: 0; border-radius: 999px; background: #D7182A; color: #fff; font-size: 16px; font-weight: 600; }
+</style>
+</head>
+<body>
+<main>
+  <img src="/icons/icon-192.png" alt="">
+  <h1>No connection</h1>
+  <div class="stripe"><span style="background:#00AEEF"></span><span style="background:#FFD200"></span><span style="background:#8DC63F"></span><span style="background:#E6007E"></span></div>
+  <p>The phone is offline. Nothing you saved is lost. Try again when the signal is back.</p>
+  <button onclick="location.reload()">Try again</button>
+</main>
+</body>
+</html>

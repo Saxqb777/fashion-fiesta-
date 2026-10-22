@@ -24,6 +24,7 @@ import {
   suppliers,
 } from "@/db/schema";
 import { logActivity } from "@/lib/activity";
+import { notify } from "@/lib/notify";
 import { addDaysISO, todayISO } from "@/lib/dates";
 import { flashDone } from "@/lib/flash";
 import { moneySchema, text, type FormState } from "@/lib/forms";
@@ -254,6 +255,7 @@ export async function invoiceAndPay(_prev: FormState, fd: FormData): Promise<For
       cashEntry({ date: todayISO(), pot: potFor(method.data), kind: "customer_payment", amountFils: fig.balanceFils, description: `Receipt ${number}`, sourceType: "payment", sourceId: paymentId, actorId: me.id }),
     ]);
     await logActivity({ actor: me, entityType: "payment", entityId: paymentId, action: "created", summary: `${me.name} took ${formatFils(fig.balanceFils)} by ${method.data.replace("_", " ")} for ${res.number}` });
+    await notify("owners", { kind: "payment", title: `Payment received: ${formatFils(fig.balanceFils)}`, body: `${res.number}, paid in full by ${method.data.replace("_", " ")}.`, href: `/money/payments/${paymentId}` }, me.id);
   }
   await db.update(salesOrders).set({ deliveredAt: order.deliveredAt ?? new Date() }).where(eq(salesOrders.id, orderId));
   await refreshOrderStage(orderId);
@@ -382,6 +384,7 @@ export async function recordPayment(_prev: FormState, fd: FormData): Promise<For
     action: "created",
     summary: `${me.name} received ${formatFils(p.amount)} from ${customer.name} by ${p.method.replace("_", " ")}${p.deposit && p.orderId ? " as a deposit" : ""}`,
   });
+  await notify("owners", { kind: "payment", title: `Payment received: ${formatFils(p.amount)}`, body: `${customer.name}, ${p.method.replace("_", " ")}${clearedOne ? ". An invoice is now paid in full." : "."}`, href: `/money/payments/${id}` }, me.id);
   refreshMoney(customer.id, p.orderId);
   redirect(`/money/payments/${id}?celebrate=${clearedOne ? "paid" : "payment"}`);
 }

@@ -106,12 +106,7 @@ export function BottomNav({
                     )}
                   >
                     <Icon className={cn("size-5 shrink-0", active ? "text-brand" : "text-ink-muted")} />
-                    <span className="flex min-w-0 flex-col">
-                      <span className="truncate text-[15px] font-semibold">{item.label}</span>
-                      {item.phase > 0 ? (
-                        <span className="text-[12px] font-medium text-ink-muted">Phase {item.phase}</span>
-                      ) : null}
-                    </span>
+                    <span className="truncate text-[15px] font-semibold">{item.label}</span>
                   </Link>
                 </li>
               );

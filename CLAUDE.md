@@ -85,17 +85,21 @@ Rules:
 - Hyphens and em dashes are not used in UI copy or documents. Use colons or full stops.
 
 ## Documents (PDF templates)
-One shared template family: Quote, Sales Order confirmation, Delivery Note, Tax Invoice, Receipt, Statement of Account, Purchase Order.
+One shared template family: Quote, Sales Order confirmation, Delivery Note, Tax Invoice, Credit Note, Receipt, Statement of Account, Purchase Order.
 - A4. Red header band with the logo on the left, document title on the right in Fraunces.
 - Thin accent stripe under the header using the four swoosh colours.
 - Company block with legal name, address, TRN. Customer block with name, branch, TRN if any, and the Customer PO number on the Delivery Note and Tax Invoice when the order has one.
 - Lines table with description, qty, unit price, VAT 5%, line total. Totals box: subtotal, VAT, grand total, amount paid, balance due.
 - Footer: bank details from Settings, payment terms, thank you line.
 - Tax Invoice must satisfy UAE FTA requirements: the words "Tax Invoice", supplier TRN, date, unique number, VAT amount shown.
-- Numbering: FF-Q-0001, FF-SO-0001, FF-DN-0001, FF-INV-0001, FF-RCT-0001, FF-PO-0001. Prefixes editable in Settings, never reused.
+- Numbering: FF-Q-0001, FF-SO-0001, FF-DN-0001, FF-INV-0001, FF-CN-0001, FF-RCT-0001, FF-PO-0001. Prefixes editable in Settings, never reused.
+- An issued Tax Invoice is never edited or deleted. Corrections are Credit Notes (FF-CN).
+- Deposits: a payment can be taken on an order before it is invoiced. It shows on the order page and prints on the invoice as "Paid in advance".
+- Walk ins: a retail order can be invoiced and paid in one step.
+- Every PDF has a Send on WhatsApp button (idea 8).
 
 ## Data model (core tables)
-users, customers, customer_branches, suppliers (type: fabric | outsourcing), products, fabrics, quotes, quote_lines, sales_orders, so_lines, tasks (status: assigned | in_progress | submitted | approved | rejected | declined, photos as blob urls; assigned to a tailor or, until Phase 4 POs exist, to a stitching unit), purchase_orders, po_lines, supplier_bills, supplier_payments, invoices, invoice_lines, payments (with allocations to invoices), embroidery_jobs, expenses, cash_book, pos_sales, pos_sale_lines, stock_movements, notifications, activity_log, settings.
+users, customers, customer_branches, suppliers (type: fabric | outsourcing), products, fabrics, quotes, quote_lines, sales_orders, so_lines, tasks (status: assigned | in_progress | submitted | approved | rejected | declined, photos as blob urls; assigned to a tailor or, until Phase 4 POs exist, to a stitching unit), purchase_orders, po_lines, supplier_bills, supplier_payments, invoices, invoice_lines, credit_notes, credit_note_lines, delivery_notes, delivery_note_lines, payments (with allocations to invoices), embroidery_jobs, expenses, cash_book, pos_sales, pos_sale_lines, stock_movements, notifications, activity_log, settings.
 - Every table: id (uuid), created_at, updated_at, created_by.
 - Soft delete where a record can have history (customers, suppliers, products). Hard delete only for drafts.
 - activity_log records who did what on every create, update, status change.
@@ -107,12 +111,13 @@ Phase 2: Quotes → Sales Orders with lines, assign each line to a tailor task o
 Phase 3: Invoices from SO (full or partial), payments with allocation, receipts, statements, all PDF templates, overdue logic from credit days, due reminders in Today.
 Phase 3.5: "Read their document" (idea 1, AI). Upload a Customer PO, a quote, Excel, a photo or a screenshot; Claude reads it and fills the order screen with lines tagged "from document, check", unknown fields in red. Nothing is saved until she presses Save as draft or Confirm. One order per branch when the document covers several.
 Phase 4: Purchase Orders, goods receipt into fabric stock, supplier bills, supplier payments, stock movements when fabric is issued to a task.
+Phase 4.5: Key Account mode. A switch on any customer. When on, the customer page becomes a full account space for the owners only: branches with emirate, address, contact and delivery notes (importable from Excel); optional staff per branch with role and sizes; an account catalogue of their uniform items with agreed prices; order lines allocated per branch and per staff; delivery runs grouped by emirate, assigned to a delivery company, one delivery note per branch with delivered or pending status; invoicing per branch or consolidated, carrying their Customer PO number; and an account report tab (orders by season, per branch, delivered vs pending, balance, days to pay). All of it is the same data as the rest of the system, filtered to that customer, so overall reports still include them. First key account is Bedashing.
 Phase 5: Cash book (auto entries from every money event), Expenses, Embroidery jobs with 50/50 settlement, POS quick sale for tailors (cash or card, receipt share).
 Phase 6: Today screen, Reports (who owes you with aging, sales by customer, VAT summary for filing, tailor output), notifications, celebrations, PWA, polish pass against the Design system rules.
 Phase 7: Seed script with realistic demo data, handover notes for the owners.
 
 ## Parked for v2
-POS card terminal integration (provider to be confirmed), order planning and branch allocation, tailor attendance, WhatsApp reminders, deeper reports. (Salaries moved to Phase 5, idea 17.)
+POS card terminal integration (provider to be confirmed), tailor attendance, WhatsApp reminders, deeper reports. (Salaries moved to Phase 5, idea 17.)
 
 ## Ideas backlog
 Status values: proposed, approved, built. Saaqib marks ideas approved. Build only approved ideas, in the phase they belong to. Never build a proposed idea without approval.
@@ -146,7 +151,7 @@ Standing permission: small taste improvements (spacing, wording, micro animation
    What: the customer page shows a call box: balance, oldest unpaid invoice, last payment, promised date, tap to call. One tap records "they promised the 15th" and Today reminds her that morning. Broken promises count on the customer.
    Why: every dues call starts prepared and ends with a date, not a maybe.
 
-8. Send on WhatsApp. proposed. Phase 3. Effort: small.
+8. Send on WhatsApp. approved. Phase 3, on every PDF. Effort: small.
    What: every document has a Send button that opens WhatsApp to the customer's number with a short message and the PDF.
    Why: the invoice reaches the school before she puts the phone down.
 

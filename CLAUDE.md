@@ -117,7 +117,7 @@ Phase 6: Today screen, Reports (who owes you with aging, sales by customer, VAT 
 Phase 7: Seed script with realistic demo data, handover notes for the owners.
 
 ## Parked for v2
-POS card terminal integration (provider to be confirmed), tailor attendance, WhatsApp reminders, deeper reports. (Salaries moved to Phase 5, idea 17.)
+POS card terminal integration (provider to be confirmed), tailor attendance, WhatsApp reminders, deeper reports, connect an accredited e-invoicing provider (idea 28 prepares the export). (Salaries moved to Phase 5, idea 17.)
 
 ## Ideas backlog
 Status values: proposed, approved, built. Saaqib marks ideas approved. Build only approved ideas, in the phase they belong to. Never build a proposed idea without approval.
@@ -211,6 +211,36 @@ Standing permission: small taste improvements (spacing, wording, micro animation
 
 24. Weekly digest. proposed. AI, after Phase 6. Effort: small.
     What: a Saturday morning summary of what happened, what is due and who to chase.
+
+25. VAT return pack. approved. After Phase 6, as a "Tax" tab under Reports. Effort: medium.
+    What: quarterly figures laid out like the FTA return boxes (standard rated supplies by emirate, output VAT, purchases, recoverable input VAT, net payable), each box drilling down to the invoices and bills behind it. Export to PDF and Excel for the accountant. Submission stays manual on EmaraTax.
+
+26. AI review before filing. approved. After Phase 6, Tax tab. Effort: small.
+    What: Claude checks the quarter for missing TRNs, invoices still in draft, input VAT on bills without a tax invoice, unusual swings versus last quarter, and writes a plain language list of what to fix.
+
+27. Corporate tax pack. approved. After Phase 6, Tax tab. Effort: medium.
+    What: yearly P&L summary with a Small Business Relief check and a checklist for the accountant.
+
+28. E-invoicing readiness. approved. After Phase 6, Tax tab. Effort: medium.
+    What: UAE Peppol PINT format export of every Tax Invoice, so an accredited service provider can be connected before 1 July 2027.
+
+29. Fabric metres per garment. approved. Phase 4. Effort: small.
+    What: each product has a default metres used, editable per order line. Drives fabric stock out and profit per order.
+
+30. Credit limit warning. approved. Phase 4. Effort: small.
+    What: on new order and on confirm, warn when the customer is over their credit limit or has overdue invoices, with the amounts. Warn, never block.
+
+31. Alterations and repairs. proposed. Effort: small.
+    What: one tap quick job that creates a mini task and a small invoice, no order flow.
+
+32. Fitting appointments. proposed. Effort: small.
+    What: a trial date on an order, with a reminder on Today.
+
+33. Bank statement import. proposed. Effort: medium.
+    What: upload the bank Excel, match payments to invoices, flag what does not match.
+
+34. Data export. proposed. Effort: small.
+    What: one button exports everything to Excel, so the owners are never locked in.
 
 (Ask your shop is idea 13, already in the backlog.)
 

@@ -9,6 +9,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import { purchaseOrders, supplierBillLines, supplierBills, supplierPaymentAllocations, supplierPayments, suppliers } from "@/db/schema";
 import { logActivity } from "@/lib/activity";
+import { cashEntry, potFor } from "@/lib/cash";
 import { todayISO } from "@/lib/dates";
 import { flashDone } from "@/lib/flash";
 import { moneySchema, optionalTrn, type FormState } from "@/lib/forms";
@@ -174,6 +175,7 @@ export async function recordSupplierPayment(_prev: FormState, fd: FormData): Pro
       notes: p.notes || null,
       createdBy: me.id,
     }),
+    cashEntry({ date: p.date ?? todayISO(), pot: potFor(p.method), kind: "supplier_payment", amountFils: -p.amount, description: `Paid ${supplier.name}`, sourceType: "supplier_payment", sourceId: id, actorId: me.id }),
   ];
   if (allocs.length) batch.push(db.insert(supplierPaymentAllocations).values(allocs.map((a) => ({ paymentId: id, billId: a.billId, amountFils: a.amount, createdBy: me.id }))));
   await db.batch(batch as Batch);

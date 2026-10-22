@@ -4,8 +4,9 @@ Newest at top. Keep under 150 lines. Rules for this file are in CLAUDE.md under 
 
 ## Where we are (2026-10-22)
 - Live: https://fashion-fiesta-three.vercel.app (Vercel production, deploys from main)
-- Done and live: Phases 0, 1, 2, 3, 3.5, 4, 4.5.
-- Next: Phase 5 (cash book, expenses, embroidery 50/50, POS, salaries, daily close). Post the plan and wait for "go".
+- Done and live: Phases 0, 1, 2, 3, 3.5, 4, 4.5, 5.
+- Next: Phase 6 (Today feed, Reports, notifications, celebrations, PWA, polish). Post the plan and wait for "go".
+- Domain: Saaqib adds the CNAME after everything is live (record is under Open questions).
 - Phase 4.5 Key Account mode shipped 2026-10-22. Bedashing is a key account with 24 unverified branches on production. Checklist sent.
 - Small deploy (measurement templates, pieces link, nightly backup, bug fixes) shipped 2026-10-22. Checklist sent.
 - Bugs fixed in that deploy, all in earlier phases:
@@ -18,6 +19,13 @@ Newest at top. Keep under 150 lines. Rules for this file are in CLAUDE.md under 
 ## Half done
 - Nothing.
 
+## How Phase 5 works (for later phases)
+- cash_book is the single money ledger. Every money action writes its own row in the same batch (cashEntry in lib/cash.ts): customer payments, quick sales, supplier payments, expenses, salaries, advances, embroidery settlements, moves between pots, daily close differences, opening cash. Pots: cash (drawer) and bank (card, transfer, cheque).
+- Daily close writes the difference to the cash book, so the drawer balance equals what was counted. Count again the same day replaces it.
+- Embroidery: balance with the operator = done jobs (shop's customer: operator's share owed to him; his customer: shop's share owed by him) minus settlements. Share percent is frozen per job.
+- Quick sale: FF-POS Simplified Tax Invoice. Tailors can open only their own sales and PDFs.
+- Salary payment: gross is the expense (category Salaries), advances taken off, only the net leaves the cash book.
+
 ## How Phase 4.5 works (for later phases)
 - Customer page tabs when Key account is on: Overview, Branches, Staff, Catalogue, Orders, Deliveries, Report. Same page, no new menu item.
 - Order lines can be split per branch and person (so_line_allocations). Parts must add up. Parts on a delivery note cannot be removed.
@@ -26,6 +34,9 @@ Newest at top. Keep under 150 lines. Rules for this file are in CLAUDE.md under 
 - Agreed prices (account_items) beat last price when she picks the item.
 
 ## Decisions (newest first)
+- 2026-10-22 Phase 5 answers: quick sale prints a Simplified Tax Invoice in its own series FF-POS. Embroidery 50/50 runs as one balance with the operator, settled any time. Card money goes to the Bank pot. Salaries are paid from cash or bank, chosen each time.
+- 2026-10-22: Every document series starts at 1001 (FF-Q-1001 and so on, FF-POS-1001 too). Live sequences reset; checked first that nothing had been issued. Reason: Saaqib's choice.
+- 2026-10-22: Domain DNS record will be added by Saaqib after everything is fully live.
 - 2026-10-22: Custom domain studio.fashionfiestauae.com added to Vercel. DNS sits with Openprovider (the Webador site), so Saaqib adds a CNAME there. Share links switch to it by themselves once the CNAME points to Vercel (PUBLIC_APP_URL plus a DNS check). Reason: no broken links before the record exists.
 - 2026-10-22: Quote validity days and terms in Settings, Money. Expired is shown, not stored. Stamp in Settings, Shop, prints on Tax Invoice, Delivery Note and Credit Note only (not Quote or PO), as asked.
 - 2026-10-22: Neon stays on the Free plan for now; Saaqib will decide on Launch later. Reason: still testing, and the nightly Excel backup covers it. Launch costs about $10 to $16 a month.

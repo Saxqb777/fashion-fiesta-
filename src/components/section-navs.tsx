@@ -34,6 +34,7 @@ export function WorkshopTabs({ owner }: { owner: boolean }) {
       tabs={[
         { href: "/workshop", label: owner ? "Tasks" : "My tasks", exact: true },
         { href: "/workshop/gallery", label: "Gallery" },
+        ...(owner ? [{ href: "/workshop/embroidery", label: "Embroidery" }] : []),
       ]}
     />
   );
@@ -47,6 +48,9 @@ export function MoneyTabs() {
         { href: "/money", label: "Who owes you", exact: true, also: ["/money/statement"] },
         { href: "/money/invoices", label: "Invoices" },
         { href: "/money/payments", label: "Payments" },
+        { href: "/money/cash", label: "Cash book" },
+        { href: "/money/expenses", label: "Expenses" },
+        { href: "/money/sales", label: "Quick sales" },
       ]}
     />
   );

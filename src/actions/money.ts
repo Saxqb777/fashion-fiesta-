@@ -32,6 +32,7 @@ import { documentTotals, lineAmounts } from "@/lib/lines";
 import { formatFils } from "@/lib/money";
 import { nextDocumentNumber } from "@/lib/numbering";
 import { orderLineProgress } from "@/lib/order-progress";
+import { cashEntry, clearCashFor, potFor } from "@/lib/cash";
 import { refreshOrderStage, refreshOrdersForInvoices } from "@/lib/order-stage";
 import { isoDate, issuesToErrors, uuidOrNull } from "@/lib/payload";
 import { resolveProduct } from "@/lib/products-auto";
@@ -250,6 +251,7 @@ export async function invoiceAndPay(_prev: FormState, fd: FormData): Promise<For
     await db.batch([
       db.insert(payments).values({ id: paymentId, number, customerId: order.customerId, orderId, paymentDate: todayISO(), amountFils: fig.balanceFils, method: method.data, createdBy: me.id }),
       db.insert(paymentAllocations).values({ paymentId, invoiceId: res.id, amountFils: fig.balanceFils, createdBy: me.id }),
+      cashEntry({ date: todayISO(), pot: potFor(method.data), kind: "customer_payment", amountFils: fig.balanceFils, description: `Receipt ${number}`, sourceType: "payment", sourceId: paymentId, actorId: me.id }),
     ]);
     await logActivity({ actor: me, entityType: "payment", entityId: paymentId, action: "created", summary: `${me.name} took ${formatFils(fig.balanceFils)} by ${method.data.replace("_", " ")} for ${res.number}` });
   }
@@ -366,6 +368,7 @@ export async function recordPayment(_prev: FormState, fd: FormData): Promise<For
       notes: p.notes || null,
       createdBy: me.id,
     }),
+    cashEntry({ date: p.date ?? todayISO(), pot: potFor(p.method), kind: "customer_payment", amountFils: p.amount, description: `Receipt ${number}, ${customer.name}`, sourceType: "payment", sourceId: id, actorId: me.id }),
   ];
   if (allocs.length) batch.push(db.insert(paymentAllocations).values(allocs.map((a) => ({ paymentId: id, invoiceId: a.invoiceId, amountFils: a.amount, createdBy: me.id }))));
   await db.batch(batch as Batch);
@@ -392,7 +395,14 @@ export async function saveOpeningCash(_prev: FormState, fd: FormData): Promise<F
   if (!amount.success) return { errors: { cash: [amount.error.issues[0]?.message ?? "Enter an amount."] } };
   if (!date.success || !date.data) return { errors: { date: ["Pick the go live date."] } };
   const s = await getSettings();
-  await db.update(settings).set({ openingCashFils: amount.data, openingDate: date.data }).where(eq(settings.id, s.id));
+  // The cash book's opening row follows this figure.
+  await db.batch([
+    db.update(settings).set({ openingCashFils: amount.data, openingDate: date.data }).where(eq(settings.id, s.id)),
+    clearCashFor("opening", s.id),
+    ...(amount.data
+      ? [cashEntry({ date: date.data, pot: "cash", kind: "opening", amountFils: amount.data, description: "Cash in hand on the go live day", sourceType: "opening", sourceId: s.id, actorId: me.id })]
+      : []),
+  ]);
   await logActivity({ actor: me, entityType: "settings", entityId: s.id, action: "updated", summary: `${me.name} set opening cash to ${formatFils(amount.data)} on ${date.data}` });
   revalidatePath("/settings/opening");
   revalidatePath("/setup/opening");

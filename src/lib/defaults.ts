@@ -23,12 +23,13 @@ export const DOCUMENT_TYPES: ReadonlyArray<{
   { type: "receipt", label: "Receipt", prefix: "FF-RCT" },
   { type: "credit_note", label: "Credit Note", prefix: "FF-CN" },
   { type: "purchase_order", label: "Purchase Order", prefix: "FF-PO" },
+  { type: "pos_sale", label: "Quick sale (Simplified Tax Invoice)", prefix: "FF-POS" },
 ];
 
 export const DEFAULT_SEQUENCES = DOCUMENT_TYPES.map((d) => ({
   docType: d.type,
   prefix: d.prefix,
-  nextNumber: 1,
+  nextNumber: 1001,
   padding: 4,
 }));
 

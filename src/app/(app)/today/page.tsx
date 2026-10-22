@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
-import { and, count, eq, inArray, lt, ne } from "drizzle-orm";
+import { and, count, desc, eq, inArray, lt, ne } from "drizzle-orm";
+import { PlusIcon } from "lucide-react";
 import { db } from "@/db";
-import { customers, salesOrders, soLines, tasks } from "@/db/schema";
+import Link from "next/link";
+import { customers, dailyCloses, posSales, salesOrders, soLines, tasks } from "@/db/schema";
+import { CountUp } from "@/components/money/count-up";
+import { potBalances } from "@/lib/cash";
+import { payDayWarning } from "@/lib/salaries";
 import { EmptyState } from "@/components/empty-state";
 import { LinkButton } from "@/components/link-button";
 import { PageHeader } from "@/components/page-header";
@@ -37,9 +42,36 @@ export default async function TodayPage() {
       .orderBy(...taskOrder());
     const overdue = mine.filter((t) => t.dueDate && t.dueDate < today).length;
     const sentBack = mine.filter((t) => t.status === "rejected").length;
+    const mySales = await db
+      .select({ id: posSales.id, number: posSales.number, totalFils: posSales.totalFils, method: posSales.method })
+      .from(posSales)
+      .where(and(eq(posSales.soldBy, user.id!), eq(posSales.saleDate, today)))
+      .orderBy(desc(posSales.createdAt));
     return (
       <>
-        <PageHeader eyebrow={formatLongDate(new Date())} title="Today" />
+        <PageHeader
+          eyebrow={formatLongDate(new Date())}
+          title="Today"
+          actions={
+            <LinkButton href="/today/sale" size="lg" variant="outline" className="h-12">
+              <PlusIcon />
+              Quick sale
+            </LinkButton>
+          }
+        />
+        {mySales.length ? (
+          <p className="tabular -mt-2 mb-5 text-[15px]">
+            You sold {formatFils(mySales.reduce((s, x) => s + x.totalFils, 0))} today.{" "}
+            {mySales.slice(0, 3).map((x, i) => (
+              <span key={x.id}>
+                {i ? ", " : ""}
+                <Link href={`/today/sale/${x.id}`} className="font-semibold underline-offset-2 hover:underline">
+                  {x.number}
+                </Link>
+              </span>
+            ))}
+          </p>
+        ) : null}
         {mine.length ? (
           <>
             <p className="mb-4 text-[17px]">
@@ -77,6 +109,7 @@ export default async function TodayPage() {
     payablesDue(),
     lowStockFabrics(),
   ]);
+  const [balances, todayClose, payDay] = await Promise.all([potBalances(), db.query.dailyCloses.findFirst({ where: eq(dailyCloses.closeDate, today) }), payDayWarning(today)]);
   const items: Item[] = [
     due.overdueCount && {
       key: "unpaid",
@@ -121,18 +154,42 @@ export default async function TodayPage() {
       href: low.length === 1 ? `/purchases/fabrics/${low[0].id}` : "/purchases/fabrics",
       action: "Order more",
     },
+    payDay && {
+      key: "pay-day",
+      text: payDay.soonest < 0 ? `Salaries are late: ${formatFils(payDay.totalFils)}` : payDay.soonest === 0 ? `Pay day today: ${formatFils(payDay.totalFils)}` : `Pay day in ${plural(payDay.soonest, "day", "days")}: ${formatFils(payDay.totalFils)}`,
+      detail: `${plural(payDay.count, "person", "people")}, after advances. Check the drawer has it.`,
+      href: "/settings/team",
+      action: "Pay salaries",
+      urgent: payDay.soonest <= 0,
+    },
     drafts.n && { key: "drafts", text: `${plural(drafts.n, "draft order is", "draft orders are")} waiting to be confirmed`, href: "/orders?view=drafts", action: "Review" },
   ].filter(Boolean) as Item[];
 
   return (
     <>
-      <PageHeader eyebrow={formatLongDate(new Date())} title="Today" />
+      <PageHeader
+        eyebrow={formatLongDate(new Date())}
+        title="Today"
+        actions={
+          <LinkButton href="/today/sale" variant="outline">
+            <PlusIcon />
+            Quick sale
+          </LinkButton>
+        }
+      />
       <section className="rounded-[14px] border border-line bg-surface p-5 sm:p-6">
         <p className="text-sm font-semibold text-ink-muted">
           Cash in hand <span className="ml-1 font-medium text-ink-muted/70">cash book</span>
         </p>
-        <p className="tabular mt-2 font-display text-[3rem] leading-none font-medium sm:text-[4rem]">{formatFils(0)}</p>
-        <p className="mt-3 text-[13px] text-ink-muted">Starts counting in Phase 5, when the cash book arrives.</p>
+        <p className="tabular mt-2 font-display text-[3rem] leading-none font-medium sm:text-[4rem]">
+          <CountUp fils={balances.cash} />
+        </p>
+        <p className="tabular mt-3 text-[14px] text-ink-muted">
+          {formatFils(balances.bank)} in the bank.{" "}
+          <Link href="/money/cash" className="font-semibold text-ink underline-offset-2 hover:underline">
+            {todayClose ? "Day closed" : "Close the day"}
+          </Link>
+        </p>
       </section>
 
       <section className="mt-8">

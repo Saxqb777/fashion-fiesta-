@@ -14,6 +14,8 @@ import {
   paymentAllocations,
   payments,
   poLines,
+  posSaleLines,
+  posSales,
   purchaseOrders,
   quoteLines,
   quotes,
@@ -441,8 +443,33 @@ async function poDoc(id: string): Promise<Built | null> {
   };
 }
 
+/* ---------- Quick sale: Simplified Tax Invoice ---------- */
+async function posDoc(id: string): Promise<Built | null> {
+  const sale = await db.query.posSales.findFirst({ where: eq(posSales.id, id) });
+  if (!sale) return null;
+  const [co, lines] = await Promise.all([company(), db.select().from(posSaleLines).where(eq(posSaleLines.saleId, id)).orderBy(asc(posSaleLines.sort))]);
+  return {
+    filename: `${sale.number}.pdf`,
+    customerName: sale.customerName ?? "Customer",
+    customerPhone: sale.customerPhone,
+    summary: `Simplified Tax Invoice ${sale.number}, AED ${aed(sale.totalFils)} paid by ${sale.method}`,
+    element: (
+      <DocShell title="Simplified Tax Invoice" subtitle={sale.number} company={co} bank={false} terms="Paid in full at the counter. All amounts in AED, VAT included in the total.">
+        <View style={s.row}>
+          <Party label="Customer" name={sale.customerName ?? "Walk in customer"} lines={[sale.customerPhone]} />
+          <Meta rows={[["Invoice", sale.number], ["Date", day(sale.saleDate)], ["Paid by", sale.method === "card" ? "Card" : "Cash"], ["Supplier TRN", co.trn]]} />
+        </View>
+        <LinesTable columns={LINE_COLUMNS} rows={lineRows(lines)} />
+        <Totals rows={[["Subtotal", aed(sale.subtotalFils)], [`VAT ${co.vatRateBp / 100}%`, aed(sale.vatFils)]]} grand={["Total AED", aed(sale.totalFils)]} after={[["Paid", aed(sale.totalFils)]]} paid />
+      </DocShell>
+    ),
+  };
+}
+
 export async function buildDoc(type: ShareType, id: string, opts: { from?: string; to?: string } = {}): Promise<Built | null> {
   switch (type) {
+    case "pos":
+      return posDoc(id);
     case "quote":
       return quoteDoc(id);
     case "order":

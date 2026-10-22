@@ -32,6 +32,7 @@ export const documentType = pgEnum("document_type", [
   "receipt",
   "purchase_order",
   "credit_note",
+  "pos_sale",
 ]);
 export const invoiceKind = pgEnum("invoice_kind", ["tax_invoice", "opening_balance"]);
 export const paymentMethod = pgEnum("payment_method", ["cash", "card", "bank_transfer", "cheque"]);
@@ -41,6 +42,22 @@ export const qtyUnit = pgEnum("qty_unit", ["m", "pcs"]);
 export const stockMoveKind = pgEnum("stock_move_kind", ["opening", "received", "taken", "sent", "adjusted"]);
 export const billKind = pgEnum("bill_kind", ["bill", "opening_balance"]);
 export const deliveryStatus = pgEnum("delivery_status", ["pending", "delivered"]);
+export const cashPot = pgEnum("cash_pot", ["cash", "bank"]);
+export const cashKind = pgEnum("cash_kind", [
+  "opening",
+  "customer_payment",
+  "quick_sale",
+  "supplier_payment",
+  "expense",
+  "salary",
+  "advance",
+  "embroidery",
+  "transfer",
+  "close_difference",
+]);
+export const embroiderySide = pgEnum("embroidery_side", ["shop", "operator"]);
+export const embroideryStatus = pgEnum("embroidery_status", ["to_do", "done"]);
+export const settlementDirection = pgEnum("settlement_direction", ["to_operator", "from_operator"]);
 
 /** Columns every table carries. */
 const audit = () => ({
@@ -63,6 +80,10 @@ export const users = pgTable(
     passwordHash: text("password_hash").notNull(),
     role: userRole("role").notNull().default("tailor"),
     isActive: boolean("is_active").notNull().default(true),
+    /** Monthly salary. Null means not paid through the app. */
+    salaryFils: integer("salary_fils"),
+    /** Day of the month salary is paid, 1 to 31. */
+    payDay: integer("pay_day"),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (t) => [
@@ -849,3 +870,173 @@ export type AccountStaff = typeof accountStaff.$inferSelect;
 export type AccountItem = typeof accountItems.$inferSelect;
 export type SoLineAllocation = typeof soLineAllocations.$inferSelect;
 export type DeliveryRun = typeof deliveryRuns.$inferSelect;
+
+/* ---------- Phase 5: cash, expenses, embroidery, quick sale, salaries ---------- */
+
+/**
+ * Every money movement, written by the action that caused it. Amount is signed: in is positive.
+ * Cash is the drawer; bank takes card, transfer and cheque.
+ */
+export const cashBook = pgTable(
+  "cash_book",
+  {
+    ...audit(),
+    entryDate: date("entry_date").notNull(),
+    pot: cashPot("pot").notNull(),
+    kind: cashKind("kind").notNull(),
+    amountFils: integer("amount_fils").notNull(),
+    description: text("description").notNull(),
+    sourceType: text("source_type").notNull(),
+    sourceId: uuid("source_id").notNull(),
+  },
+  (t) => [index("cash_book_date_idx").on(t.entryDate), uniqueIndex("cash_book_source_unique").on(t.sourceType, t.sourceId, t.pot)],
+);
+
+export const expenseCategories = pgTable("expense_categories", {
+  ...audit(),
+  name: text("name").notNull(),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
+});
+
+export const expenses = pgTable(
+  "expenses",
+  {
+    ...audit(),
+    expenseDate: date("expense_date").notNull(),
+    categoryId: uuid("category_id").notNull().references(() => expenseCategories.id),
+    description: text("description").notNull(),
+    payee: text("payee"),
+    payeeTrn: text("payee_trn"),
+    /** Total paid, VAT included. */
+    amountFils: integer("amount_fils").notNull(),
+    /** VAT inside the amount. Claimable only with the payee's TRN. */
+    vatFils: integer("vat_fils").notNull().default(0),
+    pot: cashPot("pot").notNull(),
+    receiptUrl: text("receipt_url"),
+    notes: text("notes"),
+    /** Set when another record made this expense, for example a salary payment. */
+    sourceType: text("source_type"),
+    sourceId: uuid("source_id"),
+  },
+  (t) => [index("expenses_date_idx").on(t.expenseDate)],
+);
+
+export const embroideryJobs = pgTable(
+  "embroidery_jobs",
+  {
+    ...audit(),
+    jobDate: date("job_date").notNull(),
+    /** Shop's customer: the operator earns his share. Operator's customer: he owes the shop its share. */
+    side: embroiderySide("side").notNull(),
+    customerId: uuid("customer_id").references(() => customers.id),
+    orderId: uuid("order_id").references(() => salesOrders.id),
+    customerName: text("customer_name"),
+    description: text("description").notNull(),
+    pieces: integer("pieces").notNull().default(1),
+    /** What the customer pays for the embroidery, before VAT. The split is worked out from this. */
+    priceFils: integer("price_fils").notNull(),
+    /** Shop share in percent when the job was made, so a later change in Settings does not move old jobs. */
+    shopSharePercent: integer("shop_share_percent").notNull(),
+    status: embroideryStatus("status").notNull().default("to_do"),
+    doneAt: timestamp("done_at", { withTimezone: true }),
+    designFileUrl: text("design_file_url"),
+    designFileName: text("design_file_name"),
+    threadColours: text("thread_colours"),
+    designSize: text("design_size"),
+    placement: text("placement"),
+    notes: text("notes"),
+  },
+  (t) => [index("embroidery_jobs_customer_idx").on(t.customerId)],
+);
+
+export const operatorSettlements = pgTable("operator_settlements", {
+  ...audit(),
+  settleDate: date("settle_date").notNull(),
+  direction: settlementDirection("direction").notNull(),
+  amountFils: integer("amount_fils").notNull(),
+  pot: cashPot("pot").notNull(),
+  notes: text("notes"),
+});
+
+/** Quick sale at the counter. Prints a Simplified Tax Invoice, FF-POS. */
+export const posSales = pgTable(
+  "pos_sales",
+  {
+    ...audit(),
+    number: text("number").notNull().unique(),
+    saleDate: date("sale_date").notNull(),
+    soldBy: uuid("sold_by").notNull().references(() => users.id),
+    customerName: text("customer_name"),
+    customerPhone: text("customer_phone"),
+    method: paymentMethod("method").notNull(),
+    subtotalFils: integer("subtotal_fils").notNull(),
+    vatFils: integer("vat_fils").notNull(),
+    totalFils: integer("total_fils").notNull(),
+    notes: text("notes"),
+  },
+  (t) => [index("pos_sales_date_idx").on(t.saleDate)],
+);
+
+export const posSaleLines = pgTable(
+  "pos_sale_lines",
+  {
+    ...audit(),
+    saleId: uuid("sale_id").notNull().references(() => posSales.id, { onDelete: "cascade" }),
+    sort: integer("sort").notNull().default(0),
+    productId: uuid("product_id").references(() => products.id),
+    description: text("description").notNull(),
+    qty: integer("qty").notNull(),
+    unitPriceFils: integer("unit_price_fils").notNull(),
+    vatRateBp: integer("vat_rate_bp").notNull(),
+    netFils: integer("net_fils").notNull(),
+    vatFils: integer("vat_fils").notNull(),
+  },
+  (t) => [index("pos_sale_lines_sale_idx").on(t.saleId)],
+);
+
+/** End of day: counted cash against what the cash book expects. One per day. */
+export const dailyCloses = pgTable("daily_closes", {
+  ...audit(),
+  closeDate: date("close_date").notNull().unique(),
+  expectedCashFils: integer("expected_cash_fils").notNull(),
+  countedCashFils: integer("counted_cash_fils").notNull(),
+  differenceFils: integer("difference_fils").notNull(),
+  cardTotalFils: integer("card_total_fils").notNull(),
+  notes: text("notes"),
+});
+
+export const salaryAdvances = pgTable(
+  "salary_advances",
+  {
+    ...audit(),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    advanceDate: date("advance_date").notNull(),
+    amountFils: integer("amount_fils").notNull(),
+    pot: cashPot("pot").notNull(),
+    notes: text("notes"),
+  },
+  (t) => [index("salary_advances_user_idx").on(t.userId)],
+);
+
+export const salaryPayments = pgTable(
+  "salary_payments",
+  {
+    ...audit(),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    /** The month this pays, like 2026-10. One payment per person per month. */
+    month: text("month").notNull(),
+    payDate: date("pay_date").notNull(),
+    grossFils: integer("gross_fils").notNull(),
+    advancesDeductedFils: integer("advances_deducted_fils").notNull().default(0),
+    netFils: integer("net_fils").notNull(),
+    pot: cashPot("pot").notNull(),
+    notes: text("notes"),
+  },
+  (t) => [uniqueIndex("salary_payments_user_month").on(t.userId, t.month)],
+);
+
+export type CashPot = (typeof cashPot.enumValues)[number];
+export type CashKind = (typeof cashKind.enumValues)[number];
+export type EmbroideryJob = typeof embroideryJobs.$inferSelect;
+export type Expense = typeof expenses.$inferSelect;
+export type PosSale = typeof posSales.$inferSelect;

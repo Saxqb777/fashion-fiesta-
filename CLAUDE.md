@@ -97,7 +97,7 @@ One shared template family: Quote, Sales Order confirmation, Delivery Note, Tax 
 - Lines table with description, qty, unit price, VAT 5%, line total. Totals box: subtotal, VAT, grand total, amount paid, balance due.
 - Footer: bank details from Settings, payment terms, thank you line.
 - Tax Invoice must satisfy UAE FTA requirements: the words "Tax Invoice", supplier TRN, date, unique number, VAT amount shown.
-- Numbering: FF-Q-0001, FF-SO-0001, FF-DN-0001, FF-INV-0001, FF-CN-0001, FF-RCT-0001, FF-PO-0001. Prefixes editable in Settings, never reused.
+- Numbering: every series starts at 1001: FF-Q-1001, FF-SO-1001, FF-DN-1001, FF-INV-1001, FF-CN-1001, FF-RCT-1001, FF-PO-1001, FF-POS-1001 (quick sale Simplified Tax Invoice). Prefixes editable in Settings, never reused.
 - An issued Tax Invoice is never edited or deleted. Corrections are Credit Notes (FF-CN).
 - Deposits: a payment can be taken on an order before it is invoiced. It shows on the order page and prints on the invoice as "Paid in advance".
 - Walk ins: a retail order can be invoiced and paid in one step.
@@ -160,7 +160,7 @@ Standing permission: small taste improvements (spacing, wording, micro animation
    What: every document has a Send button that opens WhatsApp to the customer's number with a short message and the PDF.
    Why: the invoice reaches the school before she puts the phone down.
 
-9. Daily close. approved. Phase 5. Effort: medium.
+9. Daily close. built. Phase 5. Effort: medium.
    What: end of day screen. The owner enters counted cash; the system shows expected cash, card total and the difference, flagged in red if it does not match. One per day, kept in history.
    Why: thirty seconds at closing, and the morning hero number is true.
 
@@ -192,7 +192,7 @@ Standing permission: small taste improvements (spacing, wording, micro animation
     What: a setup step and a Settings tab for cash in hand today, who owes you now (customer, amount, since when) and who you owe now (supplier, amount). These seed the first invoices, bills and cash book so day one numbers are right.
     Why: the app starts with the real numbers, not zero.
 
-17. Salaries. approved. Phase 5 (moved from v2). Effort: medium.
+17. Salaries. built. Phase 5 (moved from v2). Effort: medium.
     What: each tailor on Team has a salary, pay day and pay history. Today warns before pay day with the total. Mark paid writes to the cash book and expenses.
     Why: pay day never surprises the cash drawer.
 
@@ -250,10 +250,10 @@ Standing permission: small taste improvements (spacing, wording, micro animation
 35. Garment labels. built. Phase 4.5. Effort: small.
     What: print a small label per piece from an order: customer, branch, person, size, order number. Tick off each piece at delivery.
 
-36. Embroidery design files. approved. Phase 5, with embroidery jobs. Effort: small.
+36. Embroidery design files. built. Phase 5, with embroidery jobs. Effort: small.
     What: store the digitised machine file per customer with thread colours, size and placement notes. The operator downloads it from the embroidery job.
 
-37. Salary advances. approved. Phase 5, with salaries. Effort: small.
+37. Salary advances. built. Phase 5, with salaries. Effort: small.
     What: record an advance to a tailor, deduct it automatically on pay day, show the balance on Team.
 
 38. Rework task. proposed. Effort: small.

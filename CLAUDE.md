@@ -32,6 +32,10 @@ Business system for Fashion Fiesta Ladies Tailoring & Textiles, a ladies tailori
 - One shop, the shop is also the store room.
 - Users: Owner (full access), Tailor (own tasks + POS). Any tailor may do POS sales.
 - Everything (bank details, credit days, tailors, categories) is entered inside the app via the Setup Wizard and Settings. Nothing hardcoded except the defaults above.
+- Free typed lines (standing rule): lines on quotes, sales orders, invoices and POs never require an existing product. The owner can type any description, quantity and price directly on the line. When a line is saved with a description that does not match an existing product, the system creates that product automatically (name from the description, category "Uncategorised", price from the line) and links the line to it, silently, no popup. Next time she types the same name, it autocompletes from products with the last price she used for that customer.
+- Same for fabrics on a PO: a new fabric name creates the fabric record automatically.
+- Price on a product is only a default. The line price is always editable.
+- Apply the free typed lines rule in Phase 2 for quotes and orders, Phase 3 for invoices, Phase 4 for POs.
 
 ## Stack
 - Next.js App Router, TypeScript strict, Tailwind

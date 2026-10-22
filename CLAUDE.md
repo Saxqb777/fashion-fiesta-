@@ -13,6 +13,9 @@ Business system for Fashion Fiesta Ladies Tailoring & Textiles, a ladies tailori
 - Every phase ends deployed on Vercel production. No local testing by Saaqib, ever. You run typecheck, lint, build and your own checks locally, then push to main, wait for the Vercel deploy to finish, confirm it is live with no runtime errors using the Vercel MCP, and only then post the checklist with the live URL. Saaqib tests on the live URL and sends change requests. Changes get pushed and deployed the same way. Never ask him to run a dev server, open localhost, or check a preview URL.
 - Test against a temporary Neon branch, never the live database. Delete that branch at the end of every phase without asking.
 - Seed a test owner login on the first deploy and tell him the credentials once, so he can log in immediately.
+- Keep a file NOTES.md in the repo root as your working memory. Update it at the end of every phase and whenever a decision is made in chat: current phase and status, live URL, decisions taken with one line of reason, open questions for Saaqib, anything half done. Keep it under 150 lines, newest at top.
+- At the start of every reply after a context compaction, and at the start of every new session, read CLAUDE.md, NOTES.md and the last 20 git log lines before doing anything, and say in one line where we are.
+- If anything in the conversation conflicts with CLAUDE.md or NOTES.md, stop and ask before acting.
 
 ## Infra
 - GitHub: Saxqb777/fashion-fiesta-

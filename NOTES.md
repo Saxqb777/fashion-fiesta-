@@ -1,0 +1,60 @@
+# NOTES: working memory
+
+Newest at top. Keep under 150 lines. Rules for this file are in CLAUDE.md under "How we work".
+
+## Where we are (2026-10-22)
+- Live: https://fashion-fiesta-three.vercel.app (Vercel production, deploys from main)
+- Done and live: Phases 0, 1, 2, 3, 3.5, 4.
+- Now: measurement templates per garment type (small deploy), then Phase 4.5 Key Account mode.
+- Built locally, not deployed yet (ships with the measurement templates deploy):
+  - Pieces link: a unit task's "pieces received" and the unit PO's "pieces came back" update each other.
+  - Nightly backup: every table to Excel at 02:00 Abu Dhabi, kept 30 days, plus Settings > Data with "Download everything now" (covers idea 34).
+
+## Half done
+- Measurement templates:
+  - Done: table and migration 0008, the five default templates seeded on first use, Settings > Measurements "Garment templates" (add, edit, reorder, archive), template chips in the measure dialog, the order line opens on its product's template, the set records the template used.
+  - Left: category to template picker in Settings > Categories, template name shown on saved sets, the customer page dialog, then test, deploy and checklist.
+- Phase 4.5 plan approved ("go"), not started:
+  - Schema: key account switch, branch emirate and verified flag, account staff, account catalogue, line allocations, delivery runs, season, invoice branch breakdown, Delivery supplier type, label layout setting.
+  - Customer page tabs: Overview, Branches, Staff, Catalogue, Orders, Deliveries, Report.
+  - Bedashing demo: 24 UAE lounges captured from bedashingbeauty.com/lounges (Abu Dhabi 15, Dubai 5, Sharjah 2, Fujairah 1, Ras Al Khaimah 1). They get seeded as unverified with a one tap confirm.
+
+## Decisions (newest first)
+- Measurement templates: per garment type, an ordered pick from the master field list. Each category maps to a template, and old sets stay as they are. Reason: show only the relevant fields when measuring.
+- Phase 4.5:
+  - Delivery company is a supplier with type "Delivery". Reason: no new menu item, and it reuses bills and payments.
+  - Season is a free label with autocomplete. Reason: no fixed list to maintain.
+  - Labels print on A4 sticker sheets, 24 per sheet, 70 x 37 mm, with the layout kept as a setting. Reason: a thermal printer can be added later.
+  - Splitting a line per branch is optional, and the parts must add up. Reason: most orders are not split.
+  - Delivery notes go per branch, with one Tax Invoice per order and an optional per branch breakdown. Reason: this is how Bedashing works.
+  - Bedashing gets Key Account mode on, with branches preloaded from their website as unverified. Reason: the account page must not be empty for the demo.
+- Backups:
+  - The app exports itself nightly, and Neon gets upgraded when the shop goes live. Reason: the free plan has no scheduled snapshots, and point in time restore is only 6 hours.
+  - Backups are encrypted (AES-256-GCM, key derived from AUTH_SECRET) and kept in the main public Blob store. Reason: a private store could not be connected via MCP.
+  - The private Blob store "fashion-fiesta-backups" exists but is unused and empty.
+- Phase 4:
+  - Metres use 2 decimals, stored as hundredths.
+  - One draft outsourcing PO is made automatically per unit per order.
+  - "Fabric taken" is a tap on the task, with metres prefilled and editable, by the owner or the tailor.
+  - "Fabric sent" on outsourcing POs works the same way.
+  - An empty credit limit means no limit, and the warning shows overdue only. The warning never blocks.
+- Phase 3.5:
+  - The model reads Customer PO files, and the original file is kept on the order or quote as "Customer PO file".
+  - Sizes and per person names go into line notes in a structured way.
+  - ANTHROPIC_API_KEY lives only in Vercel and in the gitignored .env.local.
+- Phase 3 PDFs:
+  - PAID mark, signatory and stamp box, "Payments received".
+  - Statement wording: "Balance from previous records" and "Credit on account".
+  - Delivery Note and Credit Note footers show phone and email, not bank details.
+- 40 customers were seeded into production by a one time script. Bedashing has the note "Key account, Phase 4.5".
+
+## Open questions for Saaqib
+- Embroidery machine brand and model: to confirm with the operator. It decides the file format for ideas 36 and 43.
+- Neon plan upgrade at go live: turns on daily snapshots and a longer restore window.
+
+## Infra facts
+- Neon: project little-mud-41727057, main branch br-mute-feather-b3bhmnqk. Manual snapshot "before-phase-4" exists.
+- Vercel: project prj_grSCaYpWGqE93VbWkOQzahVzymA0, team team_yKuXQ8P3eoGrvRnTWMIqSiGo, region sin1.
+- Env vars are in Vercel for all three environments: DATABASE_URL, AUTH_SECRET, BLOB_READ_WRITE_TOKEN, ANTHROPIC_API_KEY, CRON_SECRET. They are never in git.
+- Cron: /api/cron/backup at 22:00 UTC.
+- Migrations live in /drizzle and run during build. The latest is 0008_measurement_templates, not yet on production.

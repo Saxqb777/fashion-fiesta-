@@ -135,7 +135,7 @@ async function deliveryDoc(id: string): Promise<Built | null> {
     customerPhone: p.phone,
     summary: `Delivery note ${d.number}, ${lines.reduce((t, l) => t + l.qty, 0)} pieces`,
     element: (
-      <DocShell title="Delivery Note" subtitle={d.number} company={co}>
+      <DocShell title="Delivery Note" subtitle={d.number} company={co} bank={false}>
         <View style={s.row}>
           <Party label="Deliver to" name={p.name} lines={p.lines} />
           <Meta rows={[["Delivery note", d.number], ["Date", day(d.deliveryDate)], ["Our order", order?.number], ["Customer PO", d.customerPoNumber]]} />
@@ -217,7 +217,7 @@ async function creditDoc(id: string): Promise<Built | null> {
     customerPhone: p.phone,
     summary: `Credit note ${cn.number} for AED ${aed(cn.totalFils)} against Tax Invoice ${inv?.number ?? ""}`,
     element: (
-      <DocShell title="Tax Credit Note" subtitle={cn.number} company={co} terms="This credit reduces the amount due on the invoice shown. All amounts in AED.">
+      <DocShell title="Tax Credit Note" subtitle={cn.number} company={co} bank={false} terms="This credit reduces the amount due on the invoice shown. All amounts in AED.">
         <View style={s.row}>
           <Party label="Customer" name={p.name} lines={p.lines} />
           <Meta rows={[["Credit note", cn.number], ["Date", day(cn.creditDate)], ["Against invoice", inv?.number], ["Invoice date", day(inv?.invoiceDate)], ["Supplier TRN", co.trn]]} />

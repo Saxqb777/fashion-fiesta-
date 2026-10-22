@@ -197,15 +197,19 @@ export function DocShell({
   subtitle,
   company,
   terms,
+  bank: showBank = true,
   children,
 }: {
   title: string;
   subtitle?: string;
   company: Company;
   terms?: string;
+  /** Bank details in the footer. Off for documents that ask for no payment: contact details instead. */
+  bank?: boolean;
   children: React.ReactNode;
 }) {
   registerFonts();
+  const contact = [company.phone, company.email].filter(Boolean).join("   ");
   const bank = [
     company.bankName && `Bank: ${company.bankName}`,
     company.accountName && `Account name: ${company.accountName}`,
@@ -244,10 +248,16 @@ export function DocShell({
           <Stripe height={2} style={{ marginBottom: 8 }} />
           <View style={s.row}>
             <View style={{ maxWidth: 300 }}>
-              {bank.length ? (
+              {showBank && bank.length ? (
                 <>
                   <Text style={[s.footerText, s.strong, { color: C.ink }]}>Pay by bank transfer</Text>
                   <Text style={s.footerText}>{bank.join("   ")}</Text>
+                </>
+              ) : null}
+              {!showBank && contact ? (
+                <>
+                  <Text style={[s.footerText, s.strong, { color: C.ink }]}>Contact us</Text>
+                  <Text style={s.footerText}>{contact}</Text>
                 </>
               ) : null}
               {terms ? <Text style={s.footerText}>{terms}</Text> : null}

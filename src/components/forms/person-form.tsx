@@ -1,5 +1,6 @@
 "use client";
 
+import { ActionForm } from "@/components/form/action-form";
 import { useActionState } from "react";
 import { createPerson, updatePerson } from "@/actions/settings";
 import { SubmitButton } from "@/components/form/submit-button";
@@ -29,7 +30,7 @@ export function PersonForm({
   const formKey = state.savedAt ?? 0;
 
   return (
-    <form key={formKey} action={action} className="flex flex-col gap-4">
+    <ActionForm key={formKey} action={action} className="flex flex-col gap-4">
       {person ? <input type="hidden" name="id" value={person.id} /> : null}
       <FormMessage message={state.ok ? undefined : state.message} />
       <div className={compact ? "grid gap-4 sm:grid-cols-2" : "grid gap-4"}>
@@ -65,6 +66,6 @@ export function PersonForm({
           {submitLabel ?? (person ? "Save changes" : "Add person")}
         </SubmitButton>
       </div>
-    </form>
+    </ActionForm>
   );
 }

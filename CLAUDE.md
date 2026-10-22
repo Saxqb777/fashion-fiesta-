@@ -11,6 +11,7 @@ Business system for Fashion Fiesta Ladies Tailoring & Textiles, a ladies tailori
 - Keep answers short. No long explanations unless asked.
 - Commit at the end of each phase with a clear message. Push to GitHub so Vercel deploys.
 - Every phase ends deployed on Vercel production. No local testing by Saaqib, ever. You run typecheck, lint, build and your own checks locally, then push to main, wait for the Vercel deploy to finish, confirm it is live with no runtime errors using the Vercel MCP, and only then post the checklist with the live URL. Saaqib tests on the live URL and sends change requests. Changes get pushed and deployed the same way. Never ask him to run a dev server, open localhost, or check a preview URL.
+- Test against a temporary Neon branch, never the live database. Delete that branch at the end of every phase without asking.
 - Seed a test owner login on the first deploy and tell him the credentials once, so he can log in immediately.
 
 ## Infra
@@ -112,7 +113,7 @@ Standing permission: small taste improvements (spacing, wording, micro animation
    What: photo a handwritten order slip or WhatsApp screenshot and it becomes a draft quote with lines to check; photo a supplier delivery note and it prefills the goods receipt.
    Why: most orders start as a scribble. She checks instead of types.
 
-2. Measurement card. proposed. Phase 1 (store), Phase 2 (prefill). Effort: medium.
+2. Measurement card. approved. Build in Phase 2 with orders and tasks (store and prefill). Effort: medium.
    What: body measurements saved once per customer, and size runs per branch for wholesale. New order lines prefill from last time with a "still the same?" nudge.
    Why: no notebook hunting, no re measuring a regular.
 
@@ -128,7 +129,7 @@ Standing permission: small taste improvements (spacing, wording, micro animation
    What: a tailor types "25 of 30" and takes one photo of the stack; the order line shows a progress bar instead of 25 separate submissions.
    Why: she sees how far the order is without asking anyone.
 
-6. Pick this roll. proposed. Phase 4. Effort: medium.
+6. Pick this roll. approved. Shelf location on fabrics in Phase 1. Task card and short stock warning in Phase 4. Effort: medium.
    What: a task card shows the fabric photo, its shelf spot and metres to cut; assigning a task warns if stock is short.
    Why: no wrong roll, no half cut orders, no walk to the shelf to check.
 

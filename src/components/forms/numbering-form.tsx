@@ -1,5 +1,6 @@
 "use client";
 
+import { ActionForm } from "@/components/form/action-form";
 import { useActionState, useState } from "react";
 import { saveNumbering } from "@/actions/settings";
 import { FormMessage } from "@/components/form/field";
@@ -67,7 +68,7 @@ export function NumberingForm({
   useFormFeedback(state);
   const errors = state.errors ?? {};
   return (
-    <form action={action} className="flex flex-col gap-5">
+    <ActionForm action={action} className="flex flex-col gap-5">
       <input type="hidden" name="mode" value={mode} />
       <FormMessage message={state.ok ? undefined : state.message} />
       <ul className="flex flex-col gap-3">
@@ -78,6 +79,6 @@ export function NumberingForm({
       </ul>
       <p className="text-[13px] text-ink-muted">Numbers are never reused. You can raise the next number, never lower it.</p>
       <FormActions mode={mode} backHref={backHref} />
-    </form>
+    </ActionForm>
   );
 }

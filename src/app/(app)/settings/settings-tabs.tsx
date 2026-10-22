@@ -9,6 +9,7 @@ const TABS = [
   { href: "/settings/money", label: "Money" },
   { href: "/settings/numbering", label: "Numbering" },
   { href: "/settings/team", label: "Team" },
+  { href: "/settings/categories", label: "Categories" },
 ];
 
 export function SettingsTabs() {

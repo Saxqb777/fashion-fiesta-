@@ -1,5 +1,6 @@
 "use client";
 
+import { ActionForm } from "@/components/form/action-form";
 import { useActionState } from "react";
 import { saveShop } from "@/actions/settings";
 import { FormMessage, TextAreaField, TextField } from "@/components/form/field";
@@ -13,7 +14,7 @@ export function ShopForm({ settings, mode, backHref }: { settings: Settings; mod
   useFormFeedback(state);
   const e = state.errors ?? {};
   return (
-    <form action={action} className="flex flex-col gap-5">
+    <ActionForm action={action} className="flex flex-col gap-5">
       <input type="hidden" name="mode" value={mode} />
       <FormMessage message={state.ok ? undefined : state.message} />
       <div className="grid gap-5 sm:grid-cols-2">
@@ -28,6 +29,6 @@ export function ShopForm({ settings, mode, backHref }: { settings: Settings; mod
         <TextField name="vatRate" label="VAT rate %" inputMode="decimal" defaultValue={(settings.vatRateBp / 100).toString()} errors={e.vatRate} hint="UAE standard rate is 5." className="tabular" />
       </div>
       <FormActions mode={mode} backHref={backHref} />
-    </form>
+    </ActionForm>
   );
 }

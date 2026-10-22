@@ -23,13 +23,13 @@ export type NavItem = {
 export const NAV_GROUPS: NavItem[][] = [
   [{ href: "/today", label: "Today", icon: Sun, phase: 0, roles: ["owner", "tailor"] }],
   [
-    { href: "/orders", label: "Orders", icon: Scissors, phase: 2, roles: ["owner"] },
-    { href: "/customers", label: "Customers", icon: Users, phase: 1, roles: ["owner"] },
+    { href: "/orders", label: "Orders", icon: Scissors, phase: 0, roles: ["owner"] },
+    { href: "/customers", label: "Customers", icon: Users, phase: 0, roles: ["owner"] },
     { href: "/money", label: "Money", icon: Wallet, phase: 3, roles: ["owner"] },
   ],
   [
     { href: "/workshop", label: "Workshop", icon: Shirt, phase: 2, roles: ["owner", "tailor"] },
-    { href: "/purchases", label: "Purchases", icon: Package, phase: 4, roles: ["owner"] },
+    { href: "/purchases", label: "Purchases", icon: Package, phase: 0, roles: ["owner"] },
   ],
   [
     { href: "/reports", label: "Reports", icon: ChartColumn, phase: 6, roles: ["owner"] },

@@ -1,5 +1,6 @@
 "use client";
 
+import { ActionForm } from "@/components/form/action-form";
 import { useActionState } from "react";
 import { saveOperator } from "@/actions/settings";
 import { SubmitButton } from "@/components/form/submit-button";
@@ -13,7 +14,7 @@ export function OperatorForm({ settings }: { settings: Settings }) {
   useFormFeedback(state);
   const e = state.errors ?? {};
   return (
-    <form action={action} className="flex flex-col gap-4">
+    <ActionForm action={action} className="flex flex-col gap-4">
       <FormMessage message={state.ok ? undefined : state.message} />
       <div className="grid gap-4 sm:grid-cols-[1.4fr_1fr_0.8fr]">
         <TextField name="embroideryOperatorName" label="Operator name" defaultValue={settings.embroideryOperatorName ?? ""} errors={e.embroideryOperatorName} />
@@ -35,6 +36,6 @@ export function OperatorForm({ settings }: { settings: Settings }) {
           Save operator
         </SubmitButton>
       </div>
-    </form>
+    </ActionForm>
   );
 }

@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   boolean,
+  index,
   integer,
   jsonb,
   pgEnum,
@@ -12,6 +13,10 @@ import {
 } from "drizzle-orm/pg-core";
 
 export const userRole = pgEnum("user_role", ["owner", "tailor"]);
+export const customerType = pgEnum("customer_type", ["retail", "wholesale"]);
+export const customerTier = pgEnum("customer_tier", ["vip", "regular", "new"]);
+export const supplierType = pgEnum("supplier_type", ["fabric", "outsourcing"]);
+export const productKind = pgEnum("product_kind", ["custom", "ready_made"]);
 export const documentType = pgEnum("document_type", [
   "quote",
   "sales_order",
@@ -97,7 +102,114 @@ export const activityLog = pgTable("activity_log", {
   changes: jsonb("changes").$type<Record<string, unknown>>(),
 });
 
+/* ---------- Phase 1: master data ---------- */
+
+export const customers = pgTable(
+  "customers",
+  {
+    ...audit(),
+    name: text("name").notNull(),
+    type: customerType("type").notNull().default("retail"),
+    tier: customerTier("tier").notNull().default("new"),
+    phone: text("phone"),
+    email: text("email"),
+    trn: text("trn"),
+    address: text("address"),
+    /** Null means the shop default from settings. */
+    creditDays: integer("credit_days"),
+    notes: text("notes"),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => [index("customers_name_idx").on(t.name)],
+);
+
+export const customerBranches = pgTable(
+  "customer_branches",
+  {
+    ...audit(),
+    customerId: uuid("customer_id")
+      .notNull()
+      .references(() => customers.id),
+    name: text("name").notNull(),
+    contactName: text("contact_name"),
+    phone: text("phone"),
+    address: text("address"),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => [index("customer_branches_customer_idx").on(t.customerId)],
+);
+
+export const suppliers = pgTable(
+  "suppliers",
+  {
+    ...audit(),
+    name: text("name").notNull(),
+    type: supplierType("type").notNull().default("fabric"),
+    contactName: text("contact_name"),
+    phone: text("phone"),
+    email: text("email"),
+    trn: text("trn"),
+    city: text("city"),
+    address: text("address"),
+    paymentDays: integer("payment_days"),
+    notes: text("notes"),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => [index("suppliers_name_idx").on(t.name)],
+);
+
+export const productCategories = pgTable("product_categories", {
+  ...audit(),
+  name: text("name").notNull(),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
+});
+
+export const products = pgTable(
+  "products",
+  {
+    ...audit(),
+    name: text("name").notNull(),
+    categoryId: uuid("category_id").references(() => productCategories.id),
+    kind: productKind("kind").notNull().default("custom"),
+    /** Price before VAT, in fils. */
+    priceFils: integer("price_fils").notNull().default(0),
+    notes: text("notes"),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => [index("products_name_idx").on(t.name)],
+);
+
+export const fabrics = pgTable(
+  "fabrics",
+  {
+    ...audit(),
+    name: text("name").notNull(),
+    code: text("code"),
+    colour: text("colour"),
+    supplierId: uuid("supplier_id").references(() => suppliers.id),
+    /** Per metre, before VAT, in fils. */
+    costFils: integer("cost_fils").notNull().default(0),
+    priceFils: integer("price_fils").notNull().default(0),
+    photoUrl: text("photo_url"),
+    /** Where the roll sits in the shop, e.g. "Rack B, shelf 2". Idea 6. */
+    shelfLocation: text("shelf_location"),
+    notes: text("notes"),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => [index("fabrics_name_idx").on(t.name)],
+);
+
 export type User = typeof users.$inferSelect;
+export type Customer = typeof customers.$inferSelect;
+export type CustomerBranch = typeof customerBranches.$inferSelect;
+export type Supplier = typeof suppliers.$inferSelect;
+export type ProductCategory = typeof productCategories.$inferSelect;
+export type Product = typeof products.$inferSelect;
+export type Fabric = typeof fabrics.$inferSelect;
+export type CustomerType = (typeof customerType.enumValues)[number];
+export type CustomerTier = (typeof customerTier.enumValues)[number];
+export type SupplierType = (typeof supplierType.enumValues)[number];
+export type ProductKind = (typeof productKind.enumValues)[number];
 export type Settings = typeof settings.$inferSelect;
 export type NumberSequence = typeof numberSequences.$inferSelect;
 export type UserRole = (typeof userRole.enumValues)[number];

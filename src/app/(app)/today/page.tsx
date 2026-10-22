@@ -34,13 +34,13 @@ export default async function TodayPage() {
         <EmptyState
           sentence={
             owner
-              ? `Nothing needs you yet. Phase 1 brings customers, suppliers, products and fabrics to ${settings.tradeName}.`
+              ? `Nothing needs you yet. Start by adding the customers ${settings.tradeName} sews for.`
               : "Nothing is assigned to you yet. Your tasks will appear here when the workshop opens in Phase 2."
           }
           action={
             owner ? (
-              <Button variant="outline" nativeButton={false} render={<Link href="/settings" />}>
-                Open Settings
+              <Button variant="outline" nativeButton={false} render={<Link href="/customers" />}>
+                Open Customers
               </Button>
             ) : undefined
           }

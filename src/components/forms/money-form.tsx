@@ -1,5 +1,6 @@
 "use client";
 
+import { ActionForm } from "@/components/form/action-form";
 import { useActionState } from "react";
 import { saveMoney } from "@/actions/settings";
 import { FormMessage, TextField } from "@/components/form/field";
@@ -13,7 +14,7 @@ export function MoneyForm({ settings, mode, backHref }: { settings: Settings; mo
   useFormFeedback(state);
   const e = state.errors ?? {};
   return (
-    <form action={action} className="flex flex-col gap-5">
+    <ActionForm action={action} className="flex flex-col gap-5">
       <input type="hidden" name="mode" value={mode} />
       <FormMessage message={state.ok ? undefined : state.message} />
       <div className="grid gap-5 sm:grid-cols-2">
@@ -37,6 +38,6 @@ export function MoneyForm({ settings, mode, backHref }: { settings: Settings; mo
         />
       </div>
       <FormActions mode={mode} backHref={backHref} />
-    </form>
+    </ActionForm>
   );
 }

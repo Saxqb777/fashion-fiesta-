@@ -1,5 +1,6 @@
 "use client";
 
+import { ActionForm } from "@/components/form/action-form";
 import { useActionState } from "react";
 import { saveAccount } from "@/actions/settings";
 import { FormMessage, TextField } from "@/components/form/field";
@@ -12,7 +13,7 @@ export function AccountForm({ user }: { user: { name: string; email: string; pho
   useFormFeedback(state);
   const e = state.errors ?? {};
   return (
-    <form action={action} className="flex flex-col gap-5">
+    <ActionForm action={action} className="flex flex-col gap-5">
       <input type="hidden" name="mode" value="setup" />
       <FormMessage message={state.ok ? undefined : state.message} />
       <div className="grid gap-5 sm:grid-cols-2">
@@ -25,6 +26,6 @@ export function AccountForm({ user }: { user: { name: string; email: string; pho
         <TextField name="confirm" label="Type it again" type="password" errors={e.confirm} autoComplete="new-password" />
       </div>
       <FormActions mode="setup" />
-    </form>
+    </ActionForm>
   );
 }

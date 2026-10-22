@@ -1,8 +1,5 @@
-import type { Metadata } from "next";
-import { ComingSoon } from "@/components/coming-soon";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = { title: "Purchases" };
-
-export default function Page() {
-  return <ComingSoon section="purchases" />;
+export default function PurchasesIndex() {
+  redirect("/purchases/suppliers");
 }

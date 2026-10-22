@@ -7,6 +7,13 @@ export const authConfig = {
   session: { strategy: "jwt", maxAge: 60 * 60 * 24 * 30 },
   trustHost: true,
   providers: [],
+  logger: {
+    // A wrong password is normal use, not a server error.
+    error(error) {
+      if (error.name === "CredentialsSignin") return;
+      console.error(error);
+    },
+  },
   callbacks: {
     authorized({ auth, request }) {
       const loggedIn = Boolean(auth?.user);

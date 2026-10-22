@@ -117,23 +117,23 @@ Standing permission: small taste improvements (spacing, wording, micro animation
    What: photo a handwritten order slip or WhatsApp screenshot and it becomes a draft quote with lines to check; photo a supplier delivery note and it prefills the goods receipt.
    Why: most orders start as a scribble. She checks instead of types.
 
-2. Measurement card. approved. Build in Phase 2 with orders and tasks (store and prefill). Effort: medium.
+2. Measurement card. built. Build in Phase 2 with orders and tasks (store and prefill). Effort: medium.
    What: body measurements saved once per customer, and size runs per branch for wholesale. New order lines prefill from last time with a "still the same?" nudge.
    Why: no notebook hunting, no re measuring a regular.
 
-3. Last price memory. approved. Phase 2. Covered by the free typed lines rule. Effort: small.
+3. Last price memory. built. Phase 2. Covered by the free typed lines rule. Effort: small.
    What: an order line prefills the unit price from this customer's last order of the same product, with a small "last time 45.00" chip.
    Why: she never has to remember what she charged the school in March.
 
-4. Order again. approved. Phase 2. Effort: small.
+4. Order again. built. Phase 2. Effort: small.
    What: one tap on any past sales order copies its lines, sizes and prices into a new order; she only edits quantities.
    Why: school uniform repeats every term take seconds, not a rebuild.
 
-5. Batch done. approved. Phase 2. Effort: small.
+5. Batch done. built. Phase 2. Effort: small.
    What: a tailor types "25 of 30" and takes one photo of the stack; the order line shows a progress bar instead of 25 separate submissions.
    Why: she sees how far the order is without asking anyone.
 
-6. Pick this roll. approved. Shelf location on fabrics in Phase 1. Task card and short stock warning in Phase 4. Effort: medium.
+6. Pick this roll. approved. Shelf location on fabrics built in Phase 1. Task card and short stock warning in Phase 4. Effort: medium.
    What: a task card shows the fabric photo, its shelf spot and metres to cut; assigning a task warns if stock is short.
    Why: no wrong roll, no half cut orders, no walk to the shelf to check.
 

@@ -21,6 +21,7 @@ Newest at top. Keep under 150 lines. Rules for this file are in CLAUDE.md under 
   - Bedashing demo: 24 UAE lounges captured from bedashingbeauty.com/lounges (Abu Dhabi 15, Dubai 5, Sharjah 2, Fujairah 1, Ras Al Khaimah 1). They get seeded as unverified with a one tap confirm.
 
 ## Decisions (newest first)
+- 2026-10-22: Neon stays on the Free plan for now; Saaqib will decide on Launch later. Reason: still testing, and the nightly Excel backup covers it. Launch costs about $10 to $16 a month.
 - Measurement templates: per garment type, an ordered pick from the master field list. Each category maps to a template, and old sets stay as they are. Reason: show only the relevant fields when measuring.
 - Phase 4.5:
   - Delivery company is a supplier with type "Delivery". Reason: no new menu item, and it reuses bills and payments.
@@ -51,7 +52,7 @@ Newest at top. Keep under 150 lines. Rules for this file are in CLAUDE.md under 
 
 ## Open questions for Saaqib
 - Embroidery machine brand and model: to confirm with the operator. It decides the file format for ideas 36 and 43.
-- Neon plan upgrade at go live: turns on daily snapshots and a longer restore window.
+- Neon Launch plan (later, his call): gives a 7 day rewind window and daily snapshots. He adds a card in Neon billing, then I set both up.
 
 ## Infra facts
 - Neon: project little-mud-41727057, main branch br-mute-feather-b3bhmnqk. Manual snapshot "before-phase-4" exists.

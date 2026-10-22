@@ -121,7 +121,7 @@ Standing permission: small taste improvements (spacing, wording, micro animation
    What: body measurements saved once per customer, and size runs per branch for wholesale. New order lines prefill from last time with a "still the same?" nudge.
    Why: no notebook hunting, no re measuring a regular.
 
-3. Last price memory. proposed. Phase 2. Effort: small.
+3. Last price memory. approved. Phase 2. Covered by the free typed lines rule. Effort: small.
    What: an order line prefills the unit price from this customer's last order of the same product, with a small "last time 45.00" chip.
    Why: she never has to remember what she charged the school in March.
 

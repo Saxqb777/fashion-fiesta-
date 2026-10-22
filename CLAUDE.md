@@ -271,9 +271,25 @@ Standing permission: small taste improvements (spacing, wording, micro animation
 43. Embroidery Studio. proposed. After Phase 6, inside Workshop. Effort: large.
     What: the owner or operator uploads a logo or image, sets the size in cm and the thread colours. The system cleans and vectorises the image, auto digitises it to a machine file (DST by default, format set per machine model in Settings), shows a stitch preview and stitch count, and saves it as the customer's design file. The operator downloads it and finishes the work on the machine and his own software. The system makes the first file, the operator owns the final. Research Ink/Stitch for the digitising step before planning this.
 
+44. Email from the system. approved. Phase 6. Effort: medium.
+    What: Settings gets "Connect email": an owner signs in with Google once and the system sends from her own Gmail address (send permission only, never reads the inbox). A second owner can connect her own. Every PDF (Quote, Sales Order confirmation, Delivery Note, Tax Invoice, Credit Note, Receipt, Statement, Purchase Order) gets a "Send by email" button next to "Send on WhatsApp": a ready email with the recipient from the customer or branch contact, subject and short body from a template editable in Settings, PDF attached; she reviews and taps Send. Sent emails are logged on the record (when, to whom, by whom, the PDF version that went) with one tap Resend. Due reminders and statements go the same way from Who owes you, one customer or several at once. With no email connected, the button explains in one line how to connect it.
+
+45. Fiesta, the Fashion Fiesta assistant. approved. After Phase 6, the first AI item, before the Tax tab. Effort: large.
+    What: a floating button bottom right on every page, owner only at first, opening a chat panel powered by Claude that knows this business from the live data: shop, customers, orders, money, workshop, fabric, tailors, embroidery and UAE VAT rules.
+    - Takes her there: "open Bedashing", "show overdue", "new quote for Al Dahra" navigates to the page or record with filters and fields prefilled.
+    - Answers from the data: "how much did Bedashing order this year", "who hasn't paid", "how many pants did Ahmed stitch this month", "which fabric is low".
+    - Prepares actions she confirms with one tap: record a payment, assign a task, create a draft order or quote, send a reminder by email or WhatsApp.
+    - Explains the screen she is on in plain words.
+    - Drafts emails and WhatsApp messages to customers, suppliers or tailors in her tone.
+    - Talks business: ideas, pricing, a late payer, what to offer a new spa, how other uniform suppliers work, grounded in her own numbers when relevant.
+    Rules: Fiesta can read anything and prepare anything, but saves or sends nothing without her tap. Same design tokens as the app, Fraunces for its name, red only on the confirm button. Conversation history kept per owner. Works on phone. Fiesta covers ideas 12 (WhatsApp message drafts) and 13 (Ask your shop).
+
+46. Fiesta for tailors. proposed. Effort: medium.
+    What: task questions answered on the tailor's phone screens, in Urdu and Hindi too.
+
 Open questions for Saaqib:
 - Embroidery machine brand and model: confirm with the operator. It decides the machine file format for ideas 36 and 43.
 
 (Ask your shop is idea 13, already in the backlog.)
 
-Notes: Reading customer documents (idea 1) is Phase 3.5. The other AI ideas (11, 12, 13 and supplier note photos) are done together after Phase 6.
+Notes: Reading customer documents (idea 1) is Phase 3.5. After Phase 6, Fiesta (idea 45) comes first, then the Tax tab (ideas 25 to 28), then the other AI ideas (11, 23, 24 and supplier note photos).

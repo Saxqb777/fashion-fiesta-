@@ -1,0 +1,147 @@
+# Fashion Fiesta Studio
+
+Business system for Fashion Fiesta Ladies Tailoring & Textiles, a ladies tailoring and wholesale clothing shop in Shabiya 12, Mussafah, Abu Dhabi. Used daily by two owners on desktop and phone, and by tailors on phones. Replaces Odoo. Fresh start, no data migration.
+
+## How we work
+- Saaqib is the product owner. You are the builder.
+- Work phase by phase (see Roadmap). Before starting a phase, post a short plan (files, tables, screens) and wait for "go".
+- Load the frontend-design skill before building any screen.
+- After each phase: run typecheck, lint and build, then give Saaqib a short click through checklist: what to open, what to click, what he should see.
+- Never skip ahead, never refactor other phases without asking.
+- Keep answers short. No long explanations unless asked.
+- Commit at the end of each phase with a clear message. Push to GitHub so Vercel deploys.
+
+## Infra
+- GitHub: Saxqb777/fashion-fiesta-
+- Neon project: fashion-fiesta (created via Neon MCP)
+- Vercel project: fashion-fiesta in team saxqb777s-projects (created via Vercel MCP)
+- Use the Neon and Vercel MCP tools for any infra change. Never ask Saaqib to click around dashboards.
+
+## Business facts
+- Legal name: FASHION FIESTA LADIES TAILORING & TEXTILES SOLE PROPRIETORSHIP L.L.C
+- Address: Shabiya 12, Mussafah, Abu Dhabi, United Arab Emirates
+- TRN: 100545592600003
+- Currency AED. VAT 5% on all sales and purchases. Store money as integer fils, display 2 decimals.
+- 90 to 95% of orders are custom stitched. Ready made is rare but allowed.
+- Stitching is done in house by salaried tailors, or outsourced to stitching units (mostly Ajman). Fabric bought from fabric suppliers.
+- Embroidery machine run by an operator on a 50/50 split with the shop, both directions (shop's customer or operator's customer).
+- Wholesale customers (schools, spas, businesses) buy on credit and have branches. Retail walk ins pay cash or card at the counter.
+- One shop, the shop is also the store room.
+- Users: Owner (full access), Tailor (own tasks + POS). Any tailor may do POS sales.
+- Everything (bank details, credit days, tailors, categories) is entered inside the app via the Setup Wizard and Settings. Nothing hardcoded except the defaults above.
+
+## Stack
+- Next.js App Router, TypeScript strict, Tailwind
+- shadcn/ui as base primitives only, fully restyled with our tokens
+- Neon Postgres + Drizzle ORM, migrations in repo
+- Auth: Auth.js credentials (email + password). Owner creates all accounts. No self signup.
+- Photos: Vercel Blob
+- PDFs: @react-pdf/renderer
+- Motion: framer motion, used sparingly
+- PWA: installable, tailor screens must work on a cheap Android phone
+- Deploy: Vercel. Env vars in .env.example, never commit secrets.
+
+## Design system (this matters most)
+This must not look like an ERP or a template. Target reaction from the owners: "wow".
+
+Tokens (start here, sample the real logo at public/brand/logo.png and adjust):
+- Background paper: #FAF7F2
+- Surface: #FFFFFF
+- Ink: #1F1A17
+- Muted ink: #6F6560
+- Brand red (hero): #D7182A
+- Brand red deep: #B3121F
+- Accents from the logo swoosh, used only for status tags, chart lines and tiny details: magenta #E6007E, green #8DC63F, blue #00AEEF, yellow #FFD200
+- Border: #E8E1D9
+- Radius: 14px cards, 10px inputs, full for pills
+- Shadows: almost none. Use borders and background shifts for depth.
+
+Type:
+- Headings and big numbers: Fraunces (display serif)
+- Body and UI: Manrope
+- Numbers in tables use tabular figures
+
+Rules:
+- Home screen is called "Today", not Dashboard. One hero number (cash in hand), then "Needs your attention" as a list of items each with exactly one action button. Not a grid of four stat tiles.
+- Every order shows a stage tracker: Quote → Confirmed → Stitching → Ready → Delivered → Invoiced → Paid. Current stage highlighted in red, next action button right under it.
+- Tailor tasks are photo cards. Approved work goes into a Gallery page.
+- Customer tiers: VIP, Regular, New. VIP sorts first and gets a small magenta tag.
+- Empty states always teach: one sentence and one button to add the first record. Never an empty table.
+- Celebrations: payment received, invoice fully paid, task approved get a short satisfying animation (under 1 second). Big numbers count up on load.
+- Tailor phone screens: max three primary actions per screen, buttons at least 48px tall, camera upload front and centre.
+- Forbidden: purple or blue gradients, emoji in the UI, icons inside coloured circles on stat cards, "Welcome back" banners, lorem ipsum, placeholder avatars, generic admin sidebar with 20 items. Sidebar is short and grouped: Today, Orders, Customers, Money, Workshop, Purchases, Reports, Settings.
+- Copy is plain and warm. "Who owes you", not "Accounts receivable". Keep the accounting term as a small secondary label where it helps.
+- Hyphens and em dashes are not used in UI copy or documents. Use colons or full stops.
+
+## Documents (PDF templates)
+One shared template family: Quote, Sales Order confirmation, Delivery Note, Tax Invoice, Receipt, Statement of Account, Purchase Order.
+- A4. Red header band with the logo on the left, document title on the right in Fraunces.
+- Thin accent stripe under the header using the four swoosh colours.
+- Company block with legal name, address, TRN. Customer block with name, branch, TRN if any.
+- Lines table with description, qty, unit price, VAT 5%, line total. Totals box: subtotal, VAT, grand total, amount paid, balance due.
+- Footer: bank details from Settings, payment terms, thank you line.
+- Tax Invoice must satisfy UAE FTA requirements: the words "Tax Invoice", supplier TRN, date, unique number, VAT amount shown.
+- Numbering: FF-Q-0001, FF-SO-0001, FF-DN-0001, FF-INV-0001, FF-RCT-0001, FF-PO-0001. Prefixes editable in Settings, never reused.
+
+## Data model (core tables)
+users, customers, customer_branches, suppliers (type: fabric | outsourcing), products, fabrics, quotes, quote_lines, sales_orders, so_lines, tasks (status: assigned | in_progress | submitted | approved | rejected, photos as blob urls), purchase_orders, po_lines, supplier_bills, supplier_payments, invoices, invoice_lines, payments (with allocations to invoices), embroidery_jobs, expenses, cash_book, pos_sales, pos_sale_lines, stock_movements, notifications, activity_log, settings.
+- Every table: id (uuid), created_at, updated_at, created_by.
+- Soft delete where a record can have history (customers, suppliers, products). Hard delete only for drafts.
+- activity_log records who did what on every create, update, status change.
+
+## Roadmap
+Phase 0: Scaffold, tokens, fonts, layout shell, auth, Settings, first run Setup Wizard (owner account, company details prefilled, bank details, default credit days, VAT, numbering, add tailors and embroidery operator, "setup complete" flag). Deploy to Vercel so Saaqib can open it on his phone.
+Phase 1: Master data: Customers (+ branches, tiers, credit terms), Suppliers, Products, Fabrics. Full add, edit, search, soft delete.
+Phase 2: Quotes → Sales Orders with lines, assign each line to a tailor task or an outsourcing PO, stage tracker, tailor phone screens (My tasks, task detail, photo upload, submit), owner approve or reject, Gallery.
+Phase 3: Invoices from SO (full or partial), payments with allocation, receipts, statements, all PDF templates, overdue logic from credit days, due reminders in Today.
+Phase 4: Purchase Orders, goods receipt into fabric stock, supplier bills, supplier payments, stock movements when fabric is issued to a task.
+Phase 5: Cash book (auto entries from every money event), Expenses, Embroidery jobs with 50/50 settlement, POS quick sale for tailors (cash or card, receipt share).
+Phase 6: Today screen, Reports (who owes you with aging, sales by customer, VAT summary for filing, tailor output), notifications, celebrations, PWA, polish pass against the Design system rules.
+Phase 7: Seed script with realistic demo data, handover notes for the owners.
+
+## Parked for v2
+POS card terminal integration (provider to be confirmed), order planning and branch allocation, tailor salary and attendance, WhatsApp reminders, deeper reports.
+
+## Ideas backlog
+Status values: proposed, approved, built. Saaqib marks ideas approved. Build only approved ideas, in the phase they belong to. Never build a proposed idea without approval.
+Standing permission: small taste improvements (spacing, wording, micro animation, a smarter default) are allowed in any phase if they follow the Design system rules. Flag each one in the end of phase checklist.
+
+1. Paper in, record out. proposed. Phase 2 (quotes), Phase 4 (goods receipt). Effort: large.
+   What: photo a handwritten order slip or WhatsApp screenshot and it becomes a draft quote with lines to check; photo a supplier delivery note and it prefills the goods receipt.
+   Why: most orders start as a scribble. She checks instead of types.
+
+2. Measurement card. proposed. Phase 1 (store), Phase 2 (prefill). Effort: medium.
+   What: body measurements saved once per customer, and size runs per branch for wholesale. New order lines prefill from last time with a "still the same?" nudge.
+   Why: no notebook hunting, no re measuring a regular.
+
+3. Last price memory. proposed. Phase 2. Effort: small.
+   What: an order line prefills the unit price from this customer's last order of the same product, with a small "last time 45.00" chip.
+   Why: she never has to remember what she charged the school in March.
+
+4. Order again. proposed. Phase 2. Effort: small.
+   What: one tap on any past sales order copies its lines, sizes and prices into a new order; she only edits quantities.
+   Why: school uniform repeats every term take seconds, not a rebuild.
+
+5. Batch done. proposed. Phase 2. Effort: small.
+   What: a tailor types "25 of 30" and takes one photo of the stack; the order line shows a progress bar instead of 25 separate submissions.
+   Why: she sees how far the order is without asking anyone.
+
+6. Pick this roll. proposed. Phase 4. Effort: medium.
+   What: a task card shows the fabric photo, its shelf spot and metres to cut; assigning a task warns if stock is short.
+   Why: no wrong roll, no half cut orders, no walk to the shelf to check.
+
+7. What to say when you call. proposed. Phase 3. Effort: small.
+   What: the customer page shows a call box: balance, oldest unpaid invoice, last payment, promised date, tap to call. One tap records "they promised the 15th" and Today reminds her that morning. Broken promises count on the customer.
+   Why: every dues call starts prepared and ends with a date, not a maybe.
+
+8. Send on WhatsApp. proposed. Phase 3. Effort: small.
+   What: every document has a Send button that opens WhatsApp to the customer's number with a short message and the PDF.
+   Why: the invoice reaches the school before she puts the phone down.
+
+9. Close the day. proposed. Phase 5. Effort: medium.
+   What: an end of day screen shows expected cash in the drawer, she types the counted amount, the difference is logged in the cash book with a note.
+   Why: thirty seconds at closing, and the morning hero number is true.
+
+10. Can we promise that date. proposed. Phase 2. Effort: medium.
+    What: when confirming an order, the screen shows how many pieces each tailor already has due before the promised date and flags a tight date. Not a planner, just a warning.
+    Why: she stops promising Thursday when the workshop is full.

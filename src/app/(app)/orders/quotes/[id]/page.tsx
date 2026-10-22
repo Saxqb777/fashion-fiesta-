@@ -11,9 +11,12 @@ import { Flash } from "@/components/data/flash";
 import { RecentActivity } from "@/components/data/recent-activity";
 import { SoftTag, TierTag } from "@/components/data/tags";
 import { LinkButton } from "@/components/link-button";
+import { SendDoc } from "@/components/money/send-doc";
 import { QuoteStatusButton } from "@/components/orders/quote-status-buttons";
 import { StageTracker } from "@/components/orders/stage-tracker";
 import { formatISODate } from "@/lib/dates";
+import { sendDocProps } from "@/lib/doc-links";
+import { getSettings } from "@/lib/settings";
 import { formatFils } from "@/lib/money";
 import { requireOwner } from "@/lib/session";
 import { QUOTE_STATUS_LABEL } from "@/lib/stages";
@@ -34,6 +37,12 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
       : db.query.salesOrders.findFirst({ where: and(eq(salesOrders.quoteId, quote.id), eq(salesOrders.stage, "draft")), columns: { id: true, number: true } }),
   ]);
   const open = quote.status !== "accepted";
+  const st = await getSettings();
+  const send = await sendDocProps("quote", id, {
+    phone: customer?.phone,
+    filename: `${quote.number} ${customer?.name ?? ""}`,
+    message: `${st.tradeName}: quote ${quote.number} for ${formatFils(quote.totalFils)}${quote.validUntil ? `, valid until ${formatISODate(quote.validUntil, true)}` : ""}. Thank you.`,
+  });
 
   return (
     <>
@@ -64,6 +73,9 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
               {quote.status !== "declined" ? <QuoteStatusButton id={id} status="declined" label="They said no" /> : <QuoteStatusButton id={id} status="draft" label="Back to draft" />}
             </>
           ) : null}
+        </div>
+        <div className="mt-3">
+          <SendDoc {...send} />
         </div>
       </header>
 

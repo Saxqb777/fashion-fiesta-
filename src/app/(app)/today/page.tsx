@@ -7,6 +7,7 @@ import { LinkButton } from "@/components/link-button";
 import { PageHeader } from "@/components/page-header";
 import { TaskCard } from "@/components/workshop/task-card";
 import { formatLongDate, todayISO } from "@/lib/dates";
+import { dueSummary } from "@/lib/ledger";
 import { formatFils } from "@/lib/money";
 import { requireUser } from "@/lib/session";
 import { taskCardColumns, taskOrder } from "@/lib/task-queries";
@@ -63,20 +64,38 @@ export default async function TodayPage() {
     );
   }
 
-  const [[review], [questions], [declined], [overdue], [ready], [drafts]] = await Promise.all([
+  const [[review], [questions], [declined], [overdue], [ready], [drafts], [toInvoice], due] = await Promise.all([
     db.select({ n: count() }).from(tasks).where(eq(tasks.status, "submitted")),
     db.select({ n: count() }).from(tasks).where(and(eq(tasks.openQuestion, true), ne(tasks.status, "approved"))),
     db.select({ n: count() }).from(tasks).where(eq(tasks.status, "declined")),
     db.select({ n: count() }).from(tasks).where(and(ne(tasks.status, "approved"), lt(tasks.dueDate, today))),
     db.select({ n: count() }).from(salesOrders).where(eq(salesOrders.stage, "ready")),
     db.select({ n: count() }).from(salesOrders).where(eq(salesOrders.stage, "draft")),
+    db.select({ n: count() }).from(salesOrders).where(eq(salesOrders.stage, "delivered")),
+    dueSummary(),
   ]);
   const items: Item[] = [
+    due.overdueCount && {
+      key: "unpaid",
+      text: `${formatFils(due.overdueFils)} is overdue`,
+      detail: `${plural(due.overdueCount, "invoice is", "invoices are")} past the due date.`,
+      href: "/money",
+      action: "See who owes",
+      urgent: true,
+    },
     overdue.n && { key: "overdue", text: `${plural(overdue.n, "task is", "tasks are")} overdue`, href: "/workshop", action: "See overdue", urgent: true },
     questions.n && { key: "questions", text: `${plural(questions.n, "question", "questions")} from the workshop`, href: "/workshop?view=questions", action: "Answer" },
     review.n && { key: "review", text: `${plural(review.n, "piece of work", "pieces of work")} waiting for your review`, href: "/workshop?view=review", action: "Review" },
     declined.n && { key: "declined", text: `${plural(declined.n, "task was", "tasks were")} declined`, detail: "Give them to someone else.", href: "/workshop?view=declined", action: "Reassign" },
     ready.n && { key: "ready", text: `${plural(ready.n, "order is", "orders are")} ready to hand over`, href: "/orders?view=ready", action: "Open" },
+    toInvoice.n && { key: "invoice", text: `${plural(toInvoice.n, "order is", "orders are")} delivered but not invoiced`, href: "/orders?view=invoice", action: "Invoice" },
+    due.weekCount && {
+      key: "week",
+      text: `${formatFils(due.weekFils)} falls due this week`,
+      detail: `${plural(due.weekCount, "invoice", "invoices")} due in the next 7 days.`,
+      href: "/money/invoices?show=open",
+      action: "See invoices",
+    },
     drafts.n && { key: "drafts", text: `${plural(drafts.n, "draft order is", "draft orders are")} waiting to be confirmed`, href: "/orders?view=drafts", action: "Review" },
   ].filter(Boolean) as Item[];
 

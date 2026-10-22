@@ -25,7 +25,7 @@ export const NAV_GROUPS: NavItem[][] = [
   [
     { href: "/orders", label: "Orders", icon: Scissors, phase: 0, roles: ["owner"] },
     { href: "/customers", label: "Customers", icon: Users, phase: 0, roles: ["owner"] },
-    { href: "/money", label: "Money", icon: Wallet, phase: 3, roles: ["owner"] },
+    { href: "/money", label: "Money", icon: Wallet, phase: 0, roles: ["owner"] },
   ],
   [
     { href: "/workshop", label: "Workshop", icon: Shirt, phase: 0, roles: ["owner", "tailor"] },

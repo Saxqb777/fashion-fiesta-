@@ -1,22 +1,30 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { asc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { ChevronRightIcon, CopyIcon, MapPinIcon, PencilIcon } from "lucide-react";
 import { db } from "@/db";
-import { customerBranches, customers, fabrics, quotes, salesOrders, soLines, taskPhotos, tasks } from "@/db/schema";
+import { customerBranches, customers, deliveryNoteLines, deliveryNotes, fabrics, invoices, payments, quotes, salesOrders, soLines, taskPhotos, tasks } from "@/db/schema";
 import { SwooshStripe } from "@/components/brand/swoosh-stripe";
 import { BackLink, Panel } from "@/components/data/detail";
 import { Flash } from "@/components/data/flash";
 import { RecentActivity } from "@/components/data/recent-activity";
 import { TierTag } from "@/components/data/tags";
 import { LinkButton } from "@/components/link-button";
+import { InvoiceStatusTag } from "@/components/money/bits";
+import { Celebrate } from "@/components/money/celebrate";
+import { SendDoc } from "@/components/money/send-doc";
+import { WalkInPay } from "@/components/money/walk-in-pay";
 import { DueChip, MeasurementGrid, Progress, TaskStatusTag } from "@/components/orders/bits";
 import { DeleteDraftButton, OrderStageButton } from "@/components/orders/order-actions";
 import { orderNo } from "@/lib/stages";
 import { StageTracker } from "@/components/orders/stage-tracker";
-import { Button } from "@/components/ui/button";
-import { formatShortDate } from "@/lib/dates";
+import { formatISODate, formatShortDate } from "@/lib/dates";
+import { sendDocProps } from "@/lib/doc-links";
+import { METHOD_LABEL, invoiceFigures, invoiceStatus, unallocatedByPayment } from "@/lib/ledger";
+import { lineAmounts } from "@/lib/lines";
+import { orderLineProgress } from "@/lib/order-progress";
+import { getSettings } from "@/lib/settings";
 import { assigneeNames } from "@/lib/editor-data";
 import { formatFils } from "@/lib/money";
 import { requireOwner } from "@/lib/session";
@@ -42,6 +50,51 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
     ts.length ? db.select().from(taskPhotos).where(inArray(taskPhotos.taskId, ts.map((t) => t.id))) : [],
   ]);
   const fabricById = new Map(fabricRows.map((f) => [f.id, f]));
+  const [progress, dns, invs, pays, credit, st] = await Promise.all([
+    orderLineProgress(id),
+    db.select().from(deliveryNotes).where(eq(deliveryNotes.orderId, id)).orderBy(asc(deliveryNotes.createdAt)),
+    db.select().from(invoices).where(eq(invoices.orderId, id)).orderBy(asc(invoices.createdAt)),
+    db.select().from(payments).where(eq(payments.orderId, id)).orderBy(desc(payments.paymentDate)),
+    db.select({ id: payments.id }).from(payments).where(and(eq(payments.customerId, order.customerId), eq(payments.isDeposit, false))),
+    getSettings(),
+  ]);
+  const dnPieces = dns.length
+    ? await db
+        .select({ dn: deliveryNoteLines.deliveryNoteId, qty: deliveryNoteLines.qty })
+        .from(deliveryNoteLines)
+        .where(inArray(deliveryNoteLines.deliveryNoteId, dns.map((d) => d.id)))
+    : [];
+  const [figures, left] = await Promise.all([invoiceFigures(invs.map((i) => i.id)), unallocatedByPayment([...pays.map((p) => p.id), ...credit.map((c) => c.id)])]);
+  const depositLeft = pays.filter((p) => p.isDeposit).reduce((sum, p) => sum + Math.max(0, left.get(p.id) ?? 0), 0);
+  const creditLeft = credit.reduce((sum, c) => sum + Math.max(0, left.get(c.id) ?? 0), 0);
+  const invFig = invs.map((i) => figures.get(i.id)!);
+  const paidOnInvoices = invFig.reduce((sum, f) => sum + f.paidFils, 0);
+  const credited = invFig.reduce((sum, f) => sum + f.creditedFils, 0);
+  const stillToPay = Math.max(0, order.totalFils - credited - paidOnInvoices - depositLeft);
+  const leftToDeliver = progress.some((l) => l.qty - l.delivered > 0) && !order.deliveredAt;
+  const leftToInvoice = progress.filter((l) => l.qty - l.invoiced > 0);
+  const walkInTotal = leftToInvoice.reduce((sum, l) => sum + lineAmounts(l.qty - l.invoiced, l.unitPriceFils, st.vatRateBp).totalFils, 0);
+  const walkInDue = walkInTotal - Math.min(walkInTotal, depositLeft + creditLeft);
+  const isRetail = customer?.type === "retail";
+  const openInvoice = invs.find((i) => (figures.get(i.id)?.balanceFils ?? 0) > 0);
+  const phone = customer?.phone;
+  const [orderSend, dnSends, invSends] = await Promise.all([
+    order.number
+      ? sendDocProps("order", id, { phone, filename: `${order.number} ${customer?.name ?? ""}`, message: `${st.tradeName}: order ${order.number} confirmed, ${formatFils(order.totalFils)}. Thank you.` })
+      : null,
+    Promise.all(dns.map((d) => sendDocProps("delivery", d.id, { phone, filename: `${d.number} ${customer?.name ?? ""}`, message: `${st.tradeName}: delivery note ${d.number} for order ${order.number}.` }))),
+    Promise.all(
+      invs
+        .filter((i) => i.number)
+        .map((i) =>
+          sendDocProps("invoice", i.id, {
+            phone,
+            filename: `${i.number} ${customer?.name ?? ""}`,
+            message: `${st.tradeName}: Tax Invoice ${i.number} for ${formatFils(i.totalFils)}, due by ${formatISODate(i.dueDate, true)}. Thank you.`,
+          }),
+        ),
+    ),
+  ]);
   const pieces = lines.reduce((s, l) => s + l.qty, 0);
   const approved = ts.filter((t) => t.status === "approved").reduce((s, t) => s + t.qty, 0);
   const done = ts.reduce((s, t) => s + t.qtyDone, 0);
@@ -50,6 +103,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   const editable = ["confirmed", "stitching", "ready"].includes(order.stage);
   const tracker = order.stage === "cancelled" || order.stage === "draft" ? "confirmed" : order.stage;
 
+  const walkIn = isRetail && leftToInvoice.length && walkInDue > 0 ? <WalkInPay orderId={order.id} amountFils={walkInDue} variant="outline" /> : null;
   const nextAction =
     order.stage === "confirmed" || order.stage === "stitching" ? (
       <div className="flex flex-col items-start gap-1 sm:items-end">
@@ -64,15 +118,34 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
         </span>
       </div>
     ) : order.stage === "ready" ? (
-      <OrderStageButton orderId={order.id} to="delivered" label="Mark delivered" />
+      <div className="flex flex-wrap gap-2 sm:justify-end">
+        {walkIn}
+        {leftToDeliver ? (
+          <LinkButton href={`/orders/${order.id}/deliver`} size="lg">
+            Make delivery note
+          </LinkButton>
+        ) : null}
+      </div>
     ) : order.stage === "delivered" ? (
-      <Button size="lg" disabled>
-        Make invoice, Phase 3
-      </Button>
+      <div className="flex flex-wrap gap-2 sm:justify-end">
+        {walkIn}
+        {leftToInvoice.length ? (
+          <LinkButton href={`/money/invoices/new?order=${order.id}`} size="lg">
+            Make invoice
+          </LinkButton>
+        ) : null}
+      </div>
+    ) : order.stage === "invoiced" && openInvoice ? (
+      <LinkButton href={`/money/payments/new?customer=${order.customerId}&invoice=${openInvoice.id}`} size="lg">
+        Record payment
+      </LinkButton>
+    ) : order.stage === "paid" ? (
+      <span className="inline-flex h-11 items-center rounded-full bg-leaf/15 px-5 text-[15px] font-semibold text-[#4d7a12]">Paid in full</span>
     ) : null;
 
   return (
     <>
+      <Celebrate />
       <Flash added={`Order ${orderNo(order.number)} confirmed.`} saved="Order updated." draft="Draft saved. Confirm it when you are ready." />
       <BackLink href="/orders" label="Orders" />
       <header className="mb-5">
@@ -103,7 +176,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
         ) : null}
         <SwooshStripe className="mt-4 max-w-[72px]" />
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          <DueChip date={order.dueDate} done={!editable || order.stage === "ready"} />
+          {editable || isDraft ? <DueChip date={order.dueDate} done={order.stage === "ready"} /> : null}
           {editable && !isDraft ? (
             <LinkButton href={`/orders/${order.id}/edit`} variant="outline" size="sm">
               <PencilIcon />
@@ -159,7 +232,9 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                   </div>
                   <div className="flex flex-col items-end gap-1.5">
                     <p className="tabular font-display text-xl font-medium">{formatFils(l.netFils + l.vatFils)}</p>
-                    <DueChip date={l.dueDate ?? order.dueDate} done={lineTasks.length > 0 && lineTasks.every((t) => t.status === "approved")} />
+                    {editable && (progress.find((p) => p.id === l.id)?.delivered ?? 0) < l.qty ? (
+                      <DueChip date={l.dueDate ?? order.dueDate} done={lineTasks.length > 0 && lineTasks.every((t) => t.status === "approved")} />
+                    ) : null}
                   </div>
                 </div>
                 {l.notes ? <p className="mt-3 rounded-[10px] bg-paper-deep/60 px-3 py-2 text-sm whitespace-pre-line">{l.notes}</p> : null}
@@ -242,6 +317,93 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
               <dd className="font-display text-2xl font-medium">{formatFils(order.totalFils)}</dd>
             </div>
           </dl>
+          {!isDraft && order.stage !== "cancelled" ? (
+            <Panel
+              title="Money"
+              action={
+                order.stage !== "paid" && order.stage !== "invoiced" ? (
+                  <LinkButton href={`/money/payments/new?order=${order.id}&deposit=1`} variant="outline" size="sm">
+                    Take a deposit
+                  </LinkButton>
+                ) : null
+              }
+            >
+              <dl className="tabular flex flex-col gap-1.5 text-[15px]">
+                {pays.some((p) => p.isDeposit) ? (
+                  <div className="flex justify-between">
+                    <dt className="text-ink-muted">Paid in advance</dt>
+                    <dd className="text-[#4d7a12]">{formatFils(pays.filter((p) => p.isDeposit).reduce((sum, p) => sum + p.amountFils, 0))}</dd>
+                  </div>
+                ) : null}
+                {invs.length ? (
+                  <div className="flex justify-between">
+                    <dt className="text-ink-muted">Invoiced</dt>
+                    <dd>{formatFils(invs.reduce((sum, i) => sum + i.totalFils, 0))}</dd>
+                  </div>
+                ) : null}
+                {credited ? (
+                  <div className="flex justify-between">
+                    <dt className="text-ink-muted">Credit notes</dt>
+                    <dd>{formatFils(-credited)}</dd>
+                  </div>
+                ) : null}
+                {paidOnInvoices - invFig.reduce((sum, f) => sum + f.advanceFils, 0) > 0 ? (
+                  <div className="flex justify-between">
+                    <dt className="text-ink-muted">Paid</dt>
+                    <dd className="text-[#4d7a12]">{formatFils(paidOnInvoices - invFig.reduce((sum, f) => sum + f.advanceFils, 0))}</dd>
+                  </div>
+                ) : null}
+                <div className="flex items-baseline justify-between border-t border-line pt-2">
+                  <dt className="font-semibold">Still to pay</dt>
+                  <dd className="font-display text-xl font-medium">{formatFils(stillToPay)}</dd>
+                </div>
+              </dl>
+            </Panel>
+          ) : null}
+          {orderSend ? (
+            <Panel title="Documents">
+              <ul className="flex flex-col divide-y divide-line">
+                <li className="flex flex-col gap-2 pb-3">
+                  <p className="text-[14px] font-semibold">Order confirmation {order.number}</p>
+                  <SendDoc {...orderSend} />
+                </li>
+                {dns.map((d, i) => (
+                  <li key={d.id} className="flex flex-col gap-2 py-3">
+                    <p className="text-[14px] font-semibold">
+                      Delivery note {d.number}
+                      <span className="tabular ml-2 font-normal text-ink-muted">
+                        {formatISODate(d.deliveryDate, true)} · {dnPieces.filter((x) => x.dn === d.id).reduce((sum, x) => sum + x.qty, 0)} pieces
+                      </span>
+                    </p>
+                    <SendDoc {...dnSends[i]} />
+                  </li>
+                ))}
+                {invs
+                  .filter((inv) => inv.number)
+                  .map((inv, i) => (
+                    <li key={inv.id} className="flex flex-col gap-2 py-3">
+                      <Link href={`/money/invoices/${inv.id}`} className="flex flex-wrap items-center gap-2 text-[14px] font-semibold hover:underline">
+                        Tax Invoice {inv.number}
+                        <InvoiceStatusTag status={invoiceStatus(figures.get(inv.id)!, inv.dueDate)} />
+                        <span className="tabular font-normal text-ink-muted">{formatFils(inv.totalFils)}</span>
+                      </Link>
+                      <SendDoc {...invSends[i]} />
+                    </li>
+                  ))}
+                {pays.map((p) => (
+                  <li key={p.id} className="py-3 last:pb-0">
+                    <Link href={`/money/payments/${p.id}`} className="flex flex-wrap items-center gap-2 text-[14px] font-semibold hover:underline">
+                      Receipt {p.number}
+                      {p.isDeposit ? <span className="text-[12px] text-[#4d7a12]">Paid in advance</span> : null}
+                      <span className="tabular font-normal text-ink-muted">
+                        {formatFils(p.amountFils)} · {METHOD_LABEL[p.method]} · {formatISODate(p.paymentDate, true)}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </Panel>
+          ) : null}
           {order.notes ? (
             <Panel title="Notes">
               <p className="text-sm whitespace-pre-line">{order.notes}</p>

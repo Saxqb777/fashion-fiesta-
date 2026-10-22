@@ -7,6 +7,7 @@ import { cn } from "cn";
 const TABS = [
   { href: "/settings/shop", label: "Shop" },
   { href: "/settings/money", label: "Money" },
+  { href: "/settings/opening", label: "Opening balances" },
   { href: "/settings/numbering", label: "Numbering" },
   { href: "/settings/team", label: "Team" },
   { href: "/settings/categories", label: "Categories" },

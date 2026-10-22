@@ -7,6 +7,8 @@ import { db } from "@/db";
 import { fabrics, suppliers } from "@/db/schema";
 import { SwooshStripe } from "@/components/brand/swoosh-stripe";
 import { ArchiveButton } from "@/components/data/archive-button";
+import { formatFils } from "@/lib/money";
+import { formatISODate } from "@/lib/dates";
 import { BackLink, Facts, Panel } from "@/components/data/detail";
 import { FabricCard } from "@/components/data/fabric-card";
 import { Flash } from "@/components/data/flash";
@@ -58,6 +60,11 @@ export default async function SupplierPage({ params }: { params: Promise<{ id: s
           <Panel title="Details">
             <Facts
               items={[
+                {
+                  label: "You owe them",
+                  value: supplier.openingBalanceFils ? <span className="tabular font-semibold">{formatFils(supplier.openingBalanceFils)}</span> : null,
+                  hint: supplier.openingBalanceDate ? `Opening balance since ${formatISODate(supplier.openingBalanceDate, true)}` : undefined,
+                },
                 { label: "Contact person", value: supplier.contactName },
                 { label: "Phone", value: supplier.phone },
                 { label: "Email", value: supplier.email },

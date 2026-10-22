@@ -21,6 +21,7 @@ const VIEWS = {
   open: ["confirmed", "stitching", "ready"],
   drafts: ["draft"],
   ready: ["ready"],
+  invoice: ["delivered"],
   delivered: ["delivered", "invoiced", "paid"],
 } as const;
 
@@ -88,6 +89,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
               options={[
                 { label: "Open", count: n(VIEWS.open) },
                 { value: "ready", label: "Ready", count: n(VIEWS.ready) },
+                ...(n(VIEWS.invoice) ? [{ value: "invoice", label: "To invoice", count: n(VIEWS.invoice) }] : []),
                 { value: "delivered", label: "Delivered", count: n(VIEWS.delivered) },
                 ...(n(VIEWS.drafts) ? [{ value: "drafts", label: "Drafts", count: n(VIEWS.drafts) }] : []),
                 { value: "all", label: "All" },

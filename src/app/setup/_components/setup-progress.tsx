@@ -10,17 +10,18 @@ const LABELS: Record<(typeof SETUP_STEPS)[number], string> = {
   money: "Money",
   numbering: "Numbers",
   team: "Team",
+  opening: "Balances",
 };
 
-/** Five segments in the swoosh colours plus brand red. Fills as steps complete. */
-const COLOURS = ["bg-sky", "bg-sun", "bg-leaf", "bg-magenta", "bg-brand"];
+/** One segment per step in the swoosh colours plus brand red. Fills as steps complete. */
+const COLOURS = ["bg-sky", "bg-sun", "bg-leaf", "bg-magenta", "bg-ink", "bg-brand"];
 
 export function SetupProgress() {
   const pathname = usePathname();
   const current = pathname.split("/")[2] ?? "account";
   const index = current === "done" ? SETUP_STEPS.length : Math.max(0, SETUP_STEPS.indexOf(current as never));
   return (
-    <ol className="grid grid-cols-5 gap-1.5" aria-label="Setup progress">
+    <ol className="grid grid-cols-6 gap-1.5" aria-label="Setup progress">
       {SETUP_STEPS.map((step, i) => {
         const done = i < index;
         const active = i === index;

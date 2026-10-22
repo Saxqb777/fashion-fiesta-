@@ -31,7 +31,10 @@ export const documentType = pgEnum("document_type", [
   "invoice",
   "receipt",
   "purchase_order",
+  "credit_note",
 ]);
+export const invoiceKind = pgEnum("invoice_kind", ["tax_invoice", "opening_balance"]);
+export const paymentMethod = pgEnum("payment_method", ["cash", "card", "bank_transfer", "cheque"]);
 
 /** Columns every table carries. */
 const audit = () => ({
@@ -85,6 +88,9 @@ export const settings = pgTable("settings", {
   embroideryOperatorPhone: text("embroidery_operator_phone"),
   /** Shop share of embroidery revenue in percent. 50 = half and half. */
   embroideryShopSharePercent: integer("embroidery_shop_share_percent").notNull().default(50),
+  /** Opening balances: cash in the drawer on the go live day. Seeds the cash book in Phase 5. */
+  openingCashFils: integer("opening_cash_fils").notNull().default(0),
+  openingDate: date("opening_date"),
   setupStep: text("setup_step").notNull().default("account"),
   setupComplete: boolean("setup_complete").notNull().default(false),
 });
@@ -159,6 +165,9 @@ export const suppliers = pgTable(
     city: text("city"),
     address: text("address"),
     paymentDays: integer("payment_days"),
+    /** What the shop owed this supplier on the go live day. Becomes their first bill in Phase 4. */
+    openingBalanceFils: integer("opening_balance_fils").notNull().default(0),
+    openingBalanceDate: date("opening_balance_date"),
     notes: text("notes"),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
@@ -378,7 +387,142 @@ export const taskReviews = pgTable(
   (t) => [index("task_reviews_task_idx").on(t.taskId)],
 );
 
+/* ---------- Phase 3: delivery, invoices, credit notes, payments ---------- */
+
+export const deliveryNotes = pgTable(
+  "delivery_notes",
+  {
+    ...audit(),
+    number: text("number").notNull().unique(),
+    orderId: uuid("order_id").notNull().references(() => salesOrders.id),
+    customerId: uuid("customer_id").notNull().references(() => customers.id),
+    branchId: uuid("branch_id").references(() => customerBranches.id),
+    deliveryDate: date("delivery_date").notNull(),
+    customerPoNumber: text("customer_po_number"),
+    notes: text("notes"),
+  },
+  (t) => [index("delivery_notes_order_idx").on(t.orderId)],
+);
+
+export const deliveryNoteLines = pgTable(
+  "delivery_note_lines",
+  {
+    ...audit(),
+    deliveryNoteId: uuid("delivery_note_id").notNull().references(() => deliveryNotes.id, { onDelete: "cascade" }),
+    soLineId: uuid("so_line_id").notNull().references(() => soLines.id),
+    description: text("description").notNull(),
+    qty: integer("qty").notNull(),
+  },
+  (t) => [index("dn_lines_dn_idx").on(t.deliveryNoteId), index("dn_lines_so_line_idx").on(t.soLineId)],
+);
+
+export const invoices = pgTable(
+  "invoices",
+  {
+    ...audit(),
+    kind: invoiceKind("kind").notNull().default("tax_invoice"),
+    /** FF-INV number for tax invoices. Null for opening balances, which are not tax invoices. */
+    number: text("number").unique(),
+    customerId: uuid("customer_id").notNull().references(() => customers.id),
+    branchId: uuid("branch_id").references(() => customerBranches.id),
+    orderId: uuid("order_id").references(() => salesOrders.id),
+    invoiceDate: date("invoice_date").notNull(),
+    dueDate: date("due_date").notNull(),
+    customerPoNumber: text("customer_po_number"),
+    notes: text("notes"),
+    subtotalFils: integer("subtotal_fils").notNull().default(0),
+    vatFils: integer("vat_fils").notNull().default(0),
+    totalFils: integer("total_fils").notNull().default(0),
+  },
+  (t) => [index("invoices_customer_idx").on(t.customerId), index("invoices_order_idx").on(t.orderId), index("invoices_due_idx").on(t.dueDate)],
+);
+
+export const invoiceLines = pgTable(
+  "invoice_lines",
+  {
+    ...audit(),
+    invoiceId: uuid("invoice_id").notNull().references(() => invoices.id, { onDelete: "cascade" }),
+    sort: integer("sort").notNull().default(0),
+    soLineId: uuid("so_line_id").references(() => soLines.id),
+    productId: uuid("product_id").references(() => products.id),
+    description: text("description").notNull(),
+    qty: integer("qty").notNull(),
+    unitPriceFils: integer("unit_price_fils").notNull(),
+    vatRateBp: integer("vat_rate_bp").notNull(),
+    netFils: integer("net_fils").notNull(),
+    vatFils: integer("vat_fils").notNull(),
+  },
+  (t) => [index("invoice_lines_invoice_idx").on(t.invoiceId), index("invoice_lines_so_line_idx").on(t.soLineId)],
+);
+
+export const creditNotes = pgTable(
+  "credit_notes",
+  {
+    ...audit(),
+    number: text("number").notNull().unique(),
+    invoiceId: uuid("invoice_id").notNull().references(() => invoices.id),
+    customerId: uuid("customer_id").notNull().references(() => customers.id),
+    creditDate: date("credit_date").notNull(),
+    reason: text("reason").notNull(),
+    subtotalFils: integer("subtotal_fils").notNull().default(0),
+    vatFils: integer("vat_fils").notNull().default(0),
+    totalFils: integer("total_fils").notNull().default(0),
+  },
+  (t) => [index("credit_notes_invoice_idx").on(t.invoiceId), index("credit_notes_customer_idx").on(t.customerId)],
+);
+
+export const creditNoteLines = pgTable(
+  "credit_note_lines",
+  {
+    ...audit(),
+    creditNoteId: uuid("credit_note_id").notNull().references(() => creditNotes.id, { onDelete: "cascade" }),
+    invoiceLineId: uuid("invoice_line_id").references(() => invoiceLines.id),
+    description: text("description").notNull(),
+    qty: integer("qty").notNull(),
+    unitPriceFils: integer("unit_price_fils").notNull(),
+    vatRateBp: integer("vat_rate_bp").notNull(),
+    netFils: integer("net_fils").notNull(),
+    vatFils: integer("vat_fils").notNull(),
+  },
+  (t) => [index("cn_lines_cn_idx").on(t.creditNoteId)],
+);
+
+export const payments = pgTable(
+  "payments",
+  {
+    ...audit(),
+    number: text("number").notNull().unique(),
+    customerId: uuid("customer_id").notNull().references(() => customers.id),
+    /** Set for a deposit taken on an order before it is invoiced. */
+    orderId: uuid("order_id").references(() => salesOrders.id),
+    isDeposit: boolean("is_deposit").notNull().default(false),
+    paymentDate: date("payment_date").notNull(),
+    amountFils: integer("amount_fils").notNull(),
+    method: paymentMethod("method").notNull(),
+    reference: text("reference"),
+    notes: text("notes"),
+  },
+  (t) => [index("payments_customer_idx").on(t.customerId), index("payments_order_idx").on(t.orderId)],
+);
+
+export const paymentAllocations = pgTable(
+  "payment_allocations",
+  {
+    ...audit(),
+    paymentId: uuid("payment_id").notNull().references(() => payments.id, { onDelete: "cascade" }),
+    invoiceId: uuid("invoice_id").notNull().references(() => invoices.id),
+    amountFils: integer("amount_fils").notNull(),
+  },
+  (t) => [index("allocations_payment_idx").on(t.paymentId), index("allocations_invoice_idx").on(t.invoiceId)],
+);
+
 export type User = typeof users.$inferSelect;
+export type Invoice = typeof invoices.$inferSelect;
+export type InvoiceLine = typeof invoiceLines.$inferSelect;
+export type Payment = typeof payments.$inferSelect;
+export type CreditNote = typeof creditNotes.$inferSelect;
+export type DeliveryNote = typeof deliveryNotes.$inferSelect;
+export type PaymentMethod = (typeof paymentMethod.enumValues)[number];
 export type MeasurementField = typeof measurementFields.$inferSelect;
 export type CustomerMeasurement = typeof customerMeasurements.$inferSelect;
 export type Quote = typeof quotes.$inferSelect;

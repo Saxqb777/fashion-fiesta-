@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { and, asc, isNull } from "drizzle-orm";
 import { ArrowLeftIcon } from "lucide-react";
-import { completeSetup } from "@/actions/settings";
+import { goToOpening } from "@/actions/settings";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { OperatorForm } from "@/components/forms/operator-form";
@@ -47,9 +47,9 @@ export default async function TeamStep() {
           <ArrowLeftIcon />
           Back
         </Button>
-        <form action={completeSetup}>
-          <SubmitButton size="lg" pendingText="Finishing">
-            Finish setup
+        <form action={goToOpening}>
+          <SubmitButton size="lg" pendingText="Saving">
+            Next
           </SubmitButton>
         </form>
       </div>

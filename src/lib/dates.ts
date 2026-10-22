@@ -10,13 +10,12 @@ export function formatLongDate(date: Date) {
   }).format(date);
 }
 
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** "16 Sep 2026". Written out by hand so every browser says Sep, not Sept. */
 export function formatShortDate(date: Date) {
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone: TIME_ZONE,
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  }).format(date);
+  const [y, m, d] = new Intl.DateTimeFormat("en-CA", { timeZone: TIME_ZONE, year: "numeric", month: "2-digit", day: "2-digit" }).format(date).split("-").map(Number);
+  return `${d} ${MONTHS[m - 1]} ${y}`;
 }
 
 /** Today's date in Abu Dhabi as YYYY-MM-DD. */
@@ -30,9 +29,10 @@ export function addDaysISO(iso: string, days: number) {
   return d.toISOString().slice(0, 10);
 }
 
-export function formatISODate(iso: string | null | undefined) {
+export function formatISODate(iso: string | null | undefined, withYear = false) {
   if (!iso) return "";
-  return new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", day: "numeric", month: "short" }).format(new Date(`${iso}T00:00:00Z`));
+  const [y, m, d] = iso.split("-").map(Number);
+  return `${d} ${MONTHS[m - 1]}${withYear ? ` ${y}` : ""}`;
 }
 
 /** "Overdue 3 days", "Due today", "Due tomorrow", "Due 14 Nov". */

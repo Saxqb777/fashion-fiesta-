@@ -388,6 +388,13 @@ async function anotherActiveOwner(exceptId: string) {
 
 /* ---------- Finish setup ---------- */
 
+/** Team step done: on to opening balances. */
+export async function goToOpening() {
+  await requireOwner();
+  await db.update(settings).set({ setupStep: "opening" });
+  redirect("/setup/opening");
+}
+
 export async function completeSetup() {
   const me = await requireOwner();
   const current = await getSettings();

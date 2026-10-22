@@ -37,3 +37,16 @@ export function WorkshopTabs({ owner }: { owner: boolean }) {
     />
   );
 }
+
+export function MoneyTabs() {
+  return (
+    <SectionTabs
+      label="Money sections"
+      tabs={[
+        { href: "/money", label: "Who owes you", exact: true, also: ["/money/statement"] },
+        { href: "/money/invoices", label: "Invoices" },
+        { href: "/money/payments", label: "Payments" },
+      ]}
+    />
+  );
+}

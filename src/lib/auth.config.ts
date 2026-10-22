@@ -18,6 +18,8 @@ export const authConfig = {
     authorized({ auth, request }) {
       const loggedIn = Boolean(auth?.user);
       const { pathname } = request.nextUrl;
+      // Shared document links sent on WhatsApp open without a login.
+      if (pathname.startsWith("/d/")) return true;
       if (pathname.startsWith("/login")) {
         return loggedIn ? Response.redirect(new URL("/today", request.nextUrl)) : true;
       }

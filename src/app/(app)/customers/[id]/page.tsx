@@ -24,6 +24,8 @@ import { CUSTOMER_TYPE_LABEL, telHref } from "@/lib/labels";
 import { requireOwner } from "@/lib/session";
 import { getSettings } from "@/lib/settings";
 import { Branches } from "./branches";
+import { AgingBar } from "@/components/money/bits";
+import { agingByCustomer } from "@/lib/ledger";
 
 export const metadata: Metadata = { title: "Customer" };
 
@@ -32,7 +34,7 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
   const { id } = await params;
   const customer = /^[0-9a-f-]{36}$/.test(id) ? await db.query.customers.findFirst({ where: eq(customers.id, id) }) : undefined;
   if (!customer) notFound();
-  const [settings, branches, sets, fields, orders, quoteRows] = await Promise.all([
+  const [settings, branches, sets, fields, orders, quoteRows, [money]] = await Promise.all([
     getSettings(),
     db.query.customerBranches.findMany({
       where: and(eq(customerBranches.customerId, id), isNull(customerBranches.deletedAt)),
@@ -46,7 +48,9 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
     getMeasurementFields(),
     db.select().from(salesOrders).where(eq(salesOrders.customerId, id)).orderBy(desc(salesOrders.createdAt)).limit(8),
     db.select().from(quotes).where(and(eq(quotes.customerId, id))).orderBy(desc(quotes.createdAt)).limit(5),
+    agingByCustomer(id),
   ]);
+  const late = money ? money.d1_30 + money.d31_60 + money.d61 : 0;
   const archived = Boolean(customer.deletedAt);
   const credit =
     customer.type === "retail" && customer.creditDays === null
@@ -105,6 +109,30 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
           {customer.type === "wholesale" || branches.length ? <Branches customerId={customer.id} branches={branches} /> : null}
         </div>
         <div className="flex flex-col gap-4">
+          <Panel title="Money">
+            {money && money.owed > 0 ? (
+              <>
+                <p className="text-[13px] font-semibold text-ink-muted">They owe you</p>
+                <p className="tabular font-display text-[2rem] leading-tight font-medium">{formatFils(money.owed)}</p>
+                <p className="mt-1 text-[14px]">
+                  {late > 0 ? <span className="font-semibold text-brand">{formatFils(late)} overdue. </span> : <span className="text-[#4d7a12]">Nothing overdue. </span>}
+                  {money.oldestDue ? <span className="text-ink-muted">Oldest due {formatISODate(money.oldestDue, true)}.</span> : null}
+                </p>
+                <AgingBar notDue={money.notDue} d1_30={money.d1_30} d31_60={money.d31_60} d61={money.d61} className="mt-3" />
+              </>
+            ) : (
+              <p className="text-[15px] text-ink-muted">They owe you nothing right now.</p>
+            )}
+            {money && money.credit > 0 ? <p className="tabular mt-2 text-[14px] text-[#4d7a12]">{formatFils(money.credit)} paid in advance or on account.</p> : null}
+            <div className="mt-4 flex flex-wrap gap-2">
+              <LinkButton href={`/money/payments/new?customer=${customer.id}`} size="sm" variant={late > 0 ? "default" : "outline"}>
+                Record payment
+              </LinkButton>
+              <LinkButton href={`/money/statement/${customer.id}`} size="sm" variant="ghost">
+                Statement
+              </LinkButton>
+            </div>
+          </Panel>
           <Panel
             title="Orders"
             action={

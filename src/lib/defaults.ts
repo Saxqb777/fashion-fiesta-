@@ -21,6 +21,7 @@ export const DOCUMENT_TYPES: ReadonlyArray<{
   { type: "delivery_note", label: "Delivery Note", prefix: "FF-DN" },
   { type: "invoice", label: "Tax Invoice", prefix: "FF-INV" },
   { type: "receipt", label: "Receipt", prefix: "FF-RCT" },
+  { type: "credit_note", label: "Credit Note", prefix: "FF-CN" },
   { type: "purchase_order", label: "Purchase Order", prefix: "FF-PO" },
 ];
 
@@ -31,7 +32,7 @@ export const DEFAULT_SEQUENCES = DOCUMENT_TYPES.map((d) => ({
   padding: 4,
 }));
 
-export const SETUP_STEPS = ["account", "shop", "money", "numbering", "team"] as const;
+export const SETUP_STEPS = ["account", "shop", "money", "numbering", "team", "opening"] as const;
 export type SetupStep = (typeof SETUP_STEPS)[number];
 
 export const TIME_ZONE = "Asia/Dubai";

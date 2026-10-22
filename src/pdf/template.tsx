@@ -177,11 +177,16 @@ export function Totals({ rows, grand, after, paid }: { rows: [string, string][];
 }
 
 /** Signature lines (optional) on the left, the authorised signatory and stamp box on the right. */
-export function SignOff({ children }: { children?: React.ReactNode }) {
+export function SignOff({ children, stamp }: { children?: React.ReactNode; stamp?: string | null }) {
   return (
     <View style={[s.row, { marginTop: 32, alignItems: "flex-end" }]} wrap={false}>
       <View style={{ flexDirection: "row" }}>{children}</View>
       <View style={{ width: 180, height: 76, borderWidth: 0.75, borderColor: C.line, borderRadius: 10, padding: 8, justifyContent: "flex-end" }}>
+        {/* The shop stamp, when switched on in Settings. The signature stays by hand. */}
+        {stamp ? (
+          // eslint-disable-next-line jsx-a11y/alt-text
+          <Image src={stamp} style={{ position: "absolute", right: 10, top: 6, height: 50, maxWidth: 110, objectFit: "contain" }} />
+        ) : null}
         <Text style={[s.label, { marginBottom: 0 }]}>Authorised signatory and stamp</Text>
       </View>
     </View>

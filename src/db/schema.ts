@@ -97,6 +97,12 @@ export const settings = pgTable("settings", {
   /** Opening balances: cash in the drawer on the go live day. Seeds the cash book in Phase 5. */
   openingCashFils: integer("opening_cash_fils").notNull().default(0),
   openingDate: date("opening_date"),
+  /** Quotes: days a new quote stays valid, and the terms printed on it. */
+  quoteValidityDays: integer("quote_validity_days").notNull().default(14),
+  quoteTerms: text("quote_terms"),
+  /** Shop stamp image, printed in the signatory box when switched on. */
+  stampUrl: text("stamp_url"),
+  stampOnDocuments: boolean("stamp_on_documents").notNull().default(false),
   /** Garment label sheet. A setting so a thermal printer can replace the A4 sheet later. */
   labelLayout: jsonb("label_layout").$type<LabelLayout>(),
   setupStep: text("setup_step").notNull().default("account"),

@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import { publicBaseUrl } from "./public-url";
 import { shareToken, whatsappNumber, type ShareType } from "./share";
 
 /** Owner PDF link, public share link for WhatsApp, and the customer's WhatsApp number. */
@@ -8,7 +9,7 @@ export async function docLinks(type: ShareType, id: string, phone?: string | nul
   const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
   return {
     pdfUrl: `/api/pdf/${type}/${id}${query}`,
-    shareUrl: `${proto}://${host}/d/${shareToken(type, id)}`,
+    shareUrl: `${(await publicBaseUrl()) ?? `${proto}://${host}`}/d/${shareToken(type, id)}`,
     whatsapp: whatsappNumber(phone),
   };
 }

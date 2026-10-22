@@ -427,3 +427,38 @@ export async function saveLabelLayout(index: number): Promise<{ ok?: boolean; er
   revalidatePath("/settings/shop");
   return { ok: true };
 }
+
+const quoteTermsSchema = z.object({
+  days: z.coerce.number({ message: "Enter days, like 14." }).int("Whole days.").min(1, "At least 1 day.").max(365, "At most 365 days."),
+  terms: z.string().trim().max(2000, "Keep the terms under 2000 characters."),
+});
+
+/** How long a new quote stays valid, and the terms printed on every quote. */
+export async function saveQuoteTerms(_prev: FormState, fd: FormData): Promise<FormState> {
+  const me = await requireOwner();
+  const parsed = quoteTermsSchema.safeParse({ days: text(fd, "quoteValidityDays"), terms: text(fd, "quoteTerms") });
+  if (!parsed.success) {
+    const e = parsed.error.flatten().fieldErrors;
+    return { errors: { quoteValidityDays: e.days, quoteTerms: e.terms } };
+  }
+  const current = await getSettings();
+  await db.update(settings).set({ quoteValidityDays: parsed.data.days, quoteTerms: parsed.data.terms || null }).where(eq(settings.id, current.id));
+  await logActivity({ actor: me, entityType: "settings", action: "updated", summary: `${me.name} updated quote terms, valid ${parsed.data.days} days` });
+  revalidatePath("/settings/money");
+  return { ok: true, savedAt: Date.now(), message: "Quote terms saved." };
+}
+
+/** The shop stamp image and whether it prints on Tax Invoice, Delivery Note and Credit Note. */
+export async function saveStamp(input: { url: string; on: boolean }): Promise<{ ok?: boolean; error?: string }> {
+  const me = await requireOwner();
+  const url = input.url.trim();
+  if (url && !/^https:\/\/[a-z0-9.-]+\.blob\.vercel-storage\.com\/brand\//i.test(url)) return { error: "Upload the stamp again." };
+  const current = await getSettings();
+  await db
+    .update(settings)
+    .set({ stampUrl: url || null, stampOnDocuments: Boolean(url) && input.on })
+    .where(eq(settings.id, current.id));
+  await logActivity({ actor: me, entityType: "settings", action: "updated", summary: `${me.name} ${url ? (input.on ? "set the stamp to print on documents" : "saved the stamp, not printing") : "removed the stamp"}` });
+  revalidatePath("/settings/shop");
+  return { ok: true };
+}

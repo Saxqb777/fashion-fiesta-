@@ -31,9 +31,8 @@ import { aed, C, day, DocShell, LinesTable, Meta, Party, s, SignOff, Totals, typ
 
 type Built = { element: React.ReactElement; filename: string; customerName: string; customerPhone: string | null; summary: string };
 
-async function company(): Promise<Company & { vatRateBp: number; defaultCreditDays: number }> {
-  const st = await getSettings();
-  return st;
+async function company(): Promise<Company & Awaited<ReturnType<typeof getSettings>>> {
+  return getSettings();
 }
 
 async function party(customerId: string, branchId: string | null) {
@@ -78,7 +77,7 @@ async function quoteDoc(id: string): Promise<Built | null> {
     customerPhone: p.phone,
     summary: `Quote ${q.number} for AED ${aed(q.totalFils)}${q.validUntil ? `, valid until ${day(q.validUntil)}` : ""}`,
     element: (
-      <DocShell title="Quote" subtitle={q.number} company={co} terms={`Prices include VAT where shown. ${q.validUntil ? `Valid until ${day(q.validUntil)}.` : ""}`}>
+      <DocShell title="Quote" subtitle={q.number} company={co} terms={`All amounts in AED. ${q.validUntil ? `This quote is valid until ${day(q.validUntil)}.` : ""}`}>
         <View style={s.row}>
           <Party label="Prepared for" name={p.name} lines={p.lines} />
           <Meta rows={[["Quote", q.number], ["Date", day(q.quoteDate)], ["Valid until", day(q.validUntil)]]} />
@@ -86,6 +85,12 @@ async function quoteDoc(id: string): Promise<Built | null> {
         <LinesTable columns={LINE_COLUMNS} rows={lineRows(lines)} />
         <Totals rows={[["Subtotal", aed(q.subtotalFils)], ["VAT 5%", aed(q.vatFils)]]} grand={["Total AED", aed(q.totalFils)]} />
         {q.notes ? <Text style={s.note}>{q.notes}</Text> : null}
+        {co.quoteTerms ? (
+          <View wrap={false} style={{ marginTop: 16 }}>
+            <Text style={s.label}>Terms</Text>
+            <Text style={{ fontSize: 8.5, lineHeight: 1.45, color: C.ink }}>{co.quoteTerms}</Text>
+          </View>
+        ) : null}
       </DocShell>
     ),
   };
@@ -160,7 +165,7 @@ async function deliveryDoc(id: string): Promise<Built | null> {
         </View>
         {branch?.deliveryInstructions ? <Text style={s.note}>Delivery: {branch.deliveryInstructions}</Text> : null}
         {d.notes ? <Text style={s.note}>{d.notes}</Text> : null}
-        <SignOff>
+        <SignOff stamp={co.stampOnDocuments ? co.stampUrl : null}>
           {["Received by", "Signature", "Date"].map((k) => (
             <View key={k} style={{ width: 96, marginRight: 14 }}>
               <View style={{ borderBottomWidth: 0.75, borderBottomColor: C.ink, height: 26 }} />
@@ -220,7 +225,7 @@ async function invoiceDoc(id: string): Promise<Built | null> {
             <LinesTable columns={BREAKDOWN_COLUMNS} rows={breakdown} />
           </View>
         ) : null}
-        <SignOff />
+        <SignOff stamp={co.stampOnDocuments ? co.stampUrl : null} />
       </DocShell>
     ),
   };
@@ -278,7 +283,7 @@ async function creditDoc(id: string): Promise<Built | null> {
         <Text style={s.note}>Reason: {cn.reason}</Text>
         <LinesTable columns={LINE_COLUMNS} rows={lineRows(lines)} />
         <Totals rows={[["Subtotal", aed(cn.subtotalFils)], ["VAT 5%", aed(cn.vatFils)]]} grand={["Total credited AED", aed(cn.totalFils)]} />
-        <SignOff />
+        <SignOff stamp={co.stampOnDocuments ? co.stampUrl : null} />
       </DocShell>
     ),
   };

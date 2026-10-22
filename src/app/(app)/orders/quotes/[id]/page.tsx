@@ -19,7 +19,8 @@ import { sendDocProps } from "@/lib/doc-links";
 import { getSettings } from "@/lib/settings";
 import { formatFils } from "@/lib/money";
 import { requireOwner } from "@/lib/session";
-import { QUOTE_STATUS_LABEL } from "@/lib/stages";
+import { quoteStatusLabel } from "@/lib/stages";
+import { todayISO } from "@/lib/dates";
 
 export const metadata: Metadata = { title: "Quote" };
 
@@ -62,7 +63,7 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
         {branch ? <p className="mt-1 text-[15px] text-ink-muted">{branch.name}</p> : null}
         <SwooshStripe className="mt-4 max-w-[72px]" />
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          <SoftTag>{QUOTE_STATUS_LABEL[quote.status]}</SoftTag>
+          <SoftTag className={quoteStatusLabel(quote, todayISO()) === "Expired" ? "border-brand/20 bg-brand-soft text-brand-deep" : undefined}>{quoteStatusLabel(quote, todayISO())}</SoftTag>
           {open ? (
             <>
               <LinkButton href={`/orders/quotes/${id}/edit`} variant="outline" size="sm">

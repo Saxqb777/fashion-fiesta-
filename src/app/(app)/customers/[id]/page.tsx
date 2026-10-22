@@ -19,7 +19,8 @@ import {
 } from "@/lib/measurements";
 import { formatFils } from "@/lib/money";
 import { formatISODate } from "@/lib/dates";
-import { QUOTE_STATUS_LABEL, orderNo } from "@/lib/stages";
+import { orderNo, quoteStatusLabel } from "@/lib/stages";
+import { todayISO } from "@/lib/dates";
 import { CopyIcon, PlusIcon } from "lucide-react";
 import { Measurements } from "./measurements";
 import { ArchiveButton } from "@/components/data/archive-button";
@@ -505,7 +506,7 @@ export default async function CustomerPage({
                             {q.number}
                             <span className="ml-2 text-[12px] font-medium text-ink-muted">
                               Quote,{" "}
-                              {QUOTE_STATUS_LABEL[q.status].toLowerCase()}
+                              {quoteStatusLabel(q, todayISO()).toLowerCase()}
                             </span>
                           </Link>
                           <span className="tabular hidden w-24 text-right text-sm sm:inline">

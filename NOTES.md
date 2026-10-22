@@ -26,6 +26,8 @@ Newest at top. Keep under 150 lines. Rules for this file are in CLAUDE.md under 
 - Agreed prices (account_items) beat last price when she picks the item.
 
 ## Decisions (newest first)
+- 2026-10-22: Custom domain studio.fashionfiestauae.com added to Vercel. DNS sits with Openprovider (the Webador site), so Saaqib adds a CNAME there. Share links switch to it by themselves once the CNAME points to Vercel (PUBLIC_APP_URL plus a DNS check). Reason: no broken links before the record exists.
+- 2026-10-22: Quote validity days and terms in Settings, Money. Expired is shown, not stored. Stamp in Settings, Shop, prints on Tax Invoice, Delivery Note and Credit Note only (not Quote or PO), as asked.
 - 2026-10-22: Neon stays on the Free plan for now; Saaqib will decide on Launch later. Reason: still testing, and the nightly Excel backup covers it. Launch costs about $10 to $16 a month.
 - Measurement templates: per garment type, an ordered pick from the master field list. Each category maps to a template, and old sets stay as they are. Reason: show only the relevant fields when measuring.
 - Phase 4.5:
@@ -56,6 +58,7 @@ Newest at top. Keep under 150 lines. Rules for this file are in CLAUDE.md under 
 - 40 customers were seeded into production by a one time script. Bedashing has the note "Key account, Phase 4.5".
 
 ## Open questions for Saaqib
+- Add the DNS record for studio.fashionfiestauae.com: CNAME, name "studio", value 94f92b8040c50980.vercel-dns-016.com. Then tell me to confirm it is live.
 - Embroidery machine brand and model: to confirm with the operator. It decides the file format for ideas 36 and 43.
 - Neon Launch plan (later, his call): gives a 7 day rewind window and daily snapshots. He adds a card in Neon billing, then I set both up.
 
@@ -64,4 +67,4 @@ Newest at top. Keep under 150 lines. Rules for this file are in CLAUDE.md under 
 - Vercel: project prj_grSCaYpWGqE93VbWkOQzahVzymA0, team team_yKuXQ8P3eoGrvRnTWMIqSiGo, region sin1.
 - Env vars are in Vercel for all three environments: DATABASE_URL, AUTH_SECRET, BLOB_READ_WRITE_TOKEN, ANTHROPIC_API_KEY, CRON_SECRET. They are never in git.
 - Cron: /api/cron/backup at 22:00 UTC.
-- Migrations live in /drizzle and run during build. The latest is 0008_measurement_templates.
+- Migrations live in /drizzle and run during build. The latest is 0010_quote_terms_stamp.

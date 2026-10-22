@@ -15,7 +15,8 @@ import { likeTerm } from "@/lib/archive";
 import { formatISODate } from "@/lib/dates";
 import { formatFils } from "@/lib/money";
 import { requireOwner } from "@/lib/session";
-import { QUOTE_STATUS_LABEL } from "@/lib/stages";
+import { todayISO } from "@/lib/dates";
+import { QUOTE_STATUS_LABEL, quoteStatusLabel } from "@/lib/stages";
 
 export const metadata: Metadata = { title: "Quotes" };
 
@@ -76,9 +77,13 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="tabular text-[13px] font-semibold text-ink-muted">{quote.number}</span>
-                        <SoftTag className={quote.status === "accepted" ? "border-leaf/50 bg-leaf/15 text-[#4d7a12]" : quote.status === "sent" ? "border-sky/40 bg-sky/10 text-[#00739e]" : undefined}>
-                          {QUOTE_STATUS_LABEL[quote.status]}
-                        </SoftTag>
+                        {quoteStatusLabel(quote, todayISO()) === "Expired" ? (
+                          <SoftTag className="border-brand/20 bg-brand-soft text-brand-deep">Expired</SoftTag>
+                        ) : (
+                          <SoftTag className={quote.status === "accepted" ? "border-leaf/50 bg-leaf/15 text-[#4d7a12]" : quote.status === "sent" ? "border-sky/40 bg-sky/10 text-[#00739e]" : undefined}>
+                            {QUOTE_STATUS_LABEL[quote.status]}
+                          </SoftTag>
+                        )}
                         <span className="text-[12px] text-ink-muted">{formatISODate(quote.quoteDate)}</span>
                       </div>
                       <p className="mt-1 flex items-center gap-2 truncate text-[16px] font-semibold">

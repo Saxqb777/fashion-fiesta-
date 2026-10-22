@@ -15,6 +15,11 @@ export const STAGE_LABEL: Record<TrackerStage | "cancelled" | "draft", string> =
   cancelled: "Cancelled",
 };
 
+/** A draft or sent quote past its valid until date shows as expired. Nothing is stored. */
+export function quoteStatusLabel(q: { status: QuoteStatus; validUntil: string | null }, today: string) {
+  return (q.status === "draft" || q.status === "sent") && q.validUntil && q.validUntil < today ? "Expired" : QUOTE_STATUS_LABEL[q.status];
+}
+
 export const QUOTE_STATUS_LABEL: Record<QuoteStatus, string> = {
   draft: "Draft",
   sent: "Sent",

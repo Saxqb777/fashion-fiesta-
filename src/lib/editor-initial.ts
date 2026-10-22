@@ -5,6 +5,7 @@ import { quoteLines, quotes, salesOrders, soLineAllocations, soLines, tasks } fr
 import type { EditorAllocation, EditorAssignment, EditorInitial, EditorLine } from "@/components/orders/document-editor";
 import type { DraftAssignment, Task } from "@/db/schema";
 import { addDaysISO, todayISO } from "./dates";
+import { getSettings } from "./settings";
 import { taskLocked } from "./stages";
 
 const money = (fils: number) => (fils / 100).toFixed(2);
@@ -152,7 +153,7 @@ export async function initialForQuote(quoteId?: string, customer?: string): Prom
       branchId: "",
       date: today,
       dueDate: "",
-      validUntil: addDaysISO(today, 14),
+      validUntil: addDaysISO(today, (await getSettings()).quoteValidityDays),
       notes: "",
       lines: [],
     };

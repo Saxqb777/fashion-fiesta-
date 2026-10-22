@@ -9,7 +9,6 @@ import { TaskCard } from "@/components/workshop/task-card";
 import { formatLongDate, todayISO } from "@/lib/dates";
 import { formatFils } from "@/lib/money";
 import { requireUser } from "@/lib/session";
-import { getSettings } from "@/lib/settings";
 import { taskCardColumns, taskOrder } from "@/lib/task-queries";
 
 export const metadata: Metadata = { title: "Today" };
@@ -22,7 +21,6 @@ function plural(n: number, one: string, many: string) {
 
 export default async function TodayPage() {
   const user = await requireUser();
-  const settings = await getSettings();
   const owner = user.role === "owner";
   const today = todayISO();
 
@@ -65,12 +63,13 @@ export default async function TodayPage() {
     );
   }
 
-  const [[review], [questions], [declined], [overdue], [ready]] = await Promise.all([
+  const [[review], [questions], [declined], [overdue], [ready], [drafts]] = await Promise.all([
     db.select({ n: count() }).from(tasks).where(eq(tasks.status, "submitted")),
     db.select({ n: count() }).from(tasks).where(and(eq(tasks.openQuestion, true), ne(tasks.status, "approved"))),
     db.select({ n: count() }).from(tasks).where(eq(tasks.status, "declined")),
     db.select({ n: count() }).from(tasks).where(and(ne(tasks.status, "approved"), lt(tasks.dueDate, today))),
     db.select({ n: count() }).from(salesOrders).where(eq(salesOrders.stage, "ready")),
+    db.select({ n: count() }).from(salesOrders).where(eq(salesOrders.stage, "draft")),
   ]);
   const items: Item[] = [
     overdue.n && { key: "overdue", text: `${plural(overdue.n, "task is", "tasks are")} overdue`, href: "/workshop", action: "See overdue", urgent: true },
@@ -78,6 +77,7 @@ export default async function TodayPage() {
     review.n && { key: "review", text: `${plural(review.n, "piece of work", "pieces of work")} waiting for your review`, href: "/workshop?view=review", action: "Review" },
     declined.n && { key: "declined", text: `${plural(declined.n, "task was", "tasks were")} declined`, detail: "Give them to someone else.", href: "/workshop?view=declined", action: "Reassign" },
     ready.n && { key: "ready", text: `${plural(ready.n, "order is", "orders are")} ready to hand over`, href: "/orders?view=ready", action: "Open" },
+    drafts.n && { key: "drafts", text: `${plural(drafts.n, "draft order is", "draft orders are")} waiting to be confirmed`, href: "/orders?view=drafts", action: "Review" },
   ].filter(Boolean) as Item[];
 
   return (
@@ -110,7 +110,7 @@ export default async function TodayPage() {
           </ul>
         ) : (
           <EmptyState
-            sentence={`Nothing needs you right now. Start an order for ${settings.tradeName}, or a quote for a school.`}
+            sentence="Nothing needs you right now. When a customer comes in, make a new order. For a school or business, start with a quote."
             action={<LinkButton href="/orders/new" variant="outline">New order</LinkButton>}
           />
         )}

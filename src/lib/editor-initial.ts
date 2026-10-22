@@ -2,7 +2,8 @@ import { asc, eq } from "drizzle-orm";
 import { getCustomerContext } from "@/actions/documents";
 import { db } from "@/db";
 import { quoteLines, quotes, salesOrders, soLines, tasks } from "@/db/schema";
-import type { EditorInitial, EditorLine } from "@/components/orders/document-editor";
+import type { EditorAssignment, EditorInitial, EditorLine } from "@/components/orders/document-editor";
+import type { DraftAssignment, Task } from "@/db/schema";
 import { addDaysISO, todayISO } from "./dates";
 import { taskLocked } from "./stages";
 
@@ -86,13 +87,15 @@ export async function initialForOrderEdit(orderId: string): Promise<EditorInitia
   ]);
   return {
     id: order.id,
-    number: order.number,
+    number: order.number ?? undefined,
+    isDraft: order.stage === "draft",
     context,
     branchId: order.branchId ?? "",
     date: order.orderDate,
     dueDate: order.dueDate ?? "",
     validUntil: "",
     notes: order.notes ?? "",
+    customerPoNumber: order.customerPoNumber ?? "",
     lines: lines.map(
       (l): EditorLine => ({
         key: k(),
@@ -106,16 +109,7 @@ export async function initialForOrderEdit(orderId: string): Promise<EditorInitia
         fabricId: l.fabricId ?? "",
         measurementId: l.measurementId ?? "",
         measurementLabel: l.measurementLabel,
-        assignments: ts
-          .filter((t) => t.soLineId === l.id)
-          .map((t) => ({
-            key: k(),
-            taskId: t.id,
-            type: t.assigneeType,
-            assigneeId: (t.tailorId ?? t.supplierId)!,
-            qty: String(t.qty),
-            locked: taskLocked(t),
-          })),
+        assignments: assignmentsFor(order.stage === "draft", l.draftAssignments, ts.filter((t) => t.soLineId === l.id)),
       }),
     ),
   };
@@ -159,4 +153,18 @@ export async function initialForQuote(quoteId?: string, customer?: string): Prom
       assignments: [],
     })),
   };
+}
+
+function assignmentsFor(isDraft: boolean, planned: DraftAssignment[] | null, lineTasks: Task[]): EditorAssignment[] {
+  if (isDraft) {
+    return (planned ?? []).map((a) => ({ key: k(), taskId: null, type: a.type, assigneeId: a.assigneeId, qty: String(a.qty), locked: false }));
+  }
+  return lineTasks.map((t) => ({
+    key: k(),
+    taskId: t.id,
+    type: t.assigneeType,
+    assigneeId: (t.tailorId ?? t.supplierId)!,
+    qty: String(t.qty),
+    locked: taskLocked(t),
+  }));
 }

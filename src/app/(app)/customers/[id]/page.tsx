@@ -10,7 +10,7 @@ import { StageTag } from "@/components/orders/bits";
 import { getMeasurementFields } from "@/lib/measurements";
 import { formatFils } from "@/lib/money";
 import { formatISODate } from "@/lib/dates";
-import { QUOTE_STATUS_LABEL } from "@/lib/stages";
+import { QUOTE_STATUS_LABEL, orderNo } from "@/lib/stages";
 import { CopyIcon, PlusIcon } from "lucide-react";
 import { Measurements } from "./measurements";
 import { ArchiveButton } from "@/components/data/archive-button";
@@ -119,12 +119,12 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
                 {orders.map((o) => (
                   <li key={o.id} className="flex items-center gap-2 py-2.5 first:pt-0">
                     <Link href={`/orders/${o.id}`} className="tabular flex-1 text-[15px] font-semibold hover:underline">
-                      {o.number}
+                      {orderNo(o.number)}
                       <span className="ml-2 text-[12px] font-medium text-ink-muted">{formatISODate(o.orderDate)}</span>
                     </Link>
                     <StageTag stage={o.stage} />
                     <span className="tabular hidden w-24 text-right text-sm sm:inline">{formatFils(o.totalFils, { currency: false })}</span>
-                    <LinkButton href={`/orders/new?copy=${o.id}`} variant="ghost" size="icon-sm" aria-label={`Order ${o.number} again`} title="Order again">
+                    <LinkButton href={`/orders/new?copy=${o.id}`} variant="ghost" size="icon-sm" aria-label={`Order ${orderNo(o.number)} again`} title="Order again">
                       <CopyIcon className="text-ink-muted" />
                     </LinkButton>
                   </li>

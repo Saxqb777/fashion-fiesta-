@@ -22,6 +22,20 @@
       "when": 1792665925440,
       "tag": "0002_orders_workshop",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792669147158,
+      "tag": "0003_order_drafts",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792669703838,
+      "tag": "0004_customer_po_number",
+      "breakpoints": true
     }
   ]
 }

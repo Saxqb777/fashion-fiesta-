@@ -19,6 +19,7 @@ export const metadata: Metadata = { title: "Orders" };
 
 const VIEWS = {
   open: ["confirmed", "stitching", "ready"],
+  drafts: ["draft"],
   ready: ["ready"],
   delivered: ["delivered", "invoiced", "paid"],
 } as const;
@@ -28,15 +29,16 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   const params = await searchParams;
   const q = params.q?.trim() ?? "";
   const view = (params.view && params.view in VIEWS ? params.view : params.view === "all" ? "all" : "open") as keyof typeof VIEWS | "all";
+  // "All" means every real order. Drafts only show under Drafts.
   const today = todayISO();
-  const stages = view === "all" ? undefined : VIEWS[view];
+  const stages = view === "all" ? (["confirmed", "stitching", "ready", "delivered", "invoiced", "paid", "cancelled"] as const) : VIEWS[view];
 
   const [rows, [{ total }], counts] = await Promise.all([
     db
       .select(orderListColumns)
       .from(salesOrders)
       .innerJoin(customers, eq(customers.id, salesOrders.customerId))
-      .where(and(stages ? inArray(salesOrders.stage, [...stages]) : undefined, q ? or(ilike(salesOrders.number, likeTerm(q)), ilike(customers.name, likeTerm(q))) : undefined))
+      .where(and(stages ? inArray(salesOrders.stage, [...stages]) : undefined, q ? or(ilike(salesOrders.number, likeTerm(q)), ilike(salesOrders.customerPoNumber, likeTerm(q)), ilike(customers.name, likeTerm(q))) : undefined))
       .orderBy(
         ...(view === "open"
           ? [
@@ -78,7 +80,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
       ) : (
         <>
           <div className="mb-5 flex flex-col gap-3">
-            <SearchBox placeholder="Search by order number or customer" />
+            <SearchBox placeholder="Search by order number, Customer PO or customer" />
             <FilterChips
               base="/orders"
               params={params}
@@ -87,6 +89,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
                 { label: "Open", count: n(VIEWS.open) },
                 { value: "ready", label: "Ready", count: n(VIEWS.ready) },
                 { value: "delivered", label: "Delivered", count: n(VIEWS.delivered) },
+                ...(n(VIEWS.drafts) ? [{ value: "drafts", label: "Drafts", count: n(VIEWS.drafts) }] : []),
                 { value: "all", label: "All" },
               ]}
             />
@@ -99,7 +102,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
             </ul>
           ) : (
             <EmptyState
-              sentence={q ? `No order matches "${q}".` : view === "open" ? "Nothing open. Every order is delivered." : "No orders here yet."}
+              sentence={q ? `No order matches "${q}".` : view === "open" ? "Nothing open. Every order is delivered." : view === "drafts" ? "No drafts. Every order is confirmed." : "No orders here yet."}
               action={
                 <LinkButton href="/orders/new">
                   <PlusIcon />

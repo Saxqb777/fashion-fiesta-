@@ -35,6 +35,9 @@ Business system for Fashion Fiesta Ladies Tailoring & Textiles, a ladies tailori
 - Free typed lines (standing rule): lines on quotes, sales orders, invoices and POs never require an existing product. The owner can type any description, quantity and price directly on the line. When a line is saved with a description that does not match an existing product, the system creates that product automatically (name from the description, category "Uncategorised", price from the line) and links the line to it, silently, no popup. Next time she types the same name, it autocompletes from products with the last price she used for that customer.
 - Same for fabrics on a PO: a new fabric name creates the fabric record automatically.
 - Price on a product is only a default. The line price is always editable.
+- Naming: a document the customer sends us (their purchase order) is always called "Customer PO" in the app. "PO" alone always means our own purchase order to a supplier, under Purchases.
+- Sales orders have a "Customer PO number" field. It prints on the Delivery Note and the Tax Invoice.
+- New order and New quote have three ways in: manual lines, "Add lines from Excel" (template download, upload or paste, preview with errors in red, one draft per branch when a Branch column is present), and "Read their document" (AI, idea 1, Phase 3.5).
 - Apply the free typed lines rule in Phase 2 for quotes and orders, Phase 3 for invoices, Phase 4 for POs.
 
 ## Stack
@@ -84,7 +87,7 @@ Rules:
 One shared template family: Quote, Sales Order confirmation, Delivery Note, Tax Invoice, Receipt, Statement of Account, Purchase Order.
 - A4. Red header band with the logo on the left, document title on the right in Fraunces.
 - Thin accent stripe under the header using the four swoosh colours.
-- Company block with legal name, address, TRN. Customer block with name, branch, TRN if any.
+- Company block with legal name, address, TRN. Customer block with name, branch, TRN if any, and the Customer PO number on the Delivery Note and Tax Invoice when the order has one.
 - Lines table with description, qty, unit price, VAT 5%, line total. Totals box: subtotal, VAT, grand total, amount paid, balance due.
 - Footer: bank details from Settings, payment terms, thank you line.
 - Tax Invoice must satisfy UAE FTA requirements: the words "Tax Invoice", supplier TRN, date, unique number, VAT amount shown.
@@ -101,6 +104,7 @@ Phase 0: Scaffold, tokens, fonts, layout shell, auth, Settings, first run Setup 
 Phase 1: Master data: Customers (+ branches, tiers, credit terms), Suppliers, Products, Fabrics. Full add, edit, search, soft delete.
 Phase 2: Quotes → Sales Orders with lines, assign each line to a tailor task or an outsourcing PO, stage tracker, tailor phone screens (My tasks, task detail, photo upload, submit), owner approve or reject, Gallery.
 Phase 3: Invoices from SO (full or partial), payments with allocation, receipts, statements, all PDF templates, overdue logic from credit days, due reminders in Today.
+Phase 3.5: "Read their document" (idea 1, AI). Upload a Customer PO, a quote, Excel, a photo or a screenshot; Claude reads it and fills the order screen with lines tagged "from document, check", unknown fields in red. Nothing is saved until she presses Save as draft or Confirm. One order per branch when the document covers several.
 Phase 4: Purchase Orders, goods receipt into fabric stock, supplier bills, supplier payments, stock movements when fabric is issued to a task.
 Phase 5: Cash book (auto entries from every money event), Expenses, Embroidery jobs with 50/50 settlement, POS quick sale for tailors (cash or card, receipt share).
 Phase 6: Today screen, Reports (who owes you with aging, sales by customer, VAT summary for filing, tailor output), notifications, celebrations, PWA, polish pass against the Design system rules.
@@ -113,8 +117,8 @@ POS card terminal integration (provider to be confirmed), order planning and bra
 Status values: proposed, approved, built. Saaqib marks ideas approved. Build only approved ideas, in the phase they belong to. Never build a proposed idea without approval.
 Standing permission: small taste improvements (spacing, wording, micro animation, a smarter default) are allowed in any phase if they follow the Design system rules. Flag each one in the end of phase checklist.
 
-1. Paper in, record out. proposed. Phase 2 (quotes), Phase 4 (goods receipt). Effort: large.
-   What: photo a handwritten order slip or WhatsApp screenshot and it becomes a draft quote with lines to check; photo a supplier delivery note and it prefills the goods receipt.
+1. Paper in, record out. approved. Phase 3.5 for customer documents. Supplier delivery note photos stay with the other AI ideas after Phase 6. Effort: large.
+   What: upload a Customer PO or a customer's own quote (PDF, Excel, photo, WhatsApp screenshot, handwritten slip) and Claude turns it into a draft quote or order with lines to check; photo a supplier delivery note and it prefills the goods receipt. Nothing is saved until the owner confirms.
    Why: most orders start as a scribble. She checks instead of types.
 
 2. Measurement card. built. Build in Phase 2 with orders and tasks (store and prefill). Effort: medium.
@@ -152,3 +156,25 @@ Standing permission: small taste improvements (spacing, wording, micro animation
 10. Can we promise that date. proposed. Phase 2. Effort: medium.
     What: when confirming an order, the screen shows how many pieces each tailor already has due before the promised date and flags a tight date. Not a planner, just a warning.
     Why: she stops promising Thursday when the workshop is full.
+
+11. Dues call script. proposed. AI, together after Phase 6. Effort: small.
+    What: Claude writes what to say when calling about dues, from the customer's invoices, payments and past promises. Builds on idea 7.
+    Why: a polite, prepared call every time.
+
+12. WhatsApp message drafts. proposed. AI, together after Phase 6. Effort: small.
+    What: ready to send messages: payment reminder, order ready, quote follow up, in the customer's tone and language.
+    Why: no typing the same message twenty times a week.
+
+13. Ask your shop. proposed. AI, together after Phase 6. Effort: medium.
+    What: type a question such as "how much did Bedashing order this year" or "who is late paying" and get the answer from the shop's own data.
+    Why: answers without building a report.
+
+14. Save as draft for orders. built. Phase 2 follow up. Effort: small.
+    What: orders can be saved as a draft: no number, no tasks, not in any report, until she presses Confirm order.
+    Why: park an incomplete order without it counting anywhere.
+
+15. Add lines from Excel. built. Phase 2 follow up. Effort: medium.
+    What: New order and New quote take a template, an uploaded sheet or pasted rows; preview with errors in red; one draft per branch when a Branch column is present.
+    Why: big corporate orders in one go.
+
+Notes: Reading customer documents (idea 1) is Phase 3.5. The other AI ideas (11, 12, 13 and supplier note photos) are done together after Phase 6.

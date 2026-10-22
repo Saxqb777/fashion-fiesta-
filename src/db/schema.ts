@@ -19,7 +19,7 @@ export const customerTier = pgEnum("customer_tier", ["vip", "regular", "new"]);
 export const supplierType = pgEnum("supplier_type", ["fabric", "outsourcing"]);
 export const productKind = pgEnum("product_kind", ["custom", "ready_made"]);
 export const quoteStatus = pgEnum("quote_status", ["draft", "sent", "accepted", "declined"]);
-export const orderStage = pgEnum("order_stage", ["confirmed", "stitching", "ready", "delivered", "invoiced", "paid", "cancelled"]);
+export const orderStage = pgEnum("order_stage", ["draft", "confirmed", "stitching", "ready", "delivered", "invoiced", "paid", "cancelled"]);
 export const assigneeType = pgEnum("assignee_type", ["tailor", "unit"]);
 export const taskStatus = pgEnum("task_status", ["assigned", "in_progress", "submitted", "approved", "rejected", "declined"]);
 export const taskPhotoKind = pgEnum("task_photo_kind", ["progress", "submission"]);
@@ -209,6 +209,7 @@ export const fabrics = pgTable(
 /* ---------- Phase 2: measurements, quotes, orders, tasks ---------- */
 
 export type MeasurementValue = { name: string; value: string };
+export type DraftAssignment = { type: "tailor" | "unit"; assigneeId: string; qty: number };
 
 export const measurementFields = pgTable("measurement_fields", {
   ...audit(),
@@ -272,10 +273,13 @@ export const salesOrders = pgTable(
   "sales_orders",
   {
     ...audit(),
-    number: text("number").notNull().unique(),
+    /** Null while the order is a draft. Taken on Confirm order, never reused. */
+    number: text("number").unique(),
     customerId: uuid("customer_id").notNull().references(() => customers.id),
     branchId: uuid("branch_id").references(() => customerBranches.id),
     quoteId: uuid("quote_id"),
+    /** The customer's own purchase order number. Called "Customer PO" in the app. */
+    customerPoNumber: text("customer_po_number"),
     orderDate: date("order_date").notNull(),
     dueDate: date("due_date"),
     stage: orderStage("stage").notNull().default("confirmed"),
@@ -309,6 +313,8 @@ export const soLines = pgTable(
     measurementLabel: text("measurement_label"),
     measurements: jsonb("measurements").$type<MeasurementValue[]>(),
     notes: text("notes"),
+    /** Planned assignments while the order is a draft. Become tasks on Confirm order. */
+    draftAssignments: jsonb("draft_assignments").$type<DraftAssignment[]>(),
   },
   (t) => [index("so_lines_order_idx").on(t.orderId)],
 );

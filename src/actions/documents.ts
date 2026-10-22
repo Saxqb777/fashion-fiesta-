@@ -133,6 +133,12 @@ const docSchema = z.object({
   dueDate: isoDate.optional().default(""),
   validUntil: isoDate.optional().default(""),
   notes: optionalText,
+  customerPoNumber: z
+    .string()
+    .trim()
+    .max(60, "Keep the Customer PO number under 60 characters.")
+    .optional()
+    .transform((v) => (v ? v : null)),
   sourceQuoteId: uuidOrNull,
   lines: z.array(lineSchema).min(1, "Add at least one line."),
 });
@@ -161,11 +167,19 @@ async function checkCustomer(doc: Doc) {
 
 /* ---------- Quotes ---------- */
 
+type Owner = Awaited<ReturnType<typeof requireOwner>>;
+type Persisted = { ok: true; id: string; outcome: "draft" | "confirmed" | "updated" | "created" } | { ok?: false; message?: string; errors?: Record<string, string[] | undefined> };
+
 export async function saveQuote(_prev: FormState, fd: FormData): Promise<FormState> {
   const me = await requireOwner();
   const parsed = parsePayload(fd);
   if (!parsed.success) return { message: "Check the highlighted fields.", errors: issuesToErrors(parsed.error) };
-  const doc = parsed.data;
+  const res = await persistQuote(parsed.data, me);
+  if (!res.ok) return res;
+  redirect(`/orders/quotes/${res.id}?${res.outcome === "updated" ? "saved" : "added"}=1`);
+}
+
+async function persistQuote(doc: Doc, me: Owner): Promise<Persisted> {
   const { customer, error } = await checkCustomer(doc);
   if (!customer) return { message: error };
 
@@ -220,7 +234,7 @@ export async function saveQuote(_prev: FormState, fd: FormData): Promise<FormSta
   });
   revalidatePath("/orders/quotes");
   revalidatePath(`/customers/${customer.id}`);
-  redirect(`/orders/quotes/${quoteId}?${existing ? "saved" : "added"}=1`);
+  return { ok: true, id: quoteId, outcome: existing ? "updated" : "created" };
 }
 
 export async function setQuoteStatus(_prev: FormState, fd: FormData): Promise<FormState> {
@@ -244,15 +258,24 @@ export async function saveOrder(_prev: FormState, fd: FormData): Promise<FormSta
   const me = await requireOwner();
   const parsed = parsePayload(fd);
   if (!parsed.success) return { message: "Check the highlighted fields.", errors: issuesToErrors(parsed.error) };
-  const doc = parsed.data;
+  const res = await persistOrder(parsed.data, text(fd, "intent") === "draft" ? "draft" : "confirm", me);
+  if (!res.ok) return res;
+  redirect(`/orders/${res.id}?${res.outcome === "draft" ? "draft" : res.outcome === "confirmed" ? "added" : "saved"}=1`);
+}
+
+async function persistOrder(doc: Doc, intent: "draft" | "confirm", me: Owner): Promise<Persisted> {
   const { customer, error } = await checkCustomer(doc);
   if (!customer) return { message: error };
 
   const existing = doc.id ? await db.query.salesOrders.findFirst({ where: eq(salesOrders.id, doc.id) }) : undefined;
   if (doc.id && !existing) return { message: "That order no longer exists." };
-  if (existing && !["confirmed", "stitching", "ready"].includes(existing.stage)) {
+  if (existing && !["draft", "confirmed", "stitching", "ready"].includes(existing.stage)) {
     return { message: "Delivered orders cannot be changed." };
   }
+  // Drafts: no number, no tasks, not in reports. Confirm order turns a draft (or a new order) into a real one.
+  const wasDraft = !existing || existing.stage === "draft";
+  const savingDraft = wasDraft && intent === "draft";
+  const confirming = wasDraft && !savingDraft;
 
   const errors: Record<string, string[]> = {};
 
@@ -312,7 +335,8 @@ export async function saveOrder(_prev: FormState, fd: FormData): Promise<FormSta
   const settings = await getSettings();
   const cache = new Map<string, string>();
   const orderId = existing?.id ?? randomUUID();
-  const number = existing?.number ?? (await nextDocumentNumber("sales_order"));
+  const number = existing?.number ?? (savingDraft ? null : await nextDocumentNumber("sales_order"));
+  const quoteId = doc.sourceQuoteId ?? existing?.quoteId ?? null;
   const orderDue = doc.dueDate;
 
   const lineRows = [];
@@ -342,9 +366,11 @@ export async function saveOrder(_prev: FormState, fd: FormData): Promise<FormSta
         measurementLabel: keepSnapshot ? old.measurementLabel : (set?.label ?? null),
         measurements: keepSnapshot ? old.measurements : (set?.values ?? null),
         notes: l.notes,
+        draftAssignments: savingDraft ? l.assignments.map((a) => ({ type: a.type, assigneeId: a.assigneeId, qty: a.qty })) : null,
       },
     });
     const taskDue = l.dueDate ?? orderDue;
+    if (savingDraft) continue;
     for (const a of l.assignments) {
       const assignee = a.type === "tailor" ? { tailorId: a.assigneeId, supplierId: null } : { tailorId: null, supplierId: a.assigneeId };
       const oldTask = a.taskId ? oldTaskById.get(a.taskId) : undefined;
@@ -364,7 +390,16 @@ export async function saveOrder(_prev: FormState, fd: FormData): Promise<FormSta
     }
   }
   const totals = documentTotals(lineRows.map((l) => l.values));
-  const header = { customerId: customer.id, branchId: doc.branchId, orderDate: doc.date ?? todayISO(), dueDate: orderDue, notes: doc.notes, ...totals };
+  const header = {
+    customerId: customer.id,
+    branchId: doc.branchId,
+    orderDate: doc.date ?? todayISO(),
+    dueDate: orderDue,
+    notes: doc.notes,
+    customerPoNumber: doc.customerPoNumber,
+    ...totals,
+    ...(wasDraft ? { number, quoteId, stage: savingDraft ? ("draft" as const) : ("confirmed" as const) } : {}),
+  };
 
   const batch: BatchItem<"pg">[] = [];
   if (existing) {
@@ -374,32 +409,36 @@ export async function saveOrder(_prev: FormState, fd: FormData): Promise<FormSta
     const removedLines = oldLines.filter((l) => !keptLineIds.has(l.id)).map((l) => l.id);
     if (removedLines.length) batch.push(db.delete(soLines).where(inArray(soLines.id, removedLines)));
   } else {
-    batch.push(db.insert(salesOrders).values({ id: orderId, number, quoteId: doc.sourceQuoteId, ...header, createdBy: me.id }));
+    batch.push(db.insert(salesOrders).values({ id: orderId, ...header, createdBy: me.id }));
   }
   for (const l of lineRows) {
     batch.push(l.isNew ? db.insert(soLines).values({ id: l.id, ...l.values, createdBy: me.id }) : db.update(soLines).set(l.values).where(eq(soLines.id, l.id)));
   }
   for (const t of taskUpdates) batch.push(db.update(tasks).set(t.values).where(eq(tasks.id, t.id)));
   if (taskInserts.length) batch.push(db.insert(tasks).values(taskInserts));
-  if (!existing && doc.sourceQuoteId) {
-    batch.push(db.update(quotes).set({ status: "accepted", orderId }).where(and(eq(quotes.id, doc.sourceQuoteId), eq(quotes.customerId, customer.id))));
+  if (confirming && quoteId) {
+    batch.push(db.update(quotes).set({ status: "accepted", orderId }).where(and(eq(quotes.id, quoteId), eq(quotes.customerId, customer.id))));
   }
   await db.batch(batch as Batch);
   await refreshOrderStage(orderId);
 
+  const assignedNote = taskInserts.length ? `, ${taskInserts.length} ${taskInserts.length === 1 ? "task" : "tasks"} assigned` : "";
   await logActivity({
     actor: me,
     entityType: "sales_order",
     entityId: orderId,
-    action: existing ? "updated" : "created",
-    summary: existing
-      ? `${me.name} updated order ${number}`
-      : `${me.name} made order ${number} for ${customer.name}${taskInserts.length ? `, ${taskInserts.length} ${taskInserts.length === 1 ? "task" : "tasks"} assigned` : ""}`,
+    action: confirming && existing ? "status_changed" : existing ? "updated" : "created",
+    summary: savingDraft
+      ? `${me.name} saved a draft order for ${customer.name}`
+      : confirming
+        ? `${me.name} confirmed order ${number} for ${customer.name}${assignedNote}`
+        : `${me.name} updated order ${number}`,
   });
   revalidatePath("/orders");
   revalidatePath("/workshop");
+  revalidatePath("/today");
   revalidatePath(`/customers/${customer.id}`);
-  redirect(`/orders/${orderId}?${existing ? "saved" : "added"}=1`);
+  return { ok: true, id: orderId, outcome: savingDraft ? "draft" : confirming ? "confirmed" : "updated" };
 }
 
 export async function setOrderStage(_prev: FormState, fd: FormData): Promise<FormState> {
@@ -419,4 +458,41 @@ export async function setOrderStage(_prev: FormState, fd: FormData): Promise<For
   revalidatePath(`/orders/${id}`);
   revalidatePath("/orders");
   return flashDone(to.data === "ready" ? "Marked ready." : "Marked delivered.");
+}
+
+/** Drafts never counted anywhere, so they can be deleted for good. */
+export async function deleteDraftOrder(_prev: FormState, fd: FormData): Promise<FormState> {
+  const me = await requireOwner();
+  const id = text(fd, "id");
+  const order = /^[0-9a-f-]{36}$/.test(id) ? await db.query.salesOrders.findFirst({ where: eq(salesOrders.id, id) }) : undefined;
+  if (!order) return { message: "That draft no longer exists." };
+  if (order.stage !== "draft") return { message: "Only drafts can be deleted." };
+  await db.batch([db.delete(soLines).where(eq(soLines.orderId, id)), db.delete(salesOrders).where(eq(salesOrders.id, id))]);
+  await logActivity({ actor: me, entityType: "sales_order", entityId: id, action: "status_changed", summary: `${me.name} deleted a draft order` });
+  revalidatePath("/orders");
+  revalidatePath("/today");
+  await flashDone("Draft deleted.");
+  redirect("/orders?view=drafts");
+}
+
+/**
+ * Excel import with a Branch column: one draft per branch.
+ * Every group goes through the same rules as a hand typed order or quote.
+ */
+export async function importDrafts(input: { mode: "order" | "quote"; docs: unknown[] }): Promise<{ ok?: boolean; count?: number; error?: string }> {
+  const me = await requireOwner();
+  if (!Array.isArray(input.docs) || input.docs.length === 0 || input.docs.length > 50) return { error: "Nothing to import." };
+  const parsedDocs: Doc[] = [];
+  for (const raw of input.docs) {
+    const parsed = docSchema.safeParse(raw);
+    if (!parsed.success) return { error: `A branch group has a problem: ${parsed.error.issues[0]?.message ?? "invalid data"}` };
+    parsedDocs.push(parsed.data);
+  }
+  let count = 0;
+  for (const doc of parsedDocs) {
+    const res = input.mode === "order" ? await persistOrder(doc, "draft", me) : await persistQuote(doc, me);
+    if (!res.ok) return { error: res.message ?? "One group could not be saved.", count };
+    count++;
+  }
+  return { ok: true, count };
 }

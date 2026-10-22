@@ -21,7 +21,7 @@ async function loadTask(id: string, actor: Actor): Promise<{ task?: Task; orderN
   if (!task) return { error: "That task no longer exists." };
   if (actor.role !== "owner" && task.tailorId !== actor.id) return { error: "This task is not yours." };
   const order = await db.query.salesOrders.findFirst({ where: eq(salesOrders.id, task.orderId), columns: { number: true } });
-  return { task, orderNumber: order?.number };
+  return { task, orderNumber: order?.number ?? "a draft order" };
 }
 
 function refresh(task: Task) {

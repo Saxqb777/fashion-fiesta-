@@ -2,7 +2,7 @@
 
 import { useActionState, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
-import { MapPinIcon, PlusIcon, RulerIcon, Trash2Icon, UserRoundIcon, XIcon } from "lucide-react";
+import { FileSpreadsheetIcon, MapPinIcon, PlusIcon, RulerIcon, Trash2Icon, UserRoundIcon, XIcon } from "lucide-react";
 import { getCustomerContext, saveOrder, saveQuote, type CustomerContext } from "@/actions/documents";
 import { ActionForm } from "@/components/form/action-form";
 import { FormMessage } from "@/components/form/field";
@@ -15,6 +15,7 @@ import { EMPTY_FORM_STATE } from "@/lib/forms";
 import { lineAmounts } from "@/lib/lines";
 import { formatFils } from "@/lib/money";
 import { cn } from "cn";
+import { BulkImportDialog } from "./bulk-import";
 import { CustomerPicker } from "./customer-picker";
 import { MeasurementDialog, type MeasurementSet } from "./measurement-dialog";
 
@@ -36,12 +37,14 @@ export type EditorLine = {
 export type EditorInitial = {
   id?: string | null;
   number?: string;
+  isDraft?: boolean;
   context: CustomerContext | null;
   branchId: string;
   date: string;
   dueDate: string;
   validUntil: string;
   notes: string;
+  customerPoNumber?: string;
   sourceQuoteId?: string | null;
   lines: EditorLine[];
 };
@@ -94,6 +97,8 @@ export function DocumentEditor({
   cancelHref: string;
 }) {
   const isOrder = mode === "order";
+  // New orders and drafts can be parked. Confirmed orders only save changes.
+  const canDraft = isOrder && (!initial.id || Boolean(initial.isDraft));
   const [state, action] = useActionState(isOrder ? saveOrder : saveQuote, EMPTY_FORM_STATE);
   const errors = state.errors ?? {};
   const [ctx, setCtx] = useState<CustomerContext | null>(initial.context);
@@ -103,8 +108,10 @@ export function DocumentEditor({
   const [dueDate, setDueDate] = useState(initial.dueDate);
   const [validUntil, setValidUntil] = useState(initial.validUntil);
   const [notes, setNotes] = useState(initial.notes);
+  const [customerPo, setCustomerPo] = useState(initial.customerPoNumber ?? "");
   const [lines, setLines] = useState<EditorLine[]>(initial.lines.length ? initial.lines : [blankLine(initial.dueDate)]);
   const [measureFor, setMeasureFor] = useState<string | null>(null);
+  const [bulkOpen, setBulkOpen] = useState(false);
 
   const pickCustomer = (id: string | null) => {
     if (!id) {
@@ -135,6 +142,7 @@ export function DocumentEditor({
     dueDate,
     validUntil,
     notes,
+    customerPoNumber: isOrder ? customerPo : "",
     sourceQuoteId: initial.sourceQuoteId ?? null,
     lines: lines.map((l) => ({
       id: l.id ?? null,
@@ -196,6 +204,19 @@ export function DocumentEditor({
                 aria-invalid={errors.dueDate ? true : undefined}
               />
             </div>
+          ) : null}
+          {isOrder ? (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="customerPo">Customer PO number</Label>
+              <Input
+                id="customerPo"
+                value={customerPo}
+                onChange={(e) => setCustomerPo(e.target.value)}
+                placeholder="Their PO number, if they sent one"
+                aria-invalid={errors.customerPoNumber ? true : undefined}
+              />
+              {errors.customerPoNumber ? <p className="text-[13px] font-medium text-brand-deep">{errors.customerPoNumber[0]}</p> : null}
+            </div>
           ) : (
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="validUntil">Valid until</Label>
@@ -230,11 +251,31 @@ export function DocumentEditor({
             onMeasure={() => setMeasureFor(l.key)}
           />
         ))}
-        <Button type="button" variant="outline" className="self-start" onClick={() => setLines((ls) => [...ls, blankLine(dueDate)])}>
-          <PlusIcon />
-          Add line
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" onClick={() => setLines((ls) => [...ls, blankLine(dueDate)])}>
+            <PlusIcon />
+            Add line
+          </Button>
+          <Button type="button" variant="outline" onClick={() => setBulkOpen(true)}>
+            <FileSpreadsheetIcon />
+            Add lines from Excel
+          </Button>
+        </div>
       </section>
+
+      <BulkImportDialog
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        mode={mode}
+        ctx={ctx}
+        lookups={{ products, fabrics, tailors, units }}
+        header={{ date, dueDate, validUntil, notes, customerPoNumber: isOrder ? customerPo : "" }}
+        onAddLines={(added, importedBranch) => {
+          // Replace the single empty starter line instead of keeping it above the import.
+          setLines((ls) => [...ls.filter((l) => l.description.trim() || l.unitPrice || l.id), ...added.map((l) => ({ ...l, dueDate: l.dueDate || dueDate }))]);
+          if (importedBranch) setBranchId(importedBranch);
+        }}
+      />
 
       <section className="grid gap-4 sm:grid-cols-[1fr_320px]">
         <div className="flex flex-col gap-1.5">
@@ -257,13 +298,25 @@ export function DocumentEditor({
         </dl>
       </section>
 
-      <div className="sticky bottom-20 z-20 -mx-4 flex items-center justify-end gap-2 border-t border-line bg-paper/95 px-4 py-3 backdrop-blur md:bottom-0 md:mx-0 md:rounded-[14px] md:border md:px-4">
-        <Button variant="ghost" nativeButton={false} render={<Link href={cancelHref} />}>
+      {/* The total rides in the bar so it is never hidden behind it while scrolling. */}
+      <div className="sticky bottom-20 z-20 -mx-4 flex flex-wrap items-center gap-2 border-t border-line bg-surface px-4 py-3 md:bottom-3 md:mx-0 md:rounded-[14px] md:border md:px-5">
+        <p className="tabular mr-auto text-sm text-ink-muted">
+          Total <span className="ml-1 font-display text-xl font-medium text-ink">{formatFils(subtotal + vat)}</span>
+        </p>
+        <Button variant="ghost" nativeButton={false} render={<Link href={cancelHref} />} className="hidden sm:inline-flex">
           Cancel
         </Button>
-        <SubmitButton size="lg" pendingText="Saving">
-          {initial.id ? "Save changes" : isOrder ? (initial.sourceQuoteId ? "Confirm order" : "Save order") : "Save quote"}
+        {canDraft ? (
+          <SubmitButton name="intent" value="draft" variant="outline" size="lg" pendingText="Saving">
+            Save as draft
+          </SubmitButton>
+        ) : null}
+        <SubmitButton name="intent" value="confirm" size="lg" pendingText="Saving">
+          {isOrder ? (canDraft ? "Confirm order" : "Save changes") : initial.id ? "Save changes" : "Save quote"}
         </SubmitButton>
+        {isOrder && canDraft ? (
+          <p className="w-full text-right text-[12px] text-ink-muted">A draft has no number, no tasks and is not in any report until you confirm it.</p>
+        ) : null}
       </div>
 
       {ctx ? (

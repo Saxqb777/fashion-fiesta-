@@ -18,13 +18,16 @@ export default async function EditOrderPage({ params }: { params: Promise<{ id: 
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const order = await db.query.salesOrders.findFirst({ where: eq(salesOrders.id, id), columns: { stage: true } });
   if (!order) notFound();
-  if (!["confirmed", "stitching", "ready"].includes(order.stage)) redirect(`/orders/${id}`);
+  if (!["draft", "confirmed", "stitching", "ready"].includes(order.stage)) redirect(`/orders/${id}`);
   const [initial, lookups] = await Promise.all([initialForOrderEdit(id), editorLookups()]);
   if (!initial) notFound();
   return (
     <>
-      <BackLink href={`/orders/${id}`} label={initial.number ?? "Order"} />
-      <PageHeader title={`Edit ${initial.number}`} description="Tasks that have started are locked. Everything else can change." />
+      <BackLink href={`/orders/${id}`} label={initial.number ?? "Draft order"} />
+      <PageHeader
+        title={initial.isDraft ? "Review the draft" : `Edit ${initial.number}`}
+        description={initial.isDraft ? "Check everything, then Confirm order. That gives it a number and sends the work to the tailors." : "Tasks that have started are locked. Everything else can change."}
+      />
       <DocumentEditor mode="order" initial={initial} cancelHref={`/orders/${id}`} {...lookups} />
     </>
   );

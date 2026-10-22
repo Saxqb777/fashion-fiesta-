@@ -10,7 +10,7 @@ export type TaskCardData = {
   qtyDone: number;
   dueDate: string | null;
   openQuestion: boolean;
-  orderNumber: string;
+  orderNumber: string | null;
   customerName: string;
   description: string;
   photoUrl: string | null;

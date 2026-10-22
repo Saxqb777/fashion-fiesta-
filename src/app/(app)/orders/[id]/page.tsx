@@ -12,7 +12,8 @@ import { RecentActivity } from "@/components/data/recent-activity";
 import { TierTag } from "@/components/data/tags";
 import { LinkButton } from "@/components/link-button";
 import { DueChip, MeasurementGrid, Progress, TaskStatusTag } from "@/components/orders/bits";
-import { OrderStageButton } from "@/components/orders/order-actions";
+import { DeleteDraftButton, OrderStageButton } from "@/components/orders/order-actions";
+import { orderNo } from "@/lib/stages";
 import { StageTracker } from "@/components/orders/stage-tracker";
 import { Button } from "@/components/ui/button";
 import { formatShortDate } from "@/lib/dates";
@@ -45,8 +46,9 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   const approved = ts.filter((t) => t.status === "approved").reduce((s, t) => s + t.qty, 0);
   const done = ts.reduce((s, t) => s + t.qtyDone, 0);
   const unassigned = lines.reduce((s, l) => s + Math.max(0, l.qty - ts.filter((t) => t.soLineId === l.id).reduce((a, t) => a + t.qty, 0)), 0);
+  const isDraft = order.stage === "draft";
   const editable = ["confirmed", "stitching", "ready"].includes(order.stage);
-  const tracker = order.stage === "cancelled" ? "confirmed" : order.stage;
+  const tracker = order.stage === "cancelled" || order.stage === "draft" ? "confirmed" : order.stage;
 
   const nextAction =
     order.stage === "confirmed" || order.stage === "stitching" ? (
@@ -71,11 +73,12 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
 
   return (
     <>
-      <Flash added={`Order ${order.number} saved.`} saved="Order updated." />
+      <Flash added={`Order ${orderNo(order.number)} confirmed.`} saved="Order updated." draft="Draft saved. Confirm it when you are ready." />
       <BackLink href="/orders" label="Orders" />
       <header className="mb-5">
         <p className="tabular text-[13px] font-semibold tracking-wide text-ink-muted uppercase">
-          {order.number} · {formatShortDate(new Date(`${order.orderDate}T00:00:00`))}
+          {order.number ?? "Draft order"} · {formatShortDate(new Date(`${order.orderDate}T00:00:00`))}
+          {order.customerPoNumber ? ` · Customer PO ${order.customerPoNumber}` : ""}
           {quote ? (
             <>
               {" "}
@@ -101,7 +104,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
         <SwooshStripe className="mt-4 max-w-[72px]" />
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <DueChip date={order.dueDate} done={!editable || order.stage === "ready"} />
-          {editable ? (
+          {editable && !isDraft ? (
             <LinkButton href={`/orders/${order.id}/edit`} variant="outline" size="sm">
               <PencilIcon />
               Edit
@@ -114,9 +117,24 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
         </div>
       </header>
 
-      <StageTracker current={tracker} action={nextAction} />
+      {isDraft ? (
+        <section className="rounded-[14px] border-2 border-dashed border-ink/20 bg-surface p-5">
+          <h2 className="text-xl font-medium">Draft order</h2>
+          <p className="mt-1 max-w-prose text-[15px] text-ink-muted">
+            Not confirmed yet. It has no order number, no tailor tasks, and it is not counted in any report. Review it and confirm when the customer is sure.
+          </p>
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <LinkButton href={`/orders/${order.id}/edit`} size="lg">
+              Review and confirm
+            </LinkButton>
+            <DeleteDraftButton orderId={order.id} />
+          </div>
+        </section>
+      ) : (
+        <StageTracker current={tracker} action={nextAction} />
+      )}
 
-      {pieces ? (
+      {pieces && !isDraft ? (
         <div className="mt-4 rounded-[14px] border border-line bg-surface p-4 sm:p-5">
           <p className="mb-2 text-sm font-semibold">Pieces approved</p>
           <Progress done={done} approved={approved} total={pieces} />
@@ -185,7 +203,16 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                       </Link>
                     );
                   })}
-                  {assigned < l.qty ? (
+                  {isDraft
+                    ? (l.draftAssignments ?? []).map((a, j) => (
+                        <p key={j} className="flex items-center gap-2 text-[15px]">
+                          <span className="font-semibold">{names.get(a.assigneeId) ?? "Someone"}</span>
+                          <span className="tabular text-ink-muted">{a.qty} pieces</span>
+                          <span className="rounded-full border border-dashed border-ink/30 px-2 py-0.5 text-[11px] font-bold tracking-wide text-ink-muted uppercase">Planned</span>
+                        </p>
+                      ))
+                    : null}
+                  {!isDraft && assigned < l.qty ? (
                     <p className="text-[13px] font-semibold text-ink-muted">
                       {l.qty - assigned} not assigned.{" "}
                       {editable ? (

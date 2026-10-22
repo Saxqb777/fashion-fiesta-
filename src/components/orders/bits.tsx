@@ -59,6 +59,7 @@ export function StageTag({ stage }: { stage: OrderStage | "quote" }) {
         stage === "ready" && "border-leaf/50 bg-leaf/15 text-[#4d7a12]",
         stage === "stitching" && "border-sky/40 bg-sky/10 text-[#00739e]",
         stage === "confirmed" && "border-ink/20 bg-paper-deep text-ink",
+        stage === "draft" && "border-dashed border-ink/30 bg-surface text-ink-muted",
         (stage === "delivered" || stage === "invoiced" || stage === "paid") && "border-line bg-surface text-ink-muted",
         stage === "cancelled" && "border-brand/30 bg-brand-soft text-brand-deep",
         stage === "quote" && "border-line bg-surface text-ink",

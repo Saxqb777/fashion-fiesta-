@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { PencilIcon } from "lucide-react";
 import { db } from "@/db";
@@ -29,7 +29,9 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
     db.query.customers.findFirst({ where: eq(customers.id, quote.customerId) }),
     quote.branchId ? db.query.customerBranches.findFirst({ where: eq(customerBranches.id, quote.branchId) }) : undefined,
     db.select().from(quoteLines).where(eq(quoteLines.quoteId, id)).orderBy(asc(quoteLines.sort)),
-    quote.orderId ? db.query.salesOrders.findFirst({ where: eq(salesOrders.id, quote.orderId), columns: { id: true, number: true } }) : undefined,
+    quote.orderId
+      ? db.query.salesOrders.findFirst({ where: eq(salesOrders.id, quote.orderId), columns: { id: true, number: true } })
+      : db.query.salesOrders.findFirst({ where: and(eq(salesOrders.quoteId, quote.id), eq(salesOrders.stage, "draft")), columns: { id: true, number: true } }),
   ]);
   const open = quote.status !== "accepted";
 
@@ -68,13 +70,17 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
       <StageTracker
         current={open ? "quote" : "confirmed"}
         action={
-          open ? (
+          open && order ? (
+            <LinkButton href={`/orders/${order.id}/edit`} size="lg">
+              Review the draft order
+            </LinkButton>
+          ) : open ? (
             <LinkButton href={`/orders/new?fromQuote=${id}`} size="lg">
               Confirm as order
             </LinkButton>
           ) : order ? (
             <LinkButton href={`/orders/${order.id}`} size="lg" variant="outline">
-              Open order {order.number}
+              {order.number ? `Open order ${order.number}` : "Open the draft order"}
             </LinkButton>
           ) : null
         }

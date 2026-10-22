@@ -22,6 +22,7 @@ import { TIME_ZONE } from "@/lib/defaults";
 import { assigneeNames, editorLookups } from "@/lib/editor-data";
 import { requireUser } from "@/lib/session";
 import { cn } from "cn";
+import { orderNo } from "@/lib/stages";
 
 export const metadata: Metadata = { title: "Task" };
 
@@ -69,10 +70,10 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
         <p className="mt-1 text-[15px] text-ink-muted">
           {owner ? (
             <Link href={`/orders/${order.id}`} className="font-semibold text-ink underline-offset-2 hover:underline">
-              {order.number}
+              {orderNo(order.number)}
             </Link>
           ) : (
-            order.number
+            orderNo(order.number)
           )}{" "}
           · {customer?.name} · {owner ? `${assignee}${task.assigneeType === "unit" ? ", stitching unit" : ""}` : `${task.qty} pieces`}
         </p>

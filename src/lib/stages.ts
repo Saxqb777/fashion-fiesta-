@@ -3,7 +3,8 @@ import type { OrderStage, QuoteStatus, TaskStatus } from "@/db/schema";
 export const STAGES = ["quote", "confirmed", "stitching", "ready", "delivered", "invoiced", "paid"] as const;
 export type TrackerStage = (typeof STAGES)[number];
 
-export const STAGE_LABEL: Record<TrackerStage | "cancelled", string> = {
+export const STAGE_LABEL: Record<TrackerStage | "cancelled" | "draft", string> = {
+  draft: "Draft",
   quote: "Quote",
   confirmed: "Confirmed",
   stitching: "Stitching",
@@ -36,6 +37,11 @@ export function taskLocked(t: { status: TaskStatus; qtyDone: number }) {
 }
 
 const RANK: Partial<Record<OrderStage, number>> = { confirmed: 0, stitching: 1, ready: 2 };
+
+/** Drafts have no number until confirmed. */
+export function orderNo(number: string | null | undefined) {
+  return number ?? "Draft";
+}
 
 /** Moves an order forward from its tasks. Never moves it back. */
 export function computeStage(

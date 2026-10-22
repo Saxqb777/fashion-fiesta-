@@ -4,6 +4,7 @@ import { customers, salesOrders } from "@/db/schema";
 export const orderListColumns = {
   id: salesOrders.id,
   number: salesOrders.number,
+  customerPoNumber: salesOrders.customerPoNumber,
   stage: salesOrders.stage,
   dueDate: salesOrders.dueDate,
   totalFils: salesOrders.totalFils,

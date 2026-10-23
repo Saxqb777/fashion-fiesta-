@@ -12,7 +12,7 @@ export default async function ShopSettings() {
       <SettingsSection title="Shop details" description="Printed on quotes, invoices and receipts.">
         <ShopForm settings={settings} mode="settings" />
       </SettingsSection>
-      <SettingsSection title="Shop stamp" description="Your stamp, printed in the Authorised signatory and stamp box. You still sign by hand.">
+      <SettingsSection guide="stamp" title="Shop stamp" description="Your stamp, printed in the Authorised signatory and stamp box. You still sign by hand.">
         <StampSettings url={settings.stampUrl} on={settings.stampOnDocuments} />
       </SettingsSection>
       <SettingsSection title="Garment labels" description="The sticker sheet you print order labels on. One label per piece: customer, branch, person, size and order number.">

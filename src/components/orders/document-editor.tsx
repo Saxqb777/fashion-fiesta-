@@ -539,7 +539,7 @@ function LineCard({
               className="text-[16px] font-semibold"
             />
             {suggest && matches.length ? (
-              <ul className="absolute inset-x-0 top-full z-30 mt-1 overflow-hidden rounded-[14px] border border-line bg-surface shadow-[0_12px_32px_-12px_rgba(31,26,23,0.25)]">
+              <ul data-guide-popup="" className="absolute inset-x-0 top-full z-30 mt-1 overflow-hidden rounded-[14px] border border-line bg-surface shadow-[0_12px_32px_-12px_rgba(31,26,23,0.25)]">
                 {matches.map((p) => {
                   const last = ctx?.lastPrices[p.id];
                   const deal = agreedFor(p);
@@ -779,6 +779,7 @@ function LineCard({
                     variant="outline"
                     size="sm"
                     className="self-start bg-surface"
+                    data-guide={line.assignments.length ? undefined : "assign"}
                     onClick={() =>
                       onChange({
                         assignments: [

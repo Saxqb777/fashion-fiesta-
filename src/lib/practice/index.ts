@@ -61,6 +61,14 @@ const CHECKS: Record<MissionKey, (c: Ctx) => Promise<boolean>> = {
       ) ok`);
     return Boolean(rows.rows[0]?.ok);
   },
+  quote: async (c) => {
+    const rows = await p().execute<{ ok: boolean }>(sql`
+      select exists (
+        select 1 from quotes q join sales_orders o on o.id = q.order_id
+        where q.created_at > ${c.since} and q.status = 'accepted' and o.stage <> 'draft'
+      ) ok`);
+    return Boolean(rows.rows[0]?.ok);
+  },
   owes: (c) => event(c, "whatsapp", `statement:${c.meta.pinkMeUpId}%`),
   bigone: async (c) => {
     if (!c.meta.bedashingId) return false;
@@ -156,6 +164,7 @@ const CHECKS: Record<MissionKey, (c: Ctx) => Promise<boolean>> = {
 function startHref(key: MissionKey, m: PracticeMeta, userId: string) {
   switch (key) {
     case "look": return "/today";
+    case "quote": return m.quoteCustomerId ? `/orders/quotes/new?customer=${m.quoteCustomerId}` : "/orders/quotes/new";
     case "walkin": return m.mehwishId ? `/orders/new?customer=${m.mehwishId}` : "/orders/new";
     case "owes": return "/money";
     case "bigone": return m.bedashingId ? `/orders/new?customer=${m.bedashingId}` : "/orders/new";
@@ -171,6 +180,25 @@ function startHref(key: MissionKey, m: PracticeMeta, userId: string) {
     case "submit": return m.pantsTasks[userId] ? `/workshop/tasks/${m.pantsTasks[userId]}` : "/workshop";
     case "sale": return "/today/sale";
   }
+}
+
+/** The ids the guide scripts point at, for this person. Empty outside Practice. */
+export async function guideLinks(userId: string): Promise<Record<string, string>> {
+  const m = await practiceMeta();
+  if (!m) return {};
+  const pick: Record<string, string | null | undefined> = {
+    mehwish: m.mehwishId,
+    bedashing: m.bedashingId,
+    quoteCustomer: m.quoteCustomerId,
+    goodTask: m.goodTaskId,
+    wrongTask: m.wrongTaskId,
+    alDahraOrder: m.alDahraOrderId,
+    pinkMeUp: m.pinkMeUpId,
+    alNoor: m.alNoorId,
+    imran: m.imranId,
+    pantsTask: m.pantsTasks[userId],
+  };
+  return Object.fromEntries(Object.entries(pick).filter((e): e is [string, string] => Boolean(e[1])));
 }
 
 /** Where this person is: ticks anything newly done, then returns every mission with its state. */

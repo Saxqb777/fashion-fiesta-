@@ -47,7 +47,7 @@ export function ProgressStepper({ taskId, qty, qtyDone }: { taskId: string; qty:
   };
   const pct = qty ? (value / qty) * 100 : 0;
   return (
-    <section className="rounded-[14px] border border-line bg-surface p-4">
+    <section className="rounded-[14px] border border-line bg-surface p-4" data-guide="progress-box">
       <div className="flex items-center justify-between">
         <h2 className="font-sans text-[15px] font-semibold">How many are done</h2>
         {pending ? <Loader2Icon className="size-4 animate-spin text-ink-muted" /> : null}
@@ -94,7 +94,9 @@ export function SubmitWork({ taskId, qty }: { taskId: string; qty: number }) {
       <p className="mb-3 text-[13px] text-ink-muted">One photo of all {qty} pieces together is enough.</p>
       <ActionForm action={action} className="flex flex-col gap-3">
         <input type="hidden" name="taskId" value={taskId} />
-        <PhotoUpload name="photoUrl" folder="tasks" emptyText="Take photo of the work" onChange={setUrl} />
+        <div data-guide="photo">
+          <PhotoUpload name="photoUrl" folder="tasks" emptyText="Take photo of the work" onChange={setUrl} />
+        </div>
         <FormMessage message={state.ok ? undefined : state.message} />
         <SubmitButton size="lg" className="h-14 w-full text-base" disabled={!url} pendingText="Submitting" data-mission="submit">
           <CheckIcon />

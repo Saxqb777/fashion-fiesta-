@@ -81,7 +81,7 @@ export function PaymentForm({
       <div className="flex flex-col gap-5">
         <FormMessage message={state.ok ? undefined : state.message} />
         <section className="flex flex-col gap-5 rounded-[14px] border border-line bg-surface p-4 sm:p-6">
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1.5" data-guide="payment-amount">
             <Label htmlFor="amount">Amount received, AED</Label>
             <input
               id="amount"
@@ -186,7 +186,7 @@ export function PaymentForm({
             <p className="mt-1 text-[15px] text-ink-muted">They have no unpaid invoices. This money is kept as credit on account and used on their next invoice.</p>
           </section>
         )}
-        <SubmitButton size="lg" pendingText="Saving" disabled={received <= 0 || leftover < 0}>
+        <SubmitButton size="lg" pendingText="Saving" disabled={received <= 0 || leftover < 0} data-guide="save-payment">
           {received > 0 ? `Record ${formatFils(received)}` : "Record payment"}
         </SubmitButton>
         <LinkButton href={cancelHref} variant="ghost">

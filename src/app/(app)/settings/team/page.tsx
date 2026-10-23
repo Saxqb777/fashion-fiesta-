@@ -23,7 +23,7 @@ export default async function TeamSettings() {
     <div className="flex flex-col gap-6">
       <TeamList people={sorted} meId={me.id} />
       <Salaries people={sorted} today={todayISO()} />
-      <SettingsSection title="Embroidery operator" description="Runs the machine on a shared split. Not a login.">
+      <SettingsSection title="Embroidery operator" description="Runs the machine on a shared split. Not a login." guide="operator">
         <OperatorForm settings={settings} />
       </SettingsSection>
     </div>

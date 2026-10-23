@@ -138,11 +138,11 @@ export function PayButton({ person, month, monthLabel, advanceFils, today, urgen
   const net = Math.round((Number(gross) || 0) * 100) - Math.round((Number(deduct) || 0) * 100);
   return (
     <>
-      <Button size="sm" variant={urgent ? "default" : "outline"} onClick={() => setOpen(true)} data-mission="pay-salary">
+      <Button size="sm" variant={urgent ? "default" : "outline"} onClick={() => setOpen(true)} data-mission="pay-salary" data-guide={`pay-${person.id}`}>
         Pay {monthLabel.split(" ")[0]}
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent data-guide="pay-dialog">
           <DialogHeader>
             <DialogTitle>
               Pay {person.name}, {monthLabel}

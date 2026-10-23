@@ -37,7 +37,7 @@ export function CustomerPicker({
 
   if (value) {
     return (
-      <div className="flex items-center gap-3 rounded-[14px] border border-line bg-paper-deep/50 px-4 py-3">
+      <div data-guide="customer" className="flex items-center gap-3 rounded-[14px] border border-line bg-paper-deep/50 px-4 py-3">
         <div className="min-w-0 flex-1">
           <p className="flex items-center gap-2 truncate text-[16px] font-semibold">
             {value.name}

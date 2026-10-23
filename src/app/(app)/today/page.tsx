@@ -20,6 +20,8 @@ import { dueSummary } from "@/lib/ledger";
 import { lowStockFabrics, payablesDue } from "@/lib/payables";
 import { formatFils } from "@/lib/money";
 import { requireUser } from "@/lib/session";
+import { setupSteps } from "@/lib/guide/setup";
+import { isPractice } from "@/lib/practice";
 import { taskCardColumns, taskOrder } from "@/lib/task-queries";
 
 export const metadata: Metadata = { title: "Today" };
@@ -132,7 +134,16 @@ export default async function TodayPage() {
     quietCustomers(today),
     recentNotices(user.id!, 8),
   ]);
+  // In the real shop, setup steps she skipped stay here until they are done.
+  const setupLeft = isPractice() ? [] : (await setupSteps()).filter((st) => !st.done);
   const items: Item[] = [
+    setupLeft.length > 0 && {
+      key: "setup",
+      text: "Finish setting up the shop",
+      detail: `${plural(setupLeft.length, "step", "steps")} left: ${setupLeft.map((st) => st.title).join(", ")}.`,
+      href: "/settings/setup",
+      action: "Continue setup",
+    },
     due.overdueCount && {
       key: "unpaid",
       text: `${formatFils(due.overdueFils)} is overdue`,
@@ -224,7 +235,7 @@ export default async function TodayPage() {
           </LinkButton>
         }
       />
-      <section className="rounded-[14px] border border-line bg-surface p-5 sm:p-6">
+      <section data-guide="hero" className="rounded-[14px] border border-line bg-surface p-5 sm:p-6">
         <p className="text-sm font-semibold text-ink-muted">
           Cash in hand <span className="ml-1 font-medium text-ink-muted/70">cash book</span>
         </p>
@@ -239,7 +250,7 @@ export default async function TodayPage() {
         </p>
       </section>
 
-      <section className="mt-8">
+      <section className="mt-8" data-guide="attention-list">
         <h2 className="mb-3 text-xl font-medium">Needs your attention</h2>
         {items.length ? (
           <ul className="flex flex-col gap-2">

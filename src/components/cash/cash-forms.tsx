@@ -28,7 +28,7 @@ export function CloseDayForm({ expectedFils, cardFils, counted: start }: { expec
   const c = parse(counted);
   const diff = c === null ? null : c - expectedFils;
   return (
-    <ActionForm action={action} className="flex flex-col gap-4">
+    <ActionForm action={action} className="flex flex-col gap-4" data-guide="close-day">
       <FormMessage message={state.ok ? undefined : state.message} />
       <dl className="tabular grid grid-cols-2 gap-x-6 gap-y-1 text-[15px] sm:max-w-md">
         <dt className="text-ink-muted">Expected in the drawer</dt>
@@ -42,6 +42,7 @@ export function CloseDayForm({ expectedFils, cardFils, counted: start }: { expec
           <input
             id="counted"
             name="counted"
+            data-expected={(expectedFils / 100).toFixed(2)}
             inputMode="decimal"
             value={counted}
             onChange={(e) => setCounted(e.target.value.replace(/[^\d.]/g, ""))}

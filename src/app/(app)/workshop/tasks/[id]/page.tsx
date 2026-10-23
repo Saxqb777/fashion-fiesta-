@@ -141,7 +141,7 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
 
           {photos.length ? (
             <Panel title="Photos">
-              <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3" data-guide="task-photos">
                 {photos.map((p) => (
                   <li key={p.id} className="relative overflow-hidden rounded-[10px] bg-paper-deep">
                     <a href={p.url} target="_blank" rel="noreferrer">

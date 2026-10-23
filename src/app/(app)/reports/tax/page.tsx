@@ -90,7 +90,7 @@ export default async function TaxPage({ searchParams }: { searchParams: Promise<
         </ul>
       </nav>
 
-      <section className="mb-8 rounded-[14px] border border-line bg-surface p-5 sm:p-6">
+      <section data-guide="tax-hero" className="mb-8 rounded-[14px] border border-line bg-surface p-5 sm:p-6">
         <div className="flex flex-col justify-between gap-6 sm:flex-row">
           <div>
             <p className="text-sm font-semibold text-ink-muted">

@@ -28,6 +28,8 @@ export type PracticeMeta = {
   pinkMeUpId: string | null;
   mehwishId: string | null;
   bedashingId: string | null;
+  /** The school for the Quote first mission. Missing in sandboxes built before it existed. */
+  quoteCustomerId?: string | null;
   imranId: string;
   alNoorId: string;
   pantsTasks: Record<string, string>;
@@ -612,6 +614,7 @@ export async function buildSandbox(): Promise<PracticeMeta> {
     pinkMeUpId: pinkMeUp?.id ?? null,
     mehwishId: live("Ma'am Mehwish")?.id ?? null,
     bedashingId: bedashing?.id ?? null,
+    quoteCustomerId: (live("Islamiya") ?? customers.find((c) => c.type === "wholesale" && !c.deletedAt && !c.isKeyAccount))?.id ?? null,
     imranId: tailorIds.imran,
     alNoorId: alNoor,
     pantsTasks: { [tailorIds.ahmed]: keyed["pants:ahmed"], [tailorIds.imran]: keyed["pants:imran"], [tailorIds.sajid]: keyed["pants:sajid"] },

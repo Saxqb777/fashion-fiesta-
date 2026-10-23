@@ -18,7 +18,7 @@ export default async function ProfitPage({ searchParams }: { searchParams: Promi
     <>
       <ReportsHeader excel="profit" query={`m=${month}`} />
       <PickRow label="Month" items={months.map((m) => ({ href: `/reports/profit?m=${m}`, label: monthName(m), active: m === month }))} />
-      <section className="max-w-2xl rounded-[14px] border border-line bg-surface p-5 sm:p-6">
+      <section data-guide="profit" className="max-w-2xl rounded-[14px] border border-line bg-surface p-5 sm:p-6">
         <p className="text-sm font-semibold text-ink-muted">
           Profit and loss, {monthName(month)} <span className="ml-1 font-medium text-ink-muted/70">operating profit</span>
         </p>

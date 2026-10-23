@@ -45,7 +45,7 @@ export const MISSION_TOURS: Record<string, GuideTour> = {
       { at: NEW_ORDER, go: "/orders/new?customer={mehwish}", target: '[aria-label="Line 1 description"]', say: "Ma'am Mehwish wants an abaya. Type **Abaya**.", fill: "Abaya", advance: "filled" },
       { at: NEW_ORDER, target: '[aria-label="Line 1 price before VAT"]', say: "Her price, before VAT: **350**.", fill: "350", advance: "filled" },
       { at: NEW_ORDER, target: '[data-mission~="measure"]', say: "Now her measurements. Tap the **ruler**.", advance: { see: '[data-guide~="measure-dialog"]' } },
-      { at: NEW_ORDER, target: '[data-guide~="measure-dialog"]', say: "Type a few measurements, any numbers will do, then tap **Save measurements**. Next time they fill in by themselves.", advance: { gone: '[data-guide~="measure-dialog"]' } },
+      { at: NEW_ORDER, target: '[data-guide~="measure-dialog"]', say: "Name it **Self**, type a few measurements, any numbers will do, then tap **Save measurements**. Next time they fill in by themselves.", advance: { gone: '[data-guide~="measure-dialog"]' } },
       { at: NEW_ORDER, target: '[data-guide~="assign"]', say: "Who stitches it? Tap **Assign**.", advance: "click" },
       { at: NEW_ORDER, target: '[aria-label="Line 1 assignee 1"]', say: "Pick a tailor, for example **Ahmed**.", fill: "Ahmed", advance: "filled" },
       { at: NEW_ORDER, target: SAVE_ORDER, say: "All set. Tap **Confirm order**.", advance: { path: "/orders/[id]" } },

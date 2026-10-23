@@ -10,7 +10,7 @@ export default async function EmailSettings() {
   const me = await requireOwner();
   const [s, status] = await Promise.all([getSettings(), domainStatus()]);
   const domain = process.env.EMAIL_DOMAIN ?? "fashionfiestauae.com";
-  const verified = status?.status === "verified";
+  const verified = status?.status === "verified" || status?.status === "send_only";
   return (
     <div className="flex flex-col gap-4">
       <SettingsSection title="Email" description="Documents go from the shop's own address. Replies land in the inbox of the owner who sent them.">

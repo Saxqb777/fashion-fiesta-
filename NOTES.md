@@ -7,8 +7,7 @@ Newest at top. Keep under 150 lines. Rules for this file are in CLAUDE.md under 
 - Done and live: Phases 0 to 7, Fiesta (idea 45) and the Tax tab (ideas 25 to 28), all shipped 2026-10-23.
 - Next on the roadmap: the other AI ideas (11, 23, 24, supplier note photos), only once Saaqib approves them.
 - Tax decisions (2026-10-23): every standard rated sale goes in box 1a Abu Dhabi (fixed establishment), emirate is only a drill down filter; financial year is the calendar year; VAT quarters calendar until Saaqib confirms the real period from the FTA certificate.
-- Email is built but waits on the Resend API key from Saaqib, then the DNS records.
-- Domain: Saaqib adds the CNAME after everything is live (record is under Open questions).
+- Email: Resend domain fashionfiestauae.com created (eu-west-1) and RESEND_API_KEY is in Vercel. Waiting on Saaqib to add the 5 DNS records at Openprovider (4 for Resend plus the studio CNAME). Then I run verify-domain and send a test email.
 - Phase 4.5 Key Account mode shipped 2026-10-22. Bedashing is a key account with 24 unverified branches on production. Checklist sent.
 - Small deploy (measurement templates, pieces link, nightly backup, bug fixes) shipped 2026-10-22. Checklist sent.
 - Bugs fixed in that deploy, all in earlier phases:
@@ -70,6 +69,7 @@ Newest at top. Keep under 150 lines. Rules for this file are in CLAUDE.md under 
 - Agreed prices (account_items) beat last price when she picks the item.
 
 ## Decisions (newest first)
+- 2026-10-23 Email: Saaqib's Resend account (Gmail login) holds another domain (docledger.site), so the app gets a send only key restricted to fashionfiestauae.com, not full access. It cannot read domains, so Settings, Email shows Connected for it (status "send_only"). Domain checks go through the Resend connector instead.
 - 2026-10-23 Tax tab answers: all standard rated sales go in box 1a Abu Dhabi (the shop's fixed establishment); emirate is only a filter in the drill down. Financial year is the calendar year. VAT quarters stay calendar until Saaqib confirms from the FTA certificate.
 - 2026-10-23: Main login password sorted by Saaqib himself, no reset needed.
 - 2026-10-23 Fiesta: Saaqib said "plan it and go". Curated tools instead of free SQL, so passwords and secrets can never reach the model. Navigation needs no tap; anything that saves or sends always needs her tap on a card. Ideas 12 and 13 are covered by Fiesta.
@@ -114,9 +114,10 @@ Newest at top. Keep under 150 lines. Rules for this file are in CLAUDE.md under 
 
 ## Open questions for Saaqib
 - Owner phone numbers are empty, so Practice WhatsApp opens the contact picker instead of his own chat. Add a phone in Settings, Team.
-- Resend account and API key (Saaqib creates it). Then I store it in Vercel, register fashionfiestauae.com via the API and give one DNS table with the studio CNAME. Nothing else to build: sending switches on by itself.
+- Add the DNS records at Openprovider (table sent 2026-10-23): TXT resend._domainkey, MX send (feedback-smtp.eu-west-1.amazonses.com, priority 10), TXT send (v=spf1 include:amazonses.com ~all), CNAME rsend (send.forge.rmta.net), CNAME studio. Then say "DNS added".
+- Trade licence number and issuer, in Settings, Money (needed on e-invoices).
 - Real VAT tax period start month, from the FTA certificate.
-- Add the DNS record for studio.fashionfiestauae.com: CNAME, name "studio", value 94f92b8040c50980.vercel-dns-016.com. Then tell me to confirm it is live.
+- The studio CNAME is in the same DNS table: name "studio", value 94f92b8040c50980.vercel-dns-016.com.
 - Embroidery machine brand and model: to confirm with the operator. It decides the file format for ideas 36 and 43.
 - Neon Launch plan (later, his call): gives a 7 day rewind window and daily snapshots. He adds a card in Neon billing, then I set both up.
 
@@ -125,6 +126,6 @@ Newest at top. Keep under 150 lines. Rules for this file are in CLAUDE.md under 
 - Vercel: project prj_grSCaYpWGqE93VbWkOQzahVzymA0, team team_yKuXQ8P3eoGrvRnTWMIqSiGo, region sin1.
 - Env vars are in Vercel for all three environments: DATABASE_URL, AUTH_SECRET, BLOB_READ_WRITE_TOKEN, ANTHROPIC_API_KEY, CRON_SECRET. They are never in git.
 - Cron: /api/cron/backup at 22:00 UTC.
-- Migrations live in /drizzle and run during build, on Live and Practice. The latest is 0015_fiesta.
-- Vercel also has NEXT_PUBLIC_VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT, EMAIL_DOMAIN, PRACTICE_DATABASE_URL. RESEND_API_KEY to come.
+- Migrations live in /drizzle and run during build, on Live and Practice. The latest is 0016_tax.
+- Vercel also has NEXT_PUBLIC_VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT, EMAIL_DOMAIN, PRACTICE_DATABASE_URL. RESEND_API_KEY (send only, fashionfiestauae.com only).
 - Careful: .env.local holds the production DATABASE_URL. For tests always export the branch URL after sourcing it.

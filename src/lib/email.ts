@@ -116,6 +116,8 @@ export async function domainStatus(): Promise<{ status: string; records: { type:
   if (!key || !domain) return null;
   try {
     const list = await fetch("https://api.resend.com/domains", { headers: { Authorization: `Bearer ${key}` }, signal: AbortSignal.timeout(8000), cache: "no-store" });
+    // The key can only send, from this one domain. It cannot read domains, so there is nothing more to show.
+    if (list.status === 401 || list.status === 403) return { status: "send_only", records: [] };
     const all = ((await list.json()) as { data?: { id: string; name: string }[] }).data ?? [];
     const d = all.find((x) => x.name === domain);
     if (!d) return { status: "not_added", records: [] };

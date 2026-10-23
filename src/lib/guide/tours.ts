@@ -96,6 +96,7 @@ export const MISSION_TOURS: Record<string, GuideTour> = {
     steps: [
       { at: "/orders/{alDahraOrder}", go: "/orders/{alDahraOrder}", target: 'a[data-mission~="record-payment"]', say: "Al Dahra paid the whole invoice. Tap **Record payment**.", advance: { path: "/money/payments/new" } },
       { at: "/money/payments/new", target: '[data-guide~="payment-amount"]', say: "The full amount is already filled in and set against the invoice.", advance: "next" },
+      { at: "/money/payments/new", target: '[data-guide~="method-bank_transfer"]', say: "They paid by bank transfer. Tap **Bank transfer**.", advance: "click" },
       { at: "/money/payments/new", target: '[data-guide~="save-payment"]', say: "Tap **Record** to save it.", advance: { path: "/money/payments/[id]" } },
       { at: "/money/payments/[id]", say: "Paid. The receipt is made, the cash book is updated and the order shows Paid.", advance: "mission" },
     ],

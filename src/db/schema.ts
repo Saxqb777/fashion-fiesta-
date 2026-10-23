@@ -86,6 +86,8 @@ export const users = pgTable(
     payDay: integer("pay_day"),
     /** Owners only: the last mode they chose, so Practice stays on across logins. Live by default. */
     practiceMode: boolean("practice_mode").notNull().default(false),
+    /** When this owner first saw the getting started sheet. Null shows it once. */
+    guideSeenAt: timestamp("guide_seen_at", { withTimezone: true }),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (t) => [

@@ -27,13 +27,13 @@ export function TeamList({ people, meId }: { people: Person[]; meId: string }) {
           <h2 className="text-xl font-medium">People</h2>
           <p className="mt-1 text-sm text-ink-muted">Everyone who can sign in. Tailors see their tasks and the POS.</p>
         </div>
-        <Button onClick={() => setAdding(true)}>
+        <Button onClick={() => setAdding(true)} data-guide="add-person">
           <PlusIcon />
           Add person
         </Button>
       </div>
 
-      <ul className="mt-5 flex flex-col gap-2">
+      <ul className="mt-5 flex flex-col gap-2" data-guide="team-list">
         {people.map((p) => (
           <li
             key={p.id}

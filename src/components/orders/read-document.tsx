@@ -277,6 +277,7 @@ export function ReadDocumentDialog({
             <div className="grid gap-3 sm:grid-cols-2">
               <button
                 type="button"
+                data-guide="doc-file"
                 onClick={() => fileInput.current?.click()}
                 className="flex min-h-36 flex-col items-start gap-2 rounded-[14px] border-2 border-dashed border-line p-5 text-left transition-colors hover:border-brand/40"
               >
@@ -427,13 +428,13 @@ export function ReadDocumentDialog({
                   <Button type="button" variant="outline" disabled={!customer || loadingCustomer} onClick={putOnOne}>
                     All on this {noun}
                   </Button>
-                  <Button type="button" size="lg" disabled={!customer || loadingCustomer || saving || missingQty > 0} onClick={makeDrafts}>
+                  <Button type="button" size="lg" disabled={!customer || loadingCustomer || saving || missingQty > 0} onClick={makeDrafts} data-guide="doc-drafts">
                     {saving ? <Loader2Icon className="animate-spin" /> : null}
                     {missingQty ? `Fill ${missingQty} missing ${missingQty === 1 ? "quantity" : "quantities"} first` : `Make ${groups.size} draft ${isOrder ? "orders" : "quotes"}, one per branch`}
                   </Button>
                 </>
               ) : (
-                <Button type="button" size="lg" disabled={!customer || loadingCustomer} onClick={putOnOne}>
+                <Button type="button" size="lg" disabled={!customer || loadingCustomer} onClick={putOnOne} data-guide="doc-put">
                   Put {rows.length} {rows.length === 1 ? "line" : "lines"} on the {noun}
                 </Button>
               )}

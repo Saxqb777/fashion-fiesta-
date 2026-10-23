@@ -21,7 +21,7 @@ export async function Salaries({ people, today }: { people: Person[]; today: str
           : "Each person's salary, pay day and advances. Paying writes the cash book and an expense."
       }
     >
-      <ul className="flex flex-col gap-2">
+      <ul className="flex flex-col gap-2" data-guide="salaries">
         {active.map((p) => {
           const o = overview.find((x) => x.id === p.id);
           return (

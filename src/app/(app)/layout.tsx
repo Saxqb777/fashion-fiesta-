@@ -2,8 +2,11 @@ import { redirect } from "next/navigation";
 import { Logo } from "@/components/brand/logo";
 import { AppShell } from "@/components/shell/app-shell";
 import { SignOutButton } from "@/components/shell/sign-out-button";
-import { practiceAvailable } from "@/db";
-import { isPractice } from "@/lib/practice";
+import { eq } from "drizzle-orm";
+import { liveDb, practiceAvailable } from "@/db";
+import { users } from "@/db/schema";
+import { setupSteps } from "@/lib/guide/setup";
+import { guideLinks, isPractice } from "@/lib/practice";
 import { requireUser } from "@/lib/session";
 import { getSettings } from "@/lib/settings";
 import { FlashToast } from "@/components/flash-toast";
@@ -26,8 +29,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   const flash = await readFlash();
+  const practice = isPractice();
+  const realOwner = user.role === "owner" && !user.practiceOnly;
+  // The guide: missions in Practice, the setup steps and the getting started sheet in Live.
+  const [links, pending, me] = await Promise.all([
+    practice ? guideLinks(user.id!) : {},
+    !practice && realOwner ? setupSteps().then((s) => s.filter((x) => !x.done).map((x) => x.key)) : [],
+    !practice && realOwner ? liveDb.query.users.findFirst({ where: eq(users.id, user.id!), columns: { guideSeenAt: true } }) : undefined,
+  ]);
+  const guide = { mode: practice ? ("practice" as const) : realOwner ? ("live" as const) : ("off" as const), links, pendingSetup: pending, welcome: Boolean(me && !me.guideSeenAt) };
   return (
-    <AppShell user={{ name: user.name ?? "", role: user.role, practiceOnly: user.practiceOnly }} practice={{ on: isPractice(), available: practiceAvailable() }}>
+    <AppShell user={{ name: user.name ?? "", role: user.role, practiceOnly: user.practiceOnly }} practice={{ on: practice, available: practiceAvailable() }} guide={guide}>
       <FlashToast flash={flash} />
       {children}
     </AppShell>

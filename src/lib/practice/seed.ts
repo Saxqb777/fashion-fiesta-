@@ -28,6 +28,8 @@ export type PracticeMeta = {
   pinkMeUpId: string | null;
   mehwishId: string | null;
   bedashingId: string | null;
+  /** The school for the Quote first mission. Missing in sandboxes built before it existed. */
+  quoteCustomerId?: string | null;
   imranId: string;
   alNoorId: string;
   pantsTasks: Record<string, string>;
@@ -66,8 +68,10 @@ export async function buildSandbox(): Promise<PracticeMeta> {
   const between = (a: number, b: number) => a + Math.floor(R() * (b - a + 1));
 
   /* ---------- wipe ---------- */
+  // The wipe runs in the same transaction as the inserts below, so two builds at once (two tabs, two owners)
+  // wait for each other instead of colliding, and a failed build never leaves an empty sandbox.
   const tables = await p.execute<{ tablename: string }>(sql`select tablename from pg_tables where schemaname = 'public'`);
-  if (tables.rows.length) await p.execute(sql.raw(`truncate table ${tables.rows.map((r) => `"${r.tablename}"`).join(", ")} restart identity cascade`));
+  const wipe = tables.rows.length ? p.execute(sql.raw(`truncate table ${tables.rows.map((r) => `"${r.tablename}"`).join(", ")} restart identity cascade`)) : null;
 
   /* ---------- copied from Live ---------- */
   const [liveSettings, seqs, owners, customers, branches, measures, fields, templates, cats, products, suppliers, fabrics, expCats, staff, items] = await Promise.all([
@@ -612,6 +616,7 @@ export async function buildSandbox(): Promise<PracticeMeta> {
     pinkMeUpId: pinkMeUp?.id ?? null,
     mehwishId: live("Ma'am Mehwish")?.id ?? null,
     bedashingId: bedashing?.id ?? null,
+    quoteCustomerId: (live("Islamiya") ?? customers.find((c) => c.type === "wholesale" && !c.deletedAt && !c.isKeyAccount))?.id ?? null,
     imranId: tailorIds.imran,
     alNoorId: alNoor,
     pantsTasks: { [tailorIds.ahmed]: keyed["pants:ahmed"], [tailorIds.imran]: keyed["pants:imran"], [tailorIds.sajid]: keyed["pants:sajid"] },
@@ -631,6 +636,7 @@ export async function buildSandbox(): Promise<PracticeMeta> {
   ];
 
   const statements: unknown[] = [
+    ...(wipe ? [wipe] : []),
     p.insert(t.settings).values(settingsRow),
     p.insert(t.numberSequences).values(sequences),
     ...(ownerRows.length ? [p.insert(t.users).values(ownerRows)] : []),

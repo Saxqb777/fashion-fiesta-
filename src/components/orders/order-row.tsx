@@ -26,7 +26,7 @@ export function OrderRow({
   const open = ["confirmed", "stitching", "ready"].includes(o.stage);
   return (
     <li>
-      <Link href={`/orders/${o.id}`} className="group flex items-center gap-3 rounded-[14px] border border-line bg-surface px-4 py-3.5 transition-colors hover:border-ink/20 sm:px-5">
+      <Link href={`/orders/${o.id}`} data-guide="order-row" className="group flex items-center gap-3 rounded-[14px] border border-line bg-surface px-4 py-3.5 transition-colors hover:border-ink/20 sm:px-5">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="tabular text-[13px] font-semibold text-ink-muted">{orderNo(o.number)}</span>

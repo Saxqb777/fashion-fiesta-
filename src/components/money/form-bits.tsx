@@ -33,6 +33,7 @@ export function MethodChips({ value, onChange, error }: { value: Method | ""; on
             type="button"
             role="radio"
             aria-checked={value === m.value}
+            data-guide={`method-${m.value}`}
             onClick={() => onChange(m.value)}
             className={cn(
               "h-12 rounded-[10px] border px-4 text-[15px] font-semibold transition-colors sm:min-w-[110px]",

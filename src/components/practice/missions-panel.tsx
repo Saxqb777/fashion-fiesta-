@@ -9,6 +9,7 @@ import { CheckIcon, ChevronDownIcon, DownloadIcon, Loader2Icon, RotateCcwIcon } 
 import { toast } from "sonner";
 import { missionState, recordPracticeEvent, reopenMission, resetPractice, skipMission, switchMode } from "@/actions/practice";
 import { SwooshStripe } from "@/components/brand/swoosh-stripe";
+import { MISSIONS_EVENT, useGuide } from "@/components/guide/guide-provider";
 import { Button } from "@/components/ui/button";
 import { SAMPLE_FILES, type MissionsState, type MissionView } from "@/lib/practice/missions-data";
 import { cn } from "cn";
@@ -89,6 +90,12 @@ function MissionsPanel({ owner, variant }: { owner: boolean; variant: Variant })
   const [fresh, setFresh] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const prev = useRef<Map<string, string> | null>(null);
+  const guide = useGuide();
+  const guiding = guide.active?.kind === "mission";
+  const guidingRef = useRef(guiding);
+  useEffect(() => {
+    guidingRef.current = guiding;
+  }, [guiding]);
 
   const saveLocal = (v: Partial<Local>) =>
     setLocal((l) => {
@@ -104,11 +111,13 @@ function MissionsPanel({ owner, variant }: { owner: boolean; variant: Variant })
       const newly = s.missions.find((m) => m.status === "done" && before.get(m.key) !== "done");
       if (newly) {
         setFresh(newly.key);
-        toast.success(`Done: ${newly.title}`);
+        // With the guide running, its own celebration says it.
+        if (!guidingRef.current) toast.success(`Done: ${newly.title}`);
       }
     }
     prev.current = new Map(s.missions.map((m) => [m.key, m.status]));
     setState(s);
+    window.dispatchEvent(new CustomEvent(MISSIONS_EVENT, { detail: s }));
   }, []);
 
   const check = useCallback(() => {
@@ -156,7 +165,7 @@ function MissionsPanel({ owner, variant }: { owner: boolean; variant: Variant })
   const doneCount = missions.filter((m) => m.status === "done").length;
 
   // The button to tap glows softly, wherever it is on the page.
-  const targets = useMemo(() => current?.targets ?? [], [current]);
+  const targets = useMemo(() => (guiding ? [] : (current?.targets ?? [])), [current, guiding]);
   useEffect(() => {
     if (!targets.length) return;
     const selector = targets.map((t) => `[data-mission~="${t}"]`).join(",");
@@ -181,6 +190,8 @@ function MissionsPanel({ owner, variant }: { owner: boolean; variant: Variant })
   }, [targets, pathname]);
 
   if (!state) return null;
+  // On a phone the guide's own bubble does the talking; the card steps aside.
+  if (guiding && variant === "float") return null;
 
   const finishOpen = state.finished && !state.finishSeen;
   const position = variant === "float" ? "fixed z-40 left-3 bottom-[calc(4.75rem+env(safe-area-inset-bottom))]" : "";
@@ -231,9 +242,15 @@ function MissionsPanel({ owner, variant }: { owner: boolean; variant: Variant })
                 </a>
               ) : null}
               <div className="mt-3.5 flex items-center gap-2">
-                <Button size="sm" onClick={() => router.push(current.href)} className="h-10 px-4">
-                  Take me there
-                </Button>
+                {guide.available("mission", current.key) ? (
+                  <Button size="sm" onClick={() => guide.start("mission", current.key)} className="h-10 px-4" disabled={guiding}>
+                    {guiding ? "Guide is on" : "Show me"}
+                  </Button>
+                ) : (
+                  <Button size="sm" onClick={() => router.push(current.href)} className="h-10 px-4">
+                    Take me there
+                  </Button>
+                )}
                 {firstDone || current.key !== missions[0]?.key ? (
                   <Button size="sm" variant="ghost" className="h-10" disabled={pending} onClick={() => start(async () => apply(await skipMission(current.key)))}>
                     Skip

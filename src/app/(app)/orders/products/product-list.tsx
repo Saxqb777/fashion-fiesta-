@@ -28,7 +28,7 @@ export function ProductList({
 }) {
   const [editing, setEditing] = useState<Row | "new" | null>(null);
   const add = (
-    <Button onClick={() => setEditing("new")}>
+    <Button onClick={() => setEditing("new")} data-guide="add-product">
       <PlusIcon />
       {isEmpty ? "Add your first product" : "Add product"}
     </Button>

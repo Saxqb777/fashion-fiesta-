@@ -63,7 +63,7 @@ export function QuickSale({ products, vatRateBp }: { products: Product[]; vatRat
           className="h-14 text-[17px]"
         />
         {term.trim() ? (
-          <ul className="absolute inset-x-0 top-full z-30 mt-1 overflow-hidden rounded-[14px] border border-line bg-surface shadow-[0_12px_32px_-12px_rgba(31,26,23,0.25)]">
+          <ul data-guide-popup="" className="absolute inset-x-0 top-full z-30 mt-1 overflow-hidden rounded-[14px] border border-line bg-surface shadow-[0_12px_32px_-12px_rgba(31,26,23,0.25)]">
             {matches.map((p) => (
               <li key={p.id}>
                 <button type="button" onClick={() => add(p)} className="flex min-h-12 w-full items-center gap-3 px-4 py-2 text-left hover:bg-paper-deep">

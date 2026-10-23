@@ -182,14 +182,25 @@ function startHref(key: MissionKey, m: PracticeMeta, userId: string) {
   }
 }
 
+async function quoteCustomerFallback() {
+  const rows = await p()
+    .select({ id: t.customers.id, name: t.customers.name })
+    .from(t.customers)
+    .where(and(eq(t.customers.type, "wholesale"), eq(t.customers.isKeyAccount, false), sql`${t.customers.deletedAt} is null`))
+    .orderBy(t.customers.name);
+  return (rows.find((r) => /islamiya/i.test(r.name)) ?? rows[0])?.id ?? null;
+}
+
 /** The ids the guide scripts point at, for this person. Empty outside Practice. */
 export async function guideLinks(userId: string): Promise<Record<string, string>> {
   const m = await practiceMeta();
   if (!m) return {};
+  // Sandboxes built before the Quote first mission have no school picked: find one.
+  const quoteCustomer = m.quoteCustomerId ?? (await quoteCustomerFallback());
   const pick: Record<string, string | null | undefined> = {
     mehwish: m.mehwishId,
     bedashing: m.bedashingId,
-    quoteCustomer: m.quoteCustomerId,
+    quoteCustomer: quoteCustomer,
     goodTask: m.goodTaskId,
     wrongTask: m.wrongTaskId,
     alDahraOrder: m.alDahraOrderId,

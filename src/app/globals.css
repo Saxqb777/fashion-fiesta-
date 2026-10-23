@@ -169,3 +169,8 @@
     animation: none;
   }
 }
+
+/* While the guide runs, the Fiesta button steps aside so it never sits on a button to tap. */
+body[data-guiding] [data-fiesta-fab] {
+  display: none;
+}

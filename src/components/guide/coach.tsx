@@ -85,6 +85,9 @@ function Say({ text }: { text: string }) {
 
 export type CoachResult = "finished" | "exit";
 
+/** A link with its ids filled in. A query value with no id is dropped, so the page still opens. */
+const goTo = (go: string, links: GuideLinks) => fillLinks(go, links).replace(/([?&])\w+=__missing__&?/g, "$1").replace(/[?&]$/, "");
+
 /**
  * The coach: dims the screen, lights up one thing, says what to do, and moves on by itself once she has
  * done it. Only the lit up thing can be tapped, so nobody gets lost; Exit is always there.
@@ -136,7 +139,7 @@ export function Coach({
   useEffect(() => {
     if (onPath || !step.go || wentFor.current === index) return;
     wentFor.current = index;
-    router.push(fillLinks(step.go, links));
+    router.push(goTo(step.go, links));
   }, [onPath, step.go, index, links, router]);
 
   // Follow the lit up element as the page moves, loads and scrolls.
@@ -173,6 +176,13 @@ export function Coach({
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, [onPath, selector, index, reduce]);
+
+  useEffect(() => {
+    document.body.dataset.guiding = "1";
+    return () => {
+      delete document.body.dataset.guiding;
+    };
+  }, []);
 
   useEffect(() => {
     const el = bubbleRef.current;
@@ -355,7 +365,7 @@ export function Coach({
 
         <div className="mt-3.5 flex flex-wrap items-center gap-2">
           {!onPath && step.go ? (
-            <button type="button" onClick={() => router.push(fillLinks(step.go!, links))} className="h-11 rounded-[10px] bg-brand px-4 text-[14px] font-semibold text-white hover:bg-brand-deep">
+            <button type="button" onClick={() => router.push(goTo(step.go!, links))} className="h-11 rounded-[10px] bg-brand px-4 text-[14px] font-semibold text-white hover:bg-brand-deep">
               Take me there
             </button>
           ) : null}

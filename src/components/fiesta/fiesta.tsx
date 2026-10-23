@@ -324,6 +324,7 @@ export function Fiesta() {
             exit={{ opacity: 0, y: 8 }}
             transition={{ duration: 0.18 }}
             aria-label="Ask Fiesta"
+            data-fiesta-fab=""
             className="fixed right-3 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-40 flex h-12 items-center gap-2.5 rounded-full bg-ink pr-5 pl-4 text-paper shadow-[0_8px_24px_rgba(31,26,23,.22)] md:right-6 md:bottom-6"
           >
             <span aria-hidden className="grid grid-cols-2 gap-[3px]">

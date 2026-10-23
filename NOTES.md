@@ -4,21 +4,22 @@ Newest at top. Keep under 150 lines. Rules for this file are in CLAUDE.md under 
 
 ## Where we are (2026-10-23)
 - Live: https://fashion-fiesta-three.vercel.app (Vercel production, deploys from main)
-- Done and live: Phases 0 to 7, Fiesta (idea 45) and the Tax tab (ideas 25 to 28), all shipped 2026-10-23.
+- Done and live: Phases 0 to 7, Fiesta (idea 45), the Tax tab (ideas 25 to 28) and the Guided start, all shipped 2026-10-23.
 - Next on the roadmap: the other AI ideas (11, 23, 24, supplier note photos), only once Saaqib approves them.
 - Tax decisions (2026-10-23): every standard rated sale goes in box 1a Abu Dhabi (fixed establishment), emirate is only a drill down filter; financial year is the calendar year; VAT quarters calendar until Saaqib confirms the real period from the FTA certificate.
 - Email: Resend domain fashionfiestauae.com created (eu-west-1) and RESEND_API_KEY is in Vercel. Waiting on Saaqib to add the 5 DNS records at Openprovider (4 for Resend plus the studio CNAME). Then I run verify-domain and send a test email.
-- Phase 4.5 Key Account mode shipped 2026-10-22. Bedashing is a key account with 24 unverified branches on production. Checklist sent.
-- Small deploy (measurement templates, pieces link, nightly backup, bug fixes) shipped 2026-10-22. Checklist sent.
-- Bugs fixed in that deploy, all in earlier phases:
-  - A deposit already used could be applied again on the next invoice. No real payments were in production yet, so no data was affected.
-  - The customer list always showed 0 branches, and the supplier list always showed 0 fabrics.
-  - On the order editor, Save could fire before the customer's details had loaded.
-  - Save buttons with their own disabled rule did not grey out while saving.
-  - Cause of the first two: a Drizzle subquery without a join renders a bare "id". Always write the table name in raw subqueries.
+- Raw SQL lesson: a Drizzle subquery without a join renders a bare "id". Always write the table name in raw subqueries.
 
 ## Half done
 - Nothing.
+
+## How the Guided start works (for later work)
+- Coach (components/guide/coach.tsx): dims the screen with a clip path that has holes, so only the lit up thing takes taps; ring around it; bubble with step count, Fill it for me, Take me there, Skip step, Exit. Moves on by itself (click, page change, something appears or goes, form tap, mission ticked). Unlocks when a save does not move on (red errors) and shows Working on it while saving.
+- Scripts in lib/guide/tours.ts: MISSION_TOURS (13 owner + 3 tailor) and SETUP_TOURS (7). Selectors use labels, links, data-mission and data-guide marks. {ids} come from guideLinks() (practice meta). Anything new on a guided screen: keep its data-guide mark.
+- GuideProvider (components/guide/guide-provider.tsx) holds the running guide in localStorage, auto starts mission 1 the first time in Practice, offers the next mission or setup step after a short celebration. Setup chaining only moves forward.
+- Live: welcome sheet once per owner (users.guide_seen_at): Start with setup, or Skip setup and learn first. Setup steps are worked out from the data (lib/guide/setup.ts); open ones show in Settings, Setup and on Today.
+- Missions are in shop order: look, quote (new), walk in, approve, fix, deliver, paid, owes, big one, fabric, team, close, numbers.
+- Practice rebuild now wipes inside the same transaction as the inserts, so two builds at once wait instead of crashing.
 
 ## How the Tax tab works (for later work)
 - Reports, Tax: VAT return (/reports/tax), Corporate tax (/reports/tax/corporate), E-invoicing (/reports/tax/e-invoicing). /reports/vat redirects.
@@ -69,6 +70,7 @@ Newest at top. Keep under 150 lines. Rules for this file are in CLAUDE.md under 
 - Agreed prices (account_items) beat last price when she picks the item.
 
 ## Decisions (newest first)
+- 2026-10-23 Guided start (go from Saaqib): game style guide that locks to the lit up button, Fill it for me on typing steps, mission 1 starts by itself in Practice. Order: set up the shop (skippable, open steps stay in Settings, Setup and Today), then learn in Practice. New "Quote first" mission. No new menu item: Setup is a Settings tab.
 - 2026-10-23: Trade licence (Settings, Money) and owner phone numbers (Settings, Team) are also left for the owners to fill in. Not open questions any more.
 - 2026-10-23: VAT period start month is left for the owners to set themselves in Settings, Money (VAT period). Calendar quarters until they change it. Not an open question any more.
 - 2026-10-23 Email: Saaqib's Resend account (Gmail login) holds another domain (docledger.site), so the app gets a send only key restricted to fashionfiestauae.com, not full access. It cannot read domains, so Settings, Email shows Connected for it (status "send_only"). Domain checks go through the Resend connector instead.
@@ -125,6 +127,6 @@ Newest at top. Keep under 150 lines. Rules for this file are in CLAUDE.md under 
 - Vercel: project prj_grSCaYpWGqE93VbWkOQzahVzymA0, team team_yKuXQ8P3eoGrvRnTWMIqSiGo, region sin1.
 - Env vars are in Vercel for all three environments: DATABASE_URL, AUTH_SECRET, BLOB_READ_WRITE_TOKEN, ANTHROPIC_API_KEY, CRON_SECRET. They are never in git.
 - Cron: /api/cron/backup at 22:00 UTC.
-- Migrations live in /drizzle and run during build, on Live and Practice. The latest is 0016_tax.
+- Migrations live in /drizzle and run during build, on Live and Practice. The latest is 0017_guide.
 - Vercel also has NEXT_PUBLIC_VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT, EMAIL_DOMAIN, PRACTICE_DATABASE_URL. RESEND_API_KEY (send only, fashionfiestauae.com only).
 - Careful: .env.local holds the production DATABASE_URL. For tests always export the branch URL after sourcing it.

@@ -158,14 +158,17 @@ export function GuideProvider({
         });
       } else if (was.kind === "setup") {
         router.refresh();
-        // The next open step after this one, then any open one before it.
+        // Only forward: the next open step after this one. Anything earlier left open waits in Settings, Setup.
         const after = SETUP_ORDER.slice(SETUP_ORDER.indexOf(was.key as SetupKey) + 1);
-        const next = after.find((k) => pendingSetup.includes(k)) ?? pendingSetup.find((k) => k !== was.key) ?? null;
+        const next = after.find((k) => pendingSetup.includes(k)) ?? null;
+        const earlier = pendingSetup.filter((k) => !after.includes(k as SetupKey) && k !== was.key);
         setCheer({
-          title: `${SETUP_TOURS[was.key]?.title ?? "Step"}: done`,
+          title: `${SETUP_TOURS[was.key]?.title ?? "Step"}: saved`,
           line: next
-            ? `Next: ${SETUP_TOURS[next].title}. Skipped steps wait in Settings, Setup.`
-            : "That was the last setup step. Now learn how the shop runs, in Practice.",
+            ? `Next: ${SETUP_TOURS[next].title}. Anything you skip waits in Settings, Setup.`
+            : earlier.length
+              ? `That was the last step. Still to finish later in Settings, Setup: ${earlier.map((k) => SETUP_TOURS[k]?.title).join(", ")}. Now learn how the shop runs.`
+              : "That was the last setup step. Now learn how the shop runs, in Practice.",
           next: next ? { label: "Next step", run: () => start("setup", next) } : { label: "Learn how it works", run: () => void goPractice() },
         });
       }

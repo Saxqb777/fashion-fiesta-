@@ -423,7 +423,7 @@ export function Coach({
               {last ? "Done" : "Next"}
             </button>
           ) : null}
-          {step.advance === "mission" && !missionDone ? (
+          {step.advance === "mission" && !missionDone && !step.target ? (
             <span className="inline-flex items-center gap-2 text-[13px] text-ink-muted">
               <Loader2Icon className="size-4 animate-spin" /> Checking
             </span>

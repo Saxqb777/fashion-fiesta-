@@ -69,6 +69,7 @@ Newest at top. Keep under 150 lines. Rules for this file are in CLAUDE.md under 
 - Agreed prices (account_items) beat last price when she picks the item.
 
 ## Decisions (newest first)
+- 2026-10-23: VAT period start month is left for the owners to set themselves in Settings, Money (VAT period). Calendar quarters until they change it. Not an open question any more.
 - 2026-10-23 Email: Saaqib's Resend account (Gmail login) holds another domain (docledger.site), so the app gets a send only key restricted to fashionfiestauae.com, not full access. It cannot read domains, so Settings, Email shows Connected for it (status "send_only"). Domain checks go through the Resend connector instead.
 - 2026-10-23 Tax tab answers: all standard rated sales go in box 1a Abu Dhabi (the shop's fixed establishment); emirate is only a filter in the drill down. Financial year is the calendar year. VAT quarters stay calendar until Saaqib confirms from the FTA certificate.
 - 2026-10-23: Main login password sorted by Saaqib himself, no reset needed.
@@ -116,7 +117,6 @@ Newest at top. Keep under 150 lines. Rules for this file are in CLAUDE.md under 
 - Owner phone numbers are empty, so Practice WhatsApp opens the contact picker instead of his own chat. Add a phone in Settings, Team.
 - Add the DNS records at Openprovider (table sent 2026-10-23): TXT resend._domainkey, MX send (feedback-smtp.eu-west-1.amazonses.com, priority 10), TXT send (v=spf1 include:amazonses.com ~all), CNAME rsend (send.forge.rmta.net), CNAME studio. Then say "DNS added".
 - Trade licence number and issuer, in Settings, Money (needed on e-invoices).
-- Real VAT tax period start month, from the FTA certificate.
 - The studio CNAME is in the same DNS table: name "studio", value 94f92b8040c50980.vercel-dns-016.com.
 - Embroidery machine brand and model: to confirm with the operator. It decides the file format for ideas 36 and 43.
 - Neon Launch plan (later, his call): gives a 7 day rewind window and daily snapshots. He adds a card in Neon billing, then I set both up.

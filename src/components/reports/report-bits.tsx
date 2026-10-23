@@ -4,10 +4,20 @@ import { ReportsTabs } from "@/components/section-navs";
 import { cn } from "cn";
 import { ExcelLink } from "./report-table";
 
-export function ReportsHeader({ excel, query }: { excel?: string; query?: string }) {
+export function ReportsHeader({ excel, query, actions }: { excel?: string; query?: string; actions?: React.ReactNode }) {
   return (
     <>
-      <PageHeader title="Reports" actions={excel ? <ExcelLink name={excel} query={query} /> : undefined} />
+      <PageHeader
+        title="Reports"
+        actions={
+          excel || actions ? (
+            <>
+              {actions}
+              {excel ? <ExcelLink name={excel} query={query} /> : null}
+            </>
+          ) : undefined
+        }
+      />
       <ReportsTabs />
     </>
   );

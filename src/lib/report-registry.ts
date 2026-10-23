@@ -2,7 +2,7 @@ import { getSettings } from "./settings";
 import { todayISO } from "./dates";
 import { customersTable, lastMonths, owesReport, pnlTable, salesByCustomer, salesByMonth, tailorScorecard, vatPeriods, vatTables, type Table } from "./reports";
 
-export const REPORT_NAMES = ["owes", "sales", "vat", "profit", "tailors", "customers"] as const;
+export const REPORT_NAMES = ["owes", "sales", "vat", "profit", "tailors", "customers", "corporate"] as const;
 export type ReportName = (typeof REPORT_NAMES)[number];
 
 /** The VAT quarter picked by `?q=` (its start date), else the current one. */
@@ -34,5 +34,25 @@ export async function reportTables(name: ReportName, params: URLSearchParams): P
       return [await tailorScorecard(today)];
     case "customers":
       return [await customersTable(today, params.get("show") === "quiet")];
+    case "corporate": {
+      const { corporatePack, corporateYears } = await import("./tax/corporate");
+      const years = await corporateYears();
+      const y = Number(params.get("y"));
+      const pack = await corporatePack(years.includes(y) ? y : years[0]);
+      return [
+        { title: `Profit and loss ${pack.year}`, columns: [{ key: "label", title: "" }, { key: "amount", title: "AED", kind: "money" }], rows: pack.lines.map((l) => ({ label: l.label, amount: l.amount })) },
+        {
+          title: "Small Business Relief",
+          columns: [{ key: "k", title: "" }, { key: "v", title: "" }],
+          rows: [
+            { k: "Revenue", v: (pack.revenue / 100).toFixed(2) },
+            { k: "Result", v: pack.sbr.headline },
+            { k: "Why", v: pack.sbr.text },
+            { k: "Tax without the relief, about", v: (pack.taxWithoutRelief / 100).toFixed(2) },
+          ],
+        },
+        { title: "For the accountant", columns: [{ key: "label", title: "Item" }, { key: "value", title: "From the app" }], rows: pack.checklist.map((c) => ({ label: c.label, value: c.value ?? "Ask the owner" })) },
+      ];
+    }
   }
 }

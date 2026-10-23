@@ -134,7 +134,7 @@ const CHECKS: Record<MissionKey, (c: Ctx) => Promise<boolean>> = {
         .where(and(gt(t.salaryPayments.createdAt, c.since), gt(t.salaryPayments.advancesDeductedFils, 0)))
         .limit(1),
     ),
-  numbers: async (c) => (await event(c, "view", "/reports/profit%")) && (await event(c, "view", "/reports/vat%")) && (await event(c, "excel")),
+  numbers: async (c) => (await event(c, "view", "/reports/profit%")) && (await event(c, "view", "/reports/tax%")) && (await event(c, "excel")),
   progress: async (c) => {
     const id = c.meta.pantsTasks[c.userId];
     if (!id) return false;

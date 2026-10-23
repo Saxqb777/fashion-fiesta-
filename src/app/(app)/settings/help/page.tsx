@@ -75,7 +75,7 @@ export default function HelpPage() {
             Today warns before pay day. Pay each tailor from <Link href="/settings/team" className="font-semibold text-ink underline underline-offset-2">Settings, Team</Link>. Advances come off by themselves.
           </Item>
           <Item term="VAT quarter">
-            After each quarter, open <Link href="/reports/vat" className="font-semibold text-ink underline underline-offset-2">Reports, VAT</Link>. The boxes match the return on EmaraTax. Download the Excel for the accountant and file by the 28th of the next month. The quarter start month is in Settings, Money.
+            After each quarter, open <Link href="/reports/tax" className="font-semibold text-ink underline underline-offset-2">Reports, Tax</Link>. Tap Check this quarter, fix what it lists, then follow the EmaraTax steps: each box shows the figure to type with a Copy button. File and pay by the 28th of the next month, then mark the quarter as filed with the reference. The PDF pack and Excel are for the accountant.
           </Item>
           <Item term="Who owes you">Money opens on it. Email statements to several customers at once, or send one on WhatsApp.</Item>
         </dl>

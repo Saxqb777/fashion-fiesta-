@@ -141,65 +141,54 @@ export function vatPeriods(today: string, startMonth: number, count = 6): VatPer
   return out;
 }
 
-/**
- * The return laid out like the FTA VAT 201 form. Sales are made in Abu Dhabi, where the shop is.
- * Purchases count only when VAT was charged with the supplier's TRN.
- */
+/** The return laid out like the FTA VAT 201 form. Built in lib/tax/vat.ts, kept here for the report tables. */
 export async function vatReturn(p: VatPeriod) {
-  const [sales, purchases] = await Promise.all([
-    db.execute<{ kind: string; ref: string; date: string; party: string; net: number; vat: number }>(sql`
-      select 'Tax invoice' kind, i.number ref, i.invoice_date::text date, c.name party, i.subtotal_fils net, i.vat_fils vat
-        from invoices i join customers c on c.id = i.customer_id
-        where i.kind = 'tax_invoice' and i.invoice_date between ${p.start} and ${p.end}
-      union all
-      select 'Credit note', cn.number, cn.credit_date::text, c.name, -cn.subtotal_fils, -cn.vat_fils
-        from credit_notes cn join customers c on c.id = cn.customer_id
-        where cn.credit_date between ${p.start} and ${p.end}
-      union all
-      select 'Quick sale', s.number, s.sale_date::text, coalesce(s.customer_name, 'Walk in'), s.subtotal_fils, s.vat_fils
-        from pos_sales s where s.sale_date between ${p.start} and ${p.end}
-      order by 3, 2`),
-    db.execute<{ kind: string; ref: string; date: string; party: string; net: number; vat: number }>(sql`
-      select 'Supplier bill' kind, coalesce(b.bill_number, '') ref, b.bill_date::text date, s.name party, b.subtotal_fils net, b.vat_fils vat
-        from supplier_bills b join suppliers s on s.id = b.supplier_id
-        where b.kind = 'bill' and b.vat_fils > 0 and b.bill_date between ${p.start} and ${p.end}
-      union all
-      select 'Expense', e.description, e.expense_date::text, coalesce(e.payee, ''), e.amount_fils - e.vat_fils, e.vat_fils
-        from expenses e where e.vat_fils > 0 and e.payee_trn is not null and e.expense_date between ${p.start} and ${p.end}
-      order by 3, 2`),
-  ]);
-  const sum = (rows: { net: number; vat: number }[]) => ({ net: rows.reduce((s, r) => s + n(r.net), 0), vat: rows.reduce((s, r) => s + n(r.vat), 0) });
-  const out = sum(sales.rows);
-  const inp = sum(purchases.rows);
+  const { vatPack } = await import("./tax/vat");
+  const pack = await vatPack(p);
   return {
-    boxes: [
-      { box: "1a", label: "Standard rated supplies in Abu Dhabi", net: out.net, vat: out.vat },
-      { box: "8", label: "Totals, sales", net: out.net, vat: out.vat },
-      { box: "9", label: "Standard rated expenses", net: inp.net, vat: inp.vat },
-      { box: "11", label: "Totals, purchases", net: inp.net, vat: inp.vat },
-      { box: "12", label: "Total value of due tax", net: null, vat: out.vat },
-      { box: "13", label: "Total value of recoverable tax", net: null, vat: inp.vat },
-      { box: "14", label: out.vat - inp.vat >= 0 ? "Payable tax for the period" : "Refundable tax for the period", net: null, vat: out.vat - inp.vat },
-    ],
-    sales: sales.rows.map((r) => ({ ...r, net: n(r.net), vat: n(r.vat) })),
-    purchases: purchases.rows.map((r) => ({ ...r, net: n(r.net), vat: n(r.vat) })),
+    boxes: pack.boxes.filter((b) => ["1a", "8", "9", "11", "12", "13", "14"].includes(b.box)).map((b) => ({ box: b.box, label: b.label, net: b.amount, vat: b.vat ?? 0 })),
+    sales: pack.saleDocs.map(({ kind, ref, date, party, net, vat }) => ({ kind, ref, date, party, net, vat })),
+    purchases: pack.purchaseDocs.filter((d) => d.claimable).map(({ kind, ref, date, party, net, vat }) => ({ kind, ref, date, party, net, vat })),
   };
 }
 
 export async function vatTables(p: VatPeriod): Promise<Table[]> {
-  const v = await vatReturn(p);
+  const { vatPack } = await import("./tax/vat");
+  const pack = await vatPack(p);
   const docCols: Column[] = [
     { key: "date", title: "Date", kind: "date" },
     { key: "kind", title: "Document" },
     { key: "ref", title: "Number" },
     { key: "party", title: "Party" },
+    { key: "emirate", title: "Emirate" },
     { key: "net", title: "Before VAT", kind: "money" },
     { key: "vat", title: "VAT", kind: "money" },
   ];
+  const purchaseCols: Column[] = [
+    { key: "date", title: "Date", kind: "date" },
+    { key: "kind", title: "Document" },
+    { key: "ref", title: "Number" },
+    { key: "party", title: "Supplier or payee" },
+    { key: "trn", title: "TRN" },
+    { key: "net", title: "Before VAT", kind: "money" },
+    { key: "vat", title: "VAT", kind: "money" },
+  ];
+  const strip = <T extends { id?: string; href?: string; claimable?: boolean }>(r: T) => {
+    const { id: _id, href: _href, claimable: _c, ...rest } = r;
+    void _id;
+    void _href;
+    void _c;
+    return rest as Record<string, string | number | null>;
+  };
   return [
-    { title: `VAT return ${p.label}`, columns: [{ key: "box", title: "Box" }, { key: "label", title: "" }, { key: "net", title: "Amount", kind: "money" }, { key: "vat", title: "VAT", kind: "money" }], rows: v.boxes },
-    { title: "Sales behind boxes 1a and 8", columns: docCols, rows: v.sales },
-    { title: "Purchases behind boxes 9 and 11", columns: docCols, rows: v.purchases },
+    {
+      title: `VAT return ${p.label}`,
+      columns: [{ key: "box", title: "Box" }, { key: "label", title: "" }, { key: "amount", title: "Amount", kind: "money" }, { key: "vat", title: "VAT", kind: "money" }, { key: "adjustment", title: "Adjustment", kind: "money" }],
+      rows: pack.boxes.map((b) => ({ box: b.box, label: b.label, amount: b.amount, vat: b.vat, adjustment: b.adjustment ?? null })),
+    },
+    { title: "Sales behind boxes 1a and 8", columns: docCols, rows: pack.saleDocs.map(strip) },
+    { title: "Purchases behind boxes 9 and 11", columns: purchaseCols, rows: pack.purchaseDocs.filter((d) => d.claimable).map(strip) },
+    { title: "VAT paid but not claimable", columns: purchaseCols, rows: pack.unclaimed.map(strip) },
   ];
 }
 

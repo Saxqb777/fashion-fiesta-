@@ -124,6 +124,12 @@ export const settings = pgTable("settings", {
   openingDate: date("opening_date"),
   /** VAT return periods are quarters starting in this month (1 = Jan to Mar, Apr to Jun...). */
   vatPeriodStartMonth: integer("vat_period_start_month").notNull().default(1),
+  /** Corporate tax: the month the financial year ends (12 = calendar year) and the corporate tax registration number. */
+  ctYearEndMonth: integer("ct_year_end_month").notNull().default(12),
+  ctTrn: text("ct_trn"),
+  /** Trade licence number and issuing authority. E-invoicing (PINT AE) needs them for the seller. */
+  tradeLicense: text("trade_license"),
+  tradeLicenseAuthority: text("trade_license_authority"),
   /** Email: the part before @fashionfiestauae.com, and the sender name. Replies go to the owner who sends. */
   emailFromLocal: text("email_from_local").notNull().default("orders"),
   emailFromName: text("email_from_name"),
@@ -1162,3 +1168,18 @@ export const fiestaMessages = pgTable(
   },
   (t) => [uniqueIndex("fiesta_messages_seq").on(t.conversationId, t.seq)],
 );
+
+/* ---------- Tax tab (ideas 25 to 28) ---------- */
+
+/** One VAT quarter: where the owners are with it, and the last check before filing. No row means Not started. */
+export const taxPeriods = pgTable("tax_periods", {
+  ...audit(),
+  periodStart: date("period_start").notNull().unique(),
+  periodEnd: date("period_end").notNull(),
+  status: text("status").$type<"not_started" | "pack_ready" | "filed">().notNull(),
+  filedOn: date("filed_on"),
+  reference: text("reference"),
+  notes: text("notes"),
+  reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+  review: jsonb("review").$type<unknown>(),
+});

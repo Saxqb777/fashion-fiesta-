@@ -4,8 +4,9 @@ Newest at top. Keep under 150 lines. Rules for this file are in CLAUDE.md under 
 
 ## Where we are (2026-10-23)
 - Live: https://fashion-fiesta-three.vercel.app (Vercel production, deploys from main)
-- Done and live: Phases 0 to 7 and Fiesta (idea 45, shipped 2026-10-23, checklist sent).
-- Now: Tax tab (ideas 25 to 28) plan posted 2026-10-23, waiting for "go". He asked for an EmaraTax step by step guide with each box value next to its box, and a per quarter status (Not started, Pack ready, Filed with date).
+- Done and live: Phases 0 to 7, Fiesta (idea 45) and the Tax tab (ideas 25 to 28), all shipped 2026-10-23.
+- Next on the roadmap: the other AI ideas (11, 23, 24, supplier note photos), only once Saaqib approves them.
+- Tax decisions (2026-10-23): every standard rated sale goes in box 1a Abu Dhabi (fixed establishment), emirate is only a drill down filter; financial year is the calendar year; VAT quarters calendar until Saaqib confirms the real period from the FTA certificate.
 - Email is built but waits on the Resend API key from Saaqib, then the DNS records.
 - Domain: Saaqib adds the CNAME after everything is live (record is under Open questions).
 - Phase 4.5 Key Account mode shipped 2026-10-22. Bedashing is a key account with 24 unverified branches on production. Checklist sent.
@@ -19,6 +20,15 @@ Newest at top. Keep under 150 lines. Rules for this file are in CLAUDE.md under 
 
 ## Half done
 - Nothing.
+
+## How the Tax tab works (for later work)
+- Reports, Tax: VAT return (/reports/tax), Corporate tax (/reports/tax/corporate), E-invoicing (/reports/tax/e-invoicing). /reports/vat redirects.
+- lib/tax/vat.ts vatPack(): full VAT 201 boxes with the documents behind each. Purchases count only with VAT and a supplier TRN; the rest is listed as not claimable.
+- tax_periods: one row per quarter once touched. Status not_started (no row), pack_ready, filed (date and EmaraTax reference). Only after the quarter ends. Review JSON kept on the row.
+- Check this quarter (lib/tax/review.ts): fixed rule checks (shop TRN, wholesale customers without TRN, delivered not invoiced, deposits before invoice, VAT without supplier TRN, invoice VAT not 5 percent, quick sale over AED 10,000, credit notes, swings vs last quarter), then Claude rewrites the wording only. Buttons always come from the rules.
+- Corporate: monthly P&L added up, SBR (revenue up to AED 3m, years ending by 31 Dec 2026), 9 percent above AED 375,000, year end balances from the app. Return due 30 Sep of the next year.
+- E-invoicing (lib/tax/einvoice.ts): PINT AE 1.0.1 UBL. billing-1@ae-1, flags 00000000, endpoint scheme 0235 with the TIN (first 10 digits of the TRN), emirate codes, credit note reason codes DL8.61.1.A to E. Seller needs the trade licence (Settings, Money). Not validated against the official Schematron yet: the ASP will validate.
+- Downloads: /api/tax/vat-pack?q=, /api/tax/corporate?y=, /api/tax/xml?kind=&id=, /api/tax/einvoices?q= (zip, fflate). Excel: /api/reports/vat and /api/reports/corporate.
 
 ## How Fiesta works (for later work)
 - Floating button bottom right for owners only (not tailors, not practice logins). Chat panel: right sheet on a laptop, full screen on a phone.
@@ -60,6 +70,7 @@ Newest at top. Keep under 150 lines. Rules for this file are in CLAUDE.md under 
 - Agreed prices (account_items) beat last price when she picks the item.
 
 ## Decisions (newest first)
+- 2026-10-23 Tax tab answers: all standard rated sales go in box 1a Abu Dhabi (the shop's fixed establishment); emirate is only a filter in the drill down. Financial year is the calendar year. VAT quarters stay calendar until Saaqib confirms from the FTA certificate.
 - 2026-10-23: Main login password sorted by Saaqib himself, no reset needed.
 - 2026-10-23 Fiesta: Saaqib said "plan it and go". Curated tools instead of free SQL, so passwords and secrets can never reach the model. Navigation needs no tap; anything that saves or sends always needs her tap on a card. Ideas 12 and 13 are covered by Fiesta.
 - 2026-10-22 Phase 7 build: on a laptop the missions card sits inside the sidebar so it never covers a button; on a phone it starts folded as a pill. Seeded photos are drawn illustrations (no stock photos). Fabric mission uses the new Add lines from Excel on the PO screen.

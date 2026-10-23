@@ -1,5 +1,6 @@
 import { MoneyForm } from "@/components/forms/money-form";
 import { QuoteTermsForm } from "@/components/settings/quote-terms-form";
+import { TaxIdsForm } from "@/components/settings/tax-ids-form";
 import { VatPeriodForm } from "@/components/settings/vat-period-form";
 import { getSettings } from "@/lib/settings";
 import { SettingsSection } from "../settings-section";
@@ -14,8 +15,11 @@ export default async function MoneySettings() {
       <SettingsSection title="Quote terms" description="How long a quote stays valid, and the terms printed at the bottom of every quote.">
         <QuoteTermsForm days={settings.quoteValidityDays} terms={settings.quoteTerms} />
       </SettingsSection>
-      <SettingsSection title="VAT period" description="The quarters your VAT return covers. Reports, VAT uses them.">
+      <SettingsSection title="VAT period" description="The quarters your VAT return covers. Reports, Tax uses them.">
         <VatPeriodForm month={settings.vatPeriodStartMonth} />
+      </SettingsSection>
+      <SettingsSection title="Corporate tax and licence" description="The financial year is the calendar year, January to December.">
+        <TaxIdsForm ctTrn={settings.ctTrn} tradeLicense={settings.tradeLicense} authority={settings.tradeLicenseAuthority} />
       </SettingsSection>
     </div>
   );

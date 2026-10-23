@@ -20,7 +20,7 @@ export const OWNER_MISSIONS: Mission[] = [
   { key: "fabric", title: "Buy fabric", text: "Order fabric from Al Noor Textiles with the sample Excel, confirm the PO, receive the goods and watch the stock rise.", targets: ["new-po", "po-excel", "receive"], file: "fabric-po.xlsx" },
   { key: "close", title: "Close the day", text: "Count the drawer. Enter the expected cash shown on the card, see that it matches, then save.", targets: ["close-day"] },
   { key: "team", title: "Pay the team", text: "Pay Imran this month's salary. His advance comes off by itself.", targets: ["pay-salary"] },
-  { key: "numbers", title: "Your numbers", text: "Open Reports. Look at Profit for this month, then VAT for this quarter, and download one Excel.", targets: ["excel"] },
+  { key: "numbers", title: "Your numbers", text: "Open Reports. Look at Profit for this month, then Tax for this quarter, and download one Excel.", targets: ["excel"] },
 ];
 
 export const TAILOR_MISSIONS: Mission[] = [

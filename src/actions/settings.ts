@@ -472,6 +472,6 @@ export async function saveVatPeriod(_prev: FormState, fd: FormData): Promise<For
   await db.update(settings).set({ vatPeriodStartMonth: month }).where(eq(settings.id, current.id));
   await logActivity({ actor: me, entityType: "settings", action: "updated", summary: `${me.name} set VAT quarters to start in month ${month}` });
   revalidatePath("/settings/money");
-  revalidatePath("/reports/vat");
+  revalidatePath("/reports/tax");
   return { ok: true, savedAt: Date.now(), message: "VAT period saved." };
 }

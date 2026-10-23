@@ -64,7 +64,7 @@ export function ReportsTabs() {
         { href: "/reports", label: "Who owes you", exact: true },
         { href: "/reports/sales", label: "Sales" },
         { href: "/reports/profit", label: "Profit" },
-        { href: "/reports/vat", label: "VAT" },
+        { href: "/reports/tax", label: "Tax" },
         { href: "/reports/tailors", label: "Tailors" },
         { href: "/reports/customers", label: "Customers" },
       ]}

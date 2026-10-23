@@ -217,16 +217,16 @@ Standing permission: small taste improvements (spacing, wording, micro animation
 24. Weekly digest. proposed. AI, after Phase 6. Effort: small.
     What: a Saturday morning summary of what happened, what is due and who to chase.
 
-25. VAT return pack. approved. After Phase 6, as a "Tax" tab under Reports. Effort: medium.
+25. VAT return pack. built. After Phase 6, as a "Tax" tab under Reports. Effort: medium.
     What: quarterly figures laid out like the FTA return boxes (standard rated supplies by emirate, output VAT, purchases, recoverable input VAT, net payable), each box drilling down to the invoices and bills behind it. Export to PDF and Excel for the accountant. Submission stays manual on EmaraTax.
 
-26. AI review before filing. approved. After Phase 6, Tax tab. Effort: small.
+26. AI review before filing. built. After Phase 6, Tax tab. Effort: small.
     What: Claude checks the quarter for missing TRNs, invoices still in draft, input VAT on bills without a tax invoice, unusual swings versus last quarter, and writes a plain language list of what to fix.
 
-27. Corporate tax pack. approved. After Phase 6, Tax tab. Effort: medium.
+27. Corporate tax pack. built. After Phase 6, Tax tab. Effort: medium.
     What: yearly P&L summary with a Small Business Relief check and a checklist for the accountant.
 
-28. E-invoicing readiness. approved. After Phase 6, Tax tab. Effort: medium.
+28. E-invoicing readiness. built. After Phase 6, Tax tab. Effort: medium.
     What: UAE Peppol PINT format export of every Tax Invoice, so an accredited service provider can be connected before 1 July 2027.
 
 29. Fabric metres per garment. built. Phase 4. Effort: small.

@@ -33,6 +33,27 @@ function find(selector: string): HTMLElement | null {
 const toRect = (r: DOMRect, pad = PAD): Rect => ({ x: r.left - pad, y: r.top - pad, w: r.width + pad * 2, h: r.height + pad * 2 });
 const same = (a: Rect | null, b: Rect | null) => (!a || !b ? a === b : Math.abs(a.x - b.x) < 1 && Math.abs(a.y - b.y) < 1 && Math.abs(a.w - b.w) < 1 && Math.abs(a.h - b.h) < 1);
 
+/** Overlapping cut outs cancel each other out under the even odd rule, so overlapping ones become one. */
+function mergeRects(rects: Rect[]) {
+  const out = rects.map((r) => ({ ...r }));
+  for (let changed = true; changed; ) {
+    changed = false;
+    for (let i = 0; i < out.length && !changed; i++)
+      for (let j = i + 1; j < out.length && !changed; j++) {
+        const a = out[i];
+        const b = out[j];
+        if (a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h) {
+          const x = Math.min(a.x, b.x);
+          const y = Math.min(a.y, b.y);
+          out[i] = { x, y, w: Math.max(a.x + a.w, b.x + b.w) - x, h: Math.max(a.y + a.h, b.y + b.h) - y };
+          out.splice(j, 1);
+          changed = true;
+        }
+      }
+  }
+  return out;
+}
+
 function roundRect({ x, y, w, h }: Rect) {
   const r = Math.min(RADIUS, w / 2, h / 2);
   return `M${x + r} ${y}h${w - 2 * r}a${r} ${r} 0 0 1 ${r} ${r}v${h - 2 * r}a${r} ${r} 0 0 1 ${-r} ${r}h${-(w - 2 * r)}a${r} ${r} 0 0 1 ${-r} ${-r}v${-(h - 2 * r)}a${r} ${r} 0 0 1 ${r} ${-r}Z`;
@@ -265,7 +286,7 @@ export function Coach({
   };
 
   const locked = onPath && Boolean(rect) && !loose && !missing;
-  const holes = rect ? [rect, ...popups] : popups;
+  const holes = mergeRects(rect ? [rect, ...popups] : popups);
   const path = `M0 0H${view.w}V${view.h}H0Z ${holes.map(roundRect).join(" ")}`;
 
   // Where the bubble sits: next to the lit up thing on a laptop, docked top or bottom on a phone.

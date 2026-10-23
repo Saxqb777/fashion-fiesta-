@@ -130,6 +130,10 @@ export function Coach({
   const scrolledFor = useRef<number>(-1);
   const wentFor = useRef<number>(-1);
   const goneSeen = useRef(false);
+  const waitsForResult = typeof step.advance === "object";
+  /** The lit up thing was there and went away: something is saving or loading. */
+  const targetSeen = useRef(false);
+  const [busy, setBusy] = useState(false);
 
   const advance = useCallback(() => {
     if (last) onDone("finished");
@@ -153,6 +157,8 @@ export function Coach({
       const el = onPath && selector ? find(selector) : null;
       if (el) {
         since = performance.now();
+        targetSeen.current = true;
+        setBusy(false);
         const r = toRect(el.getBoundingClientRect());
         setRect((old) => (same(old, r) ? old : r));
         setMissing(false);
@@ -165,8 +171,9 @@ export function Coach({
         if (f) setFilled(Boolean(f.value.trim()));
       } else {
         setRect((old) => (old ? null : old));
-        // Waiting too long for something that never shows: let her carry on by hand.
-        if (onPath && selector && performance.now() - since > 3500) setMissing(true);
+        if (targetSeen.current && waitsForResult) setBusy(true);
+        // Waiting too long for something that never showed: let her carry on by hand.
+        else if (onPath && selector && performance.now() - since > 3500) setMissing(true);
       }
       const ups = [...document.querySelectorAll(POPUPS)].filter(visible).map((p) => toRect(p.getBoundingClientRect(), 2));
       setPopups((old) => (old.length === ups.length && old.every((o, i) => same(o, ups[i])) ? old : ups));
@@ -176,7 +183,7 @@ export function Coach({
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [onPath, selector, index, reduce]);
+  }, [onPath, selector, index, reduce, waitsForResult]);
 
   useEffect(() => {
     document.body.dataset.guiding = "1";
@@ -363,6 +370,11 @@ export function Coach({
         </p>
         {loose && !missing ? <p className="mt-2 text-[13px] text-brand-deep">If something shows in red, fix it, then tap again.</p> : null}
         {missing ? <p className="mt-2 text-[13px] text-ink-muted">Cannot see it? Scroll a little, or skip this step.</p> : null}
+        {busy && !missing ? (
+          <p className="mt-2 inline-flex items-center gap-2 text-[13px] text-ink-muted">
+            <Loader2Icon className="size-3.5 animate-spin" /> Working on it.
+          </p>
+        ) : null}
 
         <div className="mt-3.5 flex flex-wrap items-center gap-2">
           {!onPath && step.go ? (

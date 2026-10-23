@@ -129,6 +129,7 @@ export function Coach({
   const clickedAt = useRef<number | null>(null);
   const scrolledFor = useRef<number>(-1);
   const wentFor = useRef<number>(-1);
+  const goneSeen = useRef(false);
 
   const advance = useCallback(() => {
     if (last) onDone("finished");
@@ -237,10 +238,10 @@ export function Coach({
   useEffect(() => {
     if (typeof adv !== "object" || !("gone" in adv)) return;
     const sel = fillLinks(adv.gone, links);
-    let seen = false;
+    // Remembered for the whole step: a save often refreshes the page, which runs this again.
     const id = setInterval(() => {
-      if (find(sel)) seen = true;
-      else if (seen) advance();
+      if (find(sel)) goneSeen.current = true;
+      else if (goneSeen.current) advance();
     }, 250);
     return () => clearInterval(id);
   }, [adv, links, advance]);

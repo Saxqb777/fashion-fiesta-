@@ -2,11 +2,10 @@
 
 Newest at top. Keep under 150 lines. Rules for this file are in CLAUDE.md under "How we work".
 
-## Where we are (2026-10-22)
+## Where we are (2026-10-23)
 - Live: https://fashion-fiesta-three.vercel.app (Vercel production, deploys from main)
 - Done and live: Phases 0 to 7 and Fiesta (idea 45, shipped 2026-10-23, checklist sent).
-- Next: the Tax tab (ideas 25 to 28). Post a plan and wait for "go".
-- Open: Saaqib asked for his main login password. It cannot be read back; offered a reset (his own new password, or a temporary one). Waiting for his choice. Do nothing until he says.
+- Now: Tax tab (ideas 25 to 28) plan posted 2026-10-23, waiting for "go". He asked for an EmaraTax step by step guide with each box value next to its box, and a per quarter status (Not started, Pack ready, Filed with date).
 - Email is built but waits on the Resend API key from Saaqib, then the DNS records.
 - Domain: Saaqib adds the CNAME after everything is live (record is under Open questions).
 - Phase 4.5 Key Account mode shipped 2026-10-22. Bedashing is a key account with 24 unverified branches on production. Checklist sent.
@@ -61,6 +60,7 @@ Newest at top. Keep under 150 lines. Rules for this file are in CLAUDE.md under 
 - Agreed prices (account_items) beat last price when she picks the item.
 
 ## Decisions (newest first)
+- 2026-10-23: Main login password sorted by Saaqib himself, no reset needed.
 - 2026-10-23 Fiesta: Saaqib said "plan it and go". Curated tools instead of free SQL, so passwords and secrets can never reach the model. Navigation needs no tap; anything that saves or sends always needs her tap on a card. Ideas 12 and 13 are covered by Fiesta.
 - 2026-10-22 Phase 7 build: on a laptop the missions card sits inside the sidebar so it never covers a button; on a phone it starts folded as a pill. Seeded photos are drawn illustrations (no stock photos). Fabric mission uses the new Add lines from Excel on the PO screen.
 - 2026-10-22 Phase 7 go: Phase 7 is now Practice mode and missions (CLAUDE.md roadmap updated). Practice is a second Neon database "practice" on the same project. Real tailors always stay on Live; tailor missions use practice only tailor logins. The PO screen gets "Add lines from Excel" for mission 9. Reset practice also clears mission progress.
